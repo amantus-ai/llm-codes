@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
           formats: ['markdown'],
           onlyMainContent: true,
           waitFor: 2000,
+          maxAge: 2592000000, // 30 days in milliseconds (30 * 24 * 60 * 60 * 1000)
         }),
       });
 

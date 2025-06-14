@@ -13,6 +13,7 @@ export default function Home() {
   const [maxUrls, setMaxUrls] = useState(100);
   const [filterUrls, setFilterUrls] = useState(true);
   const [deduplicateContent, setDeduplicateContent] = useState(true);
+  const [filterAvailability, setFilterAvailability] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
@@ -20,6 +21,7 @@ export default function Home() {
   const [error, setError] = useState('');
   const [stats, setStats] = useState({ lines: 0, size: 0, urls: 0 });
   const [showLogs, setShowLogs] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
 
   const log = (message: string) => {
@@ -200,6 +202,9 @@ export default function Home() {
       setProgress(100);
       log(`Processing complete! Processed ${processedResults.length} URLs.`);
       
+      // Collapse activity log when processing is complete
+      setShowLogs(false);
+      
       // Show notification
       showNotification(
         '✅ Documentation Ready!',
@@ -229,6 +234,31 @@ export default function Home() {
     
     // Remove angle bracket URLs: <http://example.com> -> ''
     filtered = filtered.replace(/<https?:\/\/[^>]+>/g, '');
+    
+    return filtered;
+  };
+
+  const filterAvailabilityStrings = (markdown: string): string => {
+    if (!filterAvailability) return markdown;
+    
+    // Pattern to match availability strings like:
+    // iOS 14.0+iPadOS 14.0+Mac Catalyst 14.0+tvOS 14.0+visionOS 1.0+watchOS 7.0+
+    // iOS 2.0+Beta iPadOS 2.0+Beta macOS 10.15+ etc.
+    const availabilityPattern = /(iOS|iPadOS|macOS|Mac Catalyst|tvOS|visionOS|watchOS)[\s]*[\d.]+\+(?:Beta)?(?:\s*(?:iOS|iPadOS|macOS|Mac Catalyst|tvOS|visionOS|watchOS)[\s]*[\d.]+\+(?:Beta)?)*/g;
+    
+    // Remove standalone availability strings
+    let filtered = markdown.replace(availabilityPattern, '');
+    
+    // Also remove lines that only contain availability info (after removing the strings)
+    const lines = filtered.split('\n');
+    const filteredLines = lines.filter(line => {
+      const trimmed = line.trim();
+      // Keep the line if it has content after removing availability strings
+      return trimmed.length > 0 || line === '';
+    });
+    
+    // Clean up multiple consecutive empty lines
+    filtered = filteredLines.join('\n').replace(/\n{3,}/g, '\n\n');
     
     return filtered;
   };
@@ -327,6 +357,7 @@ Source URL: ${url}
 Total pages processed: ${results.length}
 URLs filtered: ${filterUrls ? 'Yes' : 'No'}
 Content de-duplicated: ${deduplicateContent ? 'Yes' : 'No'}
+Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
 -->
 
 `;
@@ -334,6 +365,7 @@ Content de-duplicated: ${deduplicateContent ? 'Yes' : 'No'}
     const processedResults = results.map(r => {
       let content = r.content;
       content = filterUrlsFromMarkdown(content);
+      content = filterAvailabilityStrings(content);
       content = deduplicateMarkdown(content);
       return { url: r.url, content };
     });
@@ -416,9 +448,12 @@ Content de-duplicated: ${deduplicateContent ? 'Yes' : 'No'}
                   {error}
                 </div>
               )}
+              <p className="mt-3 text-xs text-slate-500">
+                This service is limited to sub-pages of Apple's Documentation Website to reduce costs.
+              </p>
             </div>
 
-            {/* Configuration */}
+            {/* Configuration & Options */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-medium text-slate-700">Processing Configuration</h3>
@@ -479,35 +514,60 @@ Content de-duplicated: ${deduplicateContent ? 'Yes' : 'No'}
                   </p>
                 </div>
               </div>
-            </div>
-
-            {/* Options */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <h3 className="text-sm font-medium text-slate-700 mb-4">Options</h3>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={filterUrls}
-                  onChange={(e) => setFilterUrls(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                />
-                <span className="text-sm text-slate-600">Filter out all URLs</span>
-              </label>
-              <p className="mt-2 text-xs text-slate-500 ml-7">
-                Remove all hyperlinks from the markdown output
-              </p>
-              <label className="flex items-center gap-3 cursor-pointer mt-4">
-                <input
-                  type="checkbox"
-                  checked={deduplicateContent}
-                  onChange={(e) => setDeduplicateContent(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                />
-                <span className="text-sm text-slate-600">De-duplicate content</span>
-              </label>
-              <p className="mt-2 text-xs text-slate-500 ml-7">
-                Remove duplicate sections and paragraphs from the output
-              </p>
+              
+              {/* Collapsible Options */}
+              <div className="mt-6 border-t border-slate-200 pt-4">
+                <button
+                  onClick={() => setShowOptions(!showOptions)}
+                  className="flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+                >
+                  <svg className={`w-4 h-4 transition-transform ${showOptions ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  Options
+                </button>
+                
+                {showOptions && (
+                  <div className="mt-4 space-y-4">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={filterUrls}
+                        onChange={(e) => setFilterUrls(e.target.checked)}
+                        className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                      />
+                      <span className="text-sm text-slate-600">Filter out all URLs</span>
+                    </label>
+                    <p className="text-xs text-slate-500 ml-7 -mt-2">
+                      Remove all hyperlinks from the markdown output
+                    </p>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={deduplicateContent}
+                        onChange={(e) => setDeduplicateContent(e.target.checked)}
+                        className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                      />
+                      <span className="text-sm text-slate-600">De-duplicate content</span>
+                    </label>
+                    <p className="text-xs text-slate-500 ml-7 -mt-2">
+                      Remove duplicate sections and paragraphs from the output
+                    </p>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={filterAvailability}
+                        onChange={(e) => setFilterAvailability(e.target.checked)}
+                        className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                      />
+                      <span className="text-sm text-slate-600">Filter availability strings</span>
+                    </label>
+                    <p className="text-xs text-slate-500 ml-7 -mt-2">
+                      Remove platform availability info (iOS 14.0+, macOS 10.15+, etc.)
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Process Button */}
