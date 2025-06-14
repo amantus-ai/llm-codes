@@ -37,6 +37,7 @@ export default function Home() {
   const [notificationPermission, setNotificationPermission] =
     useState<NotificationPermission>('default');
   const [isIOS, setIsIOS] = useState(false);
+  const [isLogsAnimating, setIsLogsAnimating] = useState(false);
 
   const logContainerRef = useRef<HTMLDivElement>(null);
   const userScrollingRef = useRef(false);
@@ -85,6 +86,24 @@ export default function Home() {
     const isAtBottom = scrollHeight - scrollTop - clientHeight < 10; // 10px threshold
 
     userScrollingRef.current = !isAtBottom;
+  };
+
+  const toggleLogs = () => {
+    if (showLogs) {
+      // Start exit animation
+      setIsLogsAnimating(true);
+      setTimeout(() => {
+        setShowLogs(false);
+        setIsLogsAnimating(false);
+      }, 300); // Match animation duration
+    } else {
+      // Start enter animation
+      setShowLogs(true);
+      setIsLogsAnimating(true);
+      setTimeout(() => {
+        setIsLogsAnimating(false);
+      }, 300); // Match animation duration
+    }
   };
 
   const requestNotificationPermission = async () => {
@@ -1297,7 +1316,7 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
 
                 {/* Logs Toggle */}
                 <button
-                  onClick={() => setShowLogs(!showLogs)}
+                  onClick={toggleLogs}
                   className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-2"
                 >
                   <svg
@@ -1316,16 +1335,26 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                   {showLogs ? 'Hide' : 'Show'} activity log
                 </button>
 
-                {showLogs && (
+                {(showLogs || isLogsAnimating) && (
                   <div
-                    ref={logContainerRef}
-                    onScroll={handleLogScroll}
-                    className="bg-muted/50 rounded-lg p-3 max-h-48 overflow-y-auto"
+                    className={`${
+                      showLogs && !isLogsAnimating
+                        ? 'max-h-48'
+                        : showLogs && isLogsAnimating
+                          ? 'activity-log-enter'
+                          : 'activity-log-exit'
+                    }`}
                   >
-                    <div className="space-y-1 font-mono text-xs text-muted-foreground">
-                      {logs.map((log, i) => (
-                        <div key={i}>{log}</div>
-                      ))}
+                    <div
+                      ref={logContainerRef}
+                      onScroll={handleLogScroll}
+                      className="bg-muted/50 rounded-lg p-3 overflow-y-auto h-full"
+                    >
+                      <div className="space-y-1 font-mono text-xs text-muted-foreground">
+                        {logs.map((log, i) => (
+                          <div key={i}>{log}</div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}

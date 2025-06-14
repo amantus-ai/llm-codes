@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isValidDocumentationUrl } from '@/utils/url-utils';
 import { PROCESSING_CONFIG } from '@/constants';
 import { cacheService } from '@/lib/cache/redis-cache';
+import { http2Fetch } from '@/lib/http2-client';
 
 const FIRECRAWL_API_URL = 'https://api.firecrawl.dev/v1';
 
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
         }
 
         try {
-          const response = await fetch(`${FIRECRAWL_API_URL}/scrape`, {
+          const response = await http2Fetch(`${FIRECRAWL_API_URL}/scrape`, {
             method: 'POST',
             headers: {
               Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
@@ -72,11 +73,13 @@ export async function POST(request: NextRequest) {
               formats: ['markdown'],
               onlyMainContent: true,
               waitFor: PROCESSING_CONFIG.FIRECRAWL_WAIT_TIME,
-              timeout: 30000, // Add explicit timeout
+              timeout: 60000, // Increased from 30s to 60s
               headers: {
                 'User-Agent': 'Mozilla/5.0 (compatible; Documentation-Scraper/1.0)',
               },
             }),
+            // Add fetch-level timeout (90s to give Firecrawl time to complete)
+            signal: AbortSignal.timeout(90000),
           });
 
           lastStatus = response.status;

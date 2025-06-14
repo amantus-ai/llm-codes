@@ -55,7 +55,8 @@
     "react-dom": "^19.1.0",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.0.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "undici": "^7.10.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",

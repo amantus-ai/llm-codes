@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isValidDocumentationUrl } from '@/utils/url-utils';
 import { PROCESSING_CONFIG } from '@/constants';
 import { cacheService } from '@/lib/cache/redis-cache';
+import { http2Fetch } from '@/lib/http2-client';
 
 const FIRECRAWL_API_URL = 'https://api.firecrawl.dev/v1';
 
@@ -44,7 +45,7 @@ async function scrapeSingleUrl(url: string, apiKey: string): Promise<BatchResult
     }
 
     try {
-      const response = await fetch(`${FIRECRAWL_API_URL}/scrape`, {
+      const response = await http2Fetch(`${FIRECRAWL_API_URL}/scrape`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -55,11 +56,13 @@ async function scrapeSingleUrl(url: string, apiKey: string): Promise<BatchResult
           formats: ['markdown'],
           onlyMainContent: true,
           waitFor: PROCESSING_CONFIG.FIRECRAWL_WAIT_TIME,
-          timeout: 30000,
+          timeout: 60000, // Increased from 30s to 60s
           headers: {
             'User-Agent': 'Mozilla/5.0 (compatible; Documentation-Scraper/1.0)',
           },
         }),
+        // Add fetch-level timeout (90s to give Firecrawl time to complete)
+        signal: AbortSignal.timeout(90000),
       });
 
       if (response.ok) {
@@ -169,7 +172,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Limit batch size to prevent timeouts
-    const MAX_BATCH_SIZE = 25;
+    const MAX_BATCH_SIZE = 20;
     if (urls.length > MAX_BATCH_SIZE) {
       return NextResponse.json(
         { error: `Batch size exceeds maximum of ${MAX_BATCH_SIZE} URLs` },
