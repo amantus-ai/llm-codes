@@ -1118,7 +1118,7 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
           <button
             onClick={processUrl}
             disabled={isProcessing}
-            className="w-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground py-3.5 px-6 rounded-xl font-medium hover:from-primary/90 hover:to-primary/70 disabled:from-muted disabled:to-muted/80 disabled:cursor-not-allowed transition-all shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30"
+            className="w-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground py-3.5 px-6 rounded-xl font-medium hover:from-primary/90 hover:to-primary/70 disabled:from-primary/50 disabled:to-primary/40 disabled:opacity-75 disabled:cursor-not-allowed transition-all shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30"
           >
             {isProcessing ? (
               <span className="flex items-center justify-center gap-3">
