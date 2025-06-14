@@ -1,14 +1,16 @@
-import './globals.css'
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
+import './globals.css';
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Apple Docs to Markdown Converter | LLM.codes',
-  description: 'Convert Apple Developer documentation to clean, LLM-friendly Markdown format. Process SwiftUI, UIKit, AppKit docs with smart filtering, deduplication, and bulk export. Free tool by @steipete.',
-  keywords: 'Apple documentation, Markdown converter, SwiftUI docs, UIKit documentation, AppKit docs, developer tools, documentation export, LLM training data, AI-friendly docs, Apple Developer, iOS documentation, macOS documentation, Swift documentation',
+  description:
+    'Convert Apple Developer documentation to clean, LLM-friendly Markdown format. Process SwiftUI, UIKit, AppKit docs with smart filtering, deduplication, and bulk export. Free tool by @steipete.',
+  keywords:
+    'Apple documentation, Markdown converter, SwiftUI docs, UIKit documentation, AppKit docs, developer tools, documentation export, LLM training data, AI-friendly docs, Apple Developer, iOS documentation, macOS documentation, Swift documentation',
   authors: [{ name: 'Peter Steinberger', url: 'https://steipete.com' }],
   creator: 'Peter Steinberger',
   publisher: 'Peter Steinberger',
@@ -25,7 +27,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'Apple Docs to Markdown Converter',
-    description: 'Convert Apple Developer documentation to clean, LLM-friendly Markdown. Free tool with smart filtering and bulk export.',
+    description:
+      'Convert Apple Developer documentation to clean, LLM-friendly Markdown. Free tool with smart filtering and bulk export.',
     url: 'https://llm.codes',
     siteName: 'LLM.codes',
     images: [
@@ -34,7 +37,7 @@ export const metadata: Metadata = {
         width: 1200,
         height: 630,
         alt: 'Apple Docs to Markdown Converter - Transform Apple Developer documentation',
-      }
+      },
     ],
     locale: 'en_US',
     type: 'website',
@@ -42,7 +45,8 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Apple Docs to Markdown Converter',
-    description: 'Convert Apple Developer documentation to clean, LLM-friendly Markdown. Free tool by @steipete.',
+    description:
+      'Convert Apple Developer documentation to clean, LLM-friendly Markdown. Free tool by @steipete.',
     creator: '@steipete',
     images: ['https://llm.codes/og-image.png'],
   },
@@ -61,13 +65,9 @@ export const metadata: Metadata = {
     maximumScale: 5,
   },
   category: 'technology',
-}
+};
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className={inter.className}>
@@ -75,5 +75,5 @@ export default function RootLayout({
         <Analytics />
       </body>
     </html>
-  )
+  );
 }

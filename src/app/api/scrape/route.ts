@@ -11,24 +11,24 @@ const CACHE_DURATION = 30 * 24 * 60 * 60 * 1000; // 1 month
 export async function POST(request: NextRequest) {
   try {
     if (!FIRECRAWL_API_KEY) {
-      return NextResponse.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
 
     const body = await request.json();
     const { url, action } = body;
 
-    const isValidUrl = url && (
-      url.startsWith('https://developer.apple.com') ||
-      url.startsWith('https://swiftpackageindex.com/') ||
-      /^https:\/\/[^\/]+\.github\.io\//.test(url)
-    );
-    
+    const isValidUrl =
+      url &&
+      (url.startsWith('https://developer.apple.com') ||
+        url.startsWith('https://swiftpackageindex.com/') ||
+        /^https:\/\/[^\/]+\.github\.io\//.test(url));
+
     if (!isValidUrl) {
       return NextResponse.json(
-        { error: 'Invalid URL. Must be from developer.apple.com, swiftpackageindex.com, or *.github.io' },
+        {
+          error:
+            'Invalid URL. Must be from developer.apple.com, swiftpackageindex.com, or *.github.io',
+        },
         { status: 400 }
       );
     }
@@ -38,10 +38,10 @@ export async function POST(request: NextRequest) {
       const cacheKey = `scrape_${url}`;
       const cached = cache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-        return NextResponse.json({ 
-          success: true, 
+        return NextResponse.json({
+          success: true,
           data: { markdown: cached.content },
-          cached: true 
+          cached: true,
         });
       }
 
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       const response = await fetch(`${FIRECRAWL_API_URL}/scrape`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
+          Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -77,28 +77,19 @@ export async function POST(request: NextRequest) {
           timestamp: Date.now(),
         });
 
-        return NextResponse.json({ 
-          success: true, 
+        return NextResponse.json({
+          success: true,
           data: { markdown: data.data.markdown },
-          cached: false 
+          cached: false,
         });
       }
 
-      return NextResponse.json(
-        { error: 'No content returned from API' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'No content returned from API' }, { status: 500 });
     }
 
-    return NextResponse.json(
-      { error: 'Invalid action' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
     console.error('API Error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
