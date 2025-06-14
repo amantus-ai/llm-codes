@@ -222,11 +222,14 @@ export default function Home() {
               }
             } else {
               // For GitHub Pages and other sites, check if they're documentation sites
-              const pathParts = basePath.split('/').filter(p => p);
-              const linkParts = normalizedUrl.pathname.split('/').filter(p => p);
-              
+              const pathParts = basePath.split('/').filter((p) => p);
+              const linkParts = normalizedUrl.pathname.split('/').filter((p) => p);
+
               // If the base path contains 'docs' or 'documentation', allow broader exploration
-              if (pathParts.length > 0 && (pathParts[0] === 'docs' || pathParts[0] === 'documentation')) {
+              if (
+                pathParts.length > 0 &&
+                (pathParts[0] === 'docs' || pathParts[0] === 'documentation')
+              ) {
                 // Allow any path that starts with the same docs root
                 if (linkParts.length > 0 && linkParts[0] === pathParts[0]) {
                   links.add(fullUrl);
