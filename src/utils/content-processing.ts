@@ -1,3 +1,25 @@
+export function is404Page(content: string): boolean {
+  if (!content) return false;
+
+  const lowercaseContent = content.toLowerCase();
+
+  // Common 404 page indicators
+  const notFoundIndicators = [
+    "the page you're looking for can't be found",
+    'page not found',
+    '404 not found',
+    '404 error',
+    "this page doesn't exist",
+    "we couldn't find that page",
+    'the requested page could not be found',
+    "sorry, we can't find that page",
+    "oops! that page can't be found",
+    'the page you requested was not found',
+  ];
+
+  return notFoundIndicators.some((indicator) => lowercaseContent.includes(indicator));
+}
+
 export function filterUrlsFromMarkdown(markdown: string, filterUrls: boolean): string {
   if (!filterUrls) return markdown;
 
@@ -203,9 +225,7 @@ export function extractLinks(markdown: string, baseUrl: string): string[] {
         if (
           pathLower.includes('/search') ||
           pathLower.includes('/login') ||
-          pathLower.includes('/download') ||
-          linkUrl.search || // Has query parameters
-          linkUrl.hash // Has hash fragment
+          pathLower.includes('/download')
         ) {
           return false;
         }

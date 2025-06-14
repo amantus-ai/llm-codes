@@ -36,7 +36,7 @@ describe('file-utils', () => {
     global.Blob = vi.fn().mockImplementation((content, options) => ({
       size: content[0].length,
       type: options.type,
-    })) as any;
+    })) as unknown as typeof Blob;
   });
 
   describe('downloadMarkdown', () => {
@@ -57,7 +57,7 @@ describe('file-utils', () => {
 
       // Check that Blob was created with correct content
       expect(global.Blob).toHaveBeenCalled();
-      const blobContent = (global.Blob as any).mock.calls[0][0][0];
+      const blobContent = vi.mocked(global.Blob).mock.calls[0]?.[0]?.[0] as string;
       expect(blobContent).toContain('Downloaded via https://llm.codes');
       expect(blobContent).toContain('Source URL: https://example.com');
       expect(blobContent).toContain('Total pages processed: 3');
@@ -88,7 +88,7 @@ describe('file-utils', () => {
         filterAvailability: false,
       });
 
-      const blobContent = (global.Blob as any).mock.calls[0][0][0];
+      const blobContent = vi.mocked(global.Blob).mock.calls[0]?.[0]?.[0] as string;
       expect(blobContent).toContain('Check this link for more info.');
       expect(blobContent).not.toContain('[this link](https://example.com)');
     });
@@ -109,7 +109,7 @@ describe('file-utils', () => {
         filterAvailability: true,
       });
 
-      const blobContent = (global.Blob as any).mock.calls[0][0][0];
+      const blobContent = vi.mocked(global.Blob).mock.calls[0]?.[0]?.[0] as string;
       expect(blobContent).toContain('This feature is available');
       expect(blobContent).not.toContain('iOS 14.0+');
     });
@@ -130,9 +130,9 @@ describe('file-utils', () => {
         filterAvailability: false,
       });
 
-      const blobContent = (global.Blob as any).mock.calls[0][0][0];
+      const blobContent = vi.mocked(global.Blob).mock.calls[0]?.[0]?.[0] as string;
       // Should only contain duplicate content once
-      const duplicateMatches = blobContent.match(/Duplicate content/g);
+      const duplicateMatches = blobContent?.match(/Duplicate content/g);
       expect(duplicateMatches).toHaveLength(1);
       expect(blobContent).toContain('Unique content');
     });
@@ -191,7 +191,7 @@ describe('file-utils', () => {
         filterAvailability: false,
       });
 
-      const blobContent = (global.Blob as any).mock.calls[0][0][0];
+      const blobContent = vi.mocked(global.Blob).mock.calls[0]?.[0]?.[0] as string;
       expect(blobContent).toContain('Pages with content: 0');
       expect(blobContent).not.toContain('# https://example.com/page1');
       expect(blobContent).not.toContain('# https://example.com/page2');

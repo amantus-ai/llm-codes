@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { POST, _testUtils } from '../route';
+import { POST } from '../route';
 import { NextRequest } from 'next/server';
 
 // Store original env value
@@ -11,8 +11,8 @@ global.fetch = vi.fn();
 describe('POST /api/scrape', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Clear cache before each test
-    _testUtils.clearCache();
+    // Reset modules to clear cache
+    vi.resetModules();
     // Mock the API key
     process.env.FIRECRAWL_API_KEY = 'test-api-key';
   });
@@ -32,7 +32,7 @@ describe('POST /api/scrape', () => {
         },
       }),
     };
-    (global.fetch as any).mockResolvedValue(mockFirecrawlResponse);
+    vi.mocked(global.fetch).mockResolvedValue(mockFirecrawlResponse as unknown as Response);
 
     const request = new NextRequest('http://localhost:3000/api/scrape', {
       method: 'POST',
@@ -92,7 +92,7 @@ describe('POST /api/scrape', () => {
           data: { markdown: 'content' },
         }),
       };
-      (global.fetch as any).mockResolvedValue(mockResponse);
+      vi.mocked(global.fetch).mockResolvedValue(mockResponse as unknown as Response);
 
       const request = new NextRequest('http://localhost:3000/api/scrape', {
         method: 'POST',
@@ -115,12 +115,12 @@ describe('POST /api/scrape', () => {
       status: 429,
       text: vi.fn().mockResolvedValue('Rate limit exceeded'),
     };
-    (global.fetch as any).mockResolvedValue(mockResponse);
+    vi.mocked(global.fetch).mockResolvedValue(mockResponse as unknown as Response);
 
     const request = new NextRequest('http://localhost:3000/api/scrape', {
       method: 'POST',
       body: JSON.stringify({
-        url: 'https://developer.apple.com/documentation/swiftui',
+        url: 'https://developer.apple.com/documentation/rate-limit-test-unique',
         action: 'scrape',
       }),
     });
@@ -141,7 +141,7 @@ describe('POST /api/scrape', () => {
         data: { markdown: '' },
       }),
     };
-    (global.fetch as any).mockResolvedValue(mockResponse);
+    vi.mocked(global.fetch).mockResolvedValue(mockResponse as unknown as Response);
 
     const request = new NextRequest('http://localhost:3000/api/scrape', {
       method: 'POST',
@@ -201,7 +201,7 @@ describe('POST /api/scrape', () => {
         error: 'Some Firecrawl error',
       }),
     };
-    (global.fetch as any).mockResolvedValue(mockResponse);
+    vi.mocked(global.fetch).mockResolvedValue(mockResponse as unknown as Response);
 
     const request = new NextRequest('http://localhost:3000/api/scrape', {
       method: 'POST',

@@ -3,7 +3,7 @@ import { vi } from 'vitest';
 
 // Mock Next.js Image component
 vi.mock('next/image', () => ({
-  default: (props: any) => {
+  default: (props: Record<string, unknown>) => {
     return props;
   },
 }));

@@ -8,11 +8,6 @@ const FIRECRAWL_API_URL = 'https://api.firecrawl.dev/v1';
 // For now, we'll use in-memory cache (resets on deployment)
 const cache = new Map<string, { content: string; timestamp: number }>();
 
-// Export for testing purposes
-export const _testUtils = {
-  clearCache: () => cache.clear(),
-};
-
 export async function POST(request: NextRequest) {
   try {
     const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;

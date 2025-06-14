@@ -1,4 +1,4 @@
-# Apple Docs to Markdown - Comprehensive Project Specification
+# LLM Codes - Comprehensive Project Specification
 
 ## Table of Contents
 1. [Executive Summary](#executive-summary)
@@ -16,7 +16,7 @@
 
 ## Executive Summary
 
-Apple Docs to Markdown is a sophisticated web application that transforms official documentation from Apple Developer, Swift Package Index, and GitHub Pages into clean, AI-optimized markdown files. The tool addresses the critical gap between rapidly evolving APIs and AI coding assistants' knowledge cutoffs, enabling developers to provide current documentation context for better code generation.
+LLM Codes is a powerful web application that transforms technical documentation from 69+ major documentation sites into clean, AI-optimized markdown files. Supporting everything from programming languages and web frameworks to cloud platforms and AI/ML libraries, the tool addresses the critical gap between rapidly evolving technologies and AI coding assistants' knowledge cutoffs, enabling developers to provide current documentation context across the entire development ecosystem for better code generation.
 
 ## Problem Statement
 
@@ -38,20 +38,98 @@ The application provides:
 
 ## Supported Documentation Sources
 
-### 1. Apple Developer Documentation
-- **URL Pattern**: `https://developer.apple.com/documentation/*`
-- **Structure**: Hierarchical with framework → class → method organization
-- **Crawling**: Respects documentation boundaries (e.g., stays within `/documentation/appkit/*`)
+LLM Codes supports 69 documentation sites across 10 major categories:
 
-### 2. Swift Package Index
-- **URL Pattern**: `https://swiftpackageindex.com/*`
-- **Structure**: Package-based organization with version support
-- **Crawling**: Follows package documentation hierarchy
+### Programming Languages (10 sites)
+- **Python** (`https://docs.python.org`)
+- **MDN Web Docs** (`https://developer.mozilla.org`) - JavaScript/Web APIs
+- **TypeScript** (`https://www.typescriptlang.org/docs`)
+- **Rust** (`https://doc.rust-lang.org`)
+- **Go** (`https://golang.org/doc`)
+- **Java** (`https://docs.oracle.com/javase`)
+- **Ruby** (`https://ruby-doc.org`)
+- **PHP** (`https://www.php.net/docs.php`)
+- **Swift** (`https://docs.swift.org`)
+- **Kotlin** (`https://kotlinlang.org/docs`)
 
-### 3. GitHub Pages
-- **URL Pattern**: `https://*.github.io/*` (any subdomain)
-- **Structure**: Variable, project-dependent
-- **Crawling**: Intelligent relative/absolute URL handling
+### Web Frameworks (10 sites)
+- **React** (`https://react.dev`)
+- **Vue.js** (`https://vuejs.org`)
+- **Angular** (`https://angular.io/docs`)
+- **Next.js** (`https://nextjs.org/docs`)
+- **Nuxt** (`https://nuxt.com/docs`)
+- **Svelte** (`https://svelte.dev/docs`)
+- **Django** (`https://docs.djangoproject.com`)
+- **Flask** (`https://flask.palletsprojects.com`)
+- **Express.js** (`https://expressjs.com`)
+- **Laravel** (`https://laravel.com/docs`)
+
+### Cloud Platforms (7 sites)
+- **AWS** (`https://docs.aws.amazon.com`)
+- **Google Cloud** (`https://cloud.google.com/docs`)
+- **Azure** (`https://docs.microsoft.com/azure`)
+- **DigitalOcean** (`https://docs.digitalocean.com`)
+- **Heroku** (`https://devcenter.heroku.com`)
+- **Vercel** (`https://vercel.com/docs`)
+- **Netlify** (`https://docs.netlify.com`)
+
+### Databases (7 sites)
+- **PostgreSQL** (`https://www.postgresql.org/docs`)
+- **MongoDB** (`https://docs.mongodb.com`)
+- **MySQL** (`https://dev.mysql.com/doc`)
+- **Redis** (`https://redis.io/docs`)
+- **Elasticsearch** (`https://www.elastic.co/guide`)
+- **Couchbase** (`https://docs.couchbase.com`)
+- **Cassandra** (`https://cassandra.apache.org/doc`)
+
+### DevOps & Infrastructure (6 sites)
+- **Docker** (`https://docs.docker.com`)
+- **Kubernetes** (`https://kubernetes.io/docs`)
+- **Terraform** (`https://www.terraform.io/docs`)
+- **Ansible** (`https://docs.ansible.com`)
+- **GitHub** (`https://docs.github.com`)
+- **GitLab** (`https://docs.gitlab.com`)
+
+### AI/ML Libraries (7 sites)
+- **PyTorch** (`https://pytorch.org/docs`)
+- **TensorFlow** (`https://www.tensorflow.org/api_docs`)
+- **Hugging Face** (`https://huggingface.co/docs`)
+- **scikit-learn** (`https://scikit-learn.org/stable`)
+- **LangChain** (`https://docs.langchain.com`)
+- **pandas** (`https://pandas.pydata.org/docs`)
+- **NumPy** (`https://numpy.org/doc`)
+
+### CSS Frameworks (5 sites)
+- **Tailwind CSS** (`https://tailwindcss.com/docs`)
+- **Bootstrap** (`https://getbootstrap.com/docs`)
+- **Material-UI** (`https://mui.com/material-ui`)
+- **Chakra UI** (`https://chakra-ui.com/docs`)
+- **Bulma** (`https://bulma.io/documentation`)
+
+### Build Tools & Package Managers (6 sites)
+- **npm** (`https://docs.npmjs.com`)
+- **webpack** (`https://webpack.js.org/docs`)
+- **Vite** (`https://vitejs.dev/guide`)
+- **pip** (`https://pip.pypa.io/en/stable`)
+- **Cargo** (`https://doc.rust-lang.org/cargo`)
+- **Maven** (`https://maven.apache.org/guides`)
+
+### Testing Frameworks (5 sites)
+- **Jest** (`https://jestjs.io/docs`)
+- **Cypress** (`https://docs.cypress.io`)
+- **Playwright** (`https://playwright.dev/docs`)
+- **pytest** (`https://docs.pytest.org`)
+- **Mocha** (`https://mochajs.org`)
+
+### Mobile Development (4 sites)
+- **React Native** (`https://reactnative.dev/docs`)
+- **Flutter** (`https://flutter.dev/docs`)
+- **Android** (`https://developer.android.com/docs`)
+- **Apple Developer** (`https://developer.apple.com`)
+
+### Special Support
+- **Swift Package Index** (`https://swiftpackageindex.com/`)
+- **GitHub Pages** (`https://*.github.io/*` - any subdomain)
 
 ## Technical Architecture
 
@@ -71,17 +149,31 @@ The application provides:
 - External Service: Firecrawl API
 - Caching: In-memory Map with 30-day TTL
 - Environment: Requires FIRECRAWL_API_KEY
+- Testing: Vitest with full coverage support
+- Batch Processing: 20 concurrent URL fetches
 ```
 
 ### Project Structure
 ```
-/src/app/
-├── page.tsx          # Main application UI
-├── api/
-│   └── scrape/
-│       └── route.ts  # API endpoint for scraping
-├── manifest.json     # PWA manifest
-└── globals.css       # Global styles
+/src/
+├── app/
+│   ├── page.tsx              # Main application UI with popover
+│   ├── api/
+│   │   └── scrape/
+│   │       ├── route.ts      # API endpoint for scraping
+│   │       └── __tests__/    # API tests
+│   ├── manifest.json         # PWA manifest
+│   └── globals.css           # Global styles
+├── constants.ts              # Configuration constants & domains
+├── utils/                    # Utility functions
+│   ├── content-processing.ts # Content cleaning algorithms
+│   ├── file-utils.ts         # File download handling
+│   ├── notifications.ts      # Browser notification system
+│   ├── scraping.ts           # Scraping utilities
+│   ├── url-utils.ts          # URL validation & handling
+│   └── __tests__/            # Comprehensive test suite
+└── test/
+    └── setup.ts              # Test configuration
 ```
 
 ## Core Features
@@ -90,21 +182,29 @@ The application provides:
 
 #### Validation Logic
 ```typescript
-const isValidUrl = url && (
-  url.startsWith('https://developer.apple.com') ||
-  url.startsWith('https://swiftpackageindex.com/') ||
-  /^https:\/\/[^\/]+\.github\.io\//.test(url)
-);
+export function isValidDocumentationUrl(url: string): boolean {
+  if (!url) return false;
+
+  // Check each allowed domain (69 total)
+  return Object.values(ALLOWED_DOMAINS).some((domain) => {
+    if (typeof domain.pattern === 'string') {
+      return url.startsWith(domain.pattern);
+    } else if (typeof domain.pattern === 'object' && domain.pattern instanceof RegExp) {
+      return domain.pattern.test(url);
+    }
+    return false;
+  });
+}
 ```
 
 #### Processing Pipeline
-1. Validate URL against whitelist
+1. Validate URL against 69 whitelisted domains
 2. Check in-memory cache (30-day retention)
 3. Fetch via Firecrawl API with options:
    - `formats: ['markdown']`
    - `onlyMainContent: true`
-   - `waitFor: 2000ms`
-   - `maxAge: 2592000000ms`
+   - `waitFor: 5000ms`
+   - `maxAge: 2592000000ms` (30 days)
 4. Apply content transformations
 5. Update cache and return result
 
@@ -112,8 +212,10 @@ const isValidUrl = url && (
 
 #### Depth Configuration
 - **Range**: 0-5 levels (0 = single page only)
-- **Default**: 1 level
+- **Default**: 2 levels
 - **Behavior**: Depth-first traversal with URL deduplication
+- **Batch Size**: 20 URLs processed concurrently
+- **Batch Delay**: 500ms between batches
 
 #### URL Discovery Algorithm
 ```javascript
@@ -241,8 +343,13 @@ const progressPercentage = Math.min(
 - Success: Green (#22c55e)
 - Error: Red with proper contrast
 - Background: Slate gradient (#f8fafc → #f1f5f9)
+- Dark mode support with appropriate color variants
 
-#### Animations
+#### Interactive Elements
+- **Popover UI**: Click "This document parser supports a list of selected websites" to view all 69 sites
+  - Organized by category with scrollable content
+  - Each site is clickable with example URLs
+  - "Open an Issue on GitHub!" link at bottom
 - Button pulse on hover
 - Loading spinner during processing
 - Smooth transitions for collapsible sections
@@ -309,14 +416,17 @@ if (isNearBottom) {
 const [url, setUrl] = useState('');
 const [isProcessing, setIsProcessing] = useState(false);
 const [progress, setProgress] = useState(0);
-const [results, setResults] = useState<PageResult[]>([]);
-const [logs, setLogs] = useState<LogEntry[]>([]);
+const [results, setResults] = useState<ProcessingResult[]>([]);
+const [logs, setLogs] = useState<string[]>([]);
 const [error, setError] = useState('');
-const [crawlDepth, setCrawlDepth] = useState(1);
-const [maxUrls, setMaxUrls] = useState(200);
+const [depth, setDepth] = useState(PROCESSING_CONFIG.DEFAULT_CRAWL_DEPTH);
+const [maxUrls, setMaxUrls] = useState(PROCESSING_CONFIG.DEFAULT_MAX_URLS);
 const [filterUrls, setFilterUrls] = useState(true);
 const [deduplicateContent, setDeduplicateContent] = useState(true);
 const [filterAvailability, setFilterAvailability] = useState(true);
+const [showWebsitesList, setShowWebsitesList] = useState(false);
+const [showLogs, setShowLogs] = useState(false);
+const [showOptions, setShowOptions] = useState(false);
 ```
 
 ### 2. Error Handling
@@ -356,8 +466,10 @@ const [filterAvailability, setFilterAvailability] = useState(true);
 
 - **Initial Load**: < 2 seconds
 - **Per-URL Processing**: ~2-5 seconds (includes wait time)
+- **Concurrent Processing**: 20 URLs in parallel (2x faster than v1)
 - **Memory Usage**: Linear with processed URLs
 - **Cache Hit Rate**: High for repeated documentation sections
+- **Batch Delay**: 500ms between batches to prevent API overload
 
 ## Browser Support
 
@@ -392,7 +504,7 @@ const [filterAvailability, setFilterAvailability] = useState(true);
 #### Response (Error)
 ```json
 {
-  "error": "Invalid URL. Must be from developer.apple.com, swiftpackageindex.com, or *.github.io"
+  "error": "Invalid URL. Must be from one of the 69 supported documentation sites"
 }
 ```
 
@@ -423,17 +535,22 @@ const [filterAvailability, setFilterAvailability] = useState(true);
 ### For Best Results
 
 1. **Start with overview pages** rather than deep API references
-2. **Use appropriate crawl depth** (1-2 for most cases)
+2. **Use appropriate crawl depth** (2-3 for most cases)
 3. **Enable all cleaning options** for AI consumption
 4. **Store files with descriptive names** in your project
 5. **Reference by filename** in AI assistant prompts
+6. **Check the popover** to ensure your documentation site is supported
 
 ### Common Use Cases
 
-1. **Framework Updates**: Get latest SwiftUI or UIKit changes
-2. **New API Discovery**: Explore recently added frameworks
-3. **Third-party Packages**: Document Swift packages for AI context
-4. **Project Documentation**: Convert GitHub Pages docs for AI training
+1. **Framework Updates**: Get latest React, Vue, Angular, or SwiftUI changes
+2. **Language References**: Document Python, TypeScript, Rust, or Go APIs
+3. **Cloud Documentation**: Capture AWS, GCP, or Azure service docs
+4. **Database Guides**: Convert PostgreSQL, MongoDB, or Redis documentation
+5. **AI/ML Libraries**: Document PyTorch, TensorFlow, or Hugging Face APIs
+6. **DevOps Tools**: Capture Docker, Kubernetes, or Terraform guides
+7. **Third-party Packages**: Document any package from supported platforms
+8. **Project Documentation**: Convert GitHub Pages docs for AI training
 
 ## Development Notes
 
@@ -442,6 +559,11 @@ const [filterAvailability, setFilterAvailability] = useState(true);
 npm install
 npm run dev
 # Visit http://localhost:3000
+
+# Run tests
+npm test
+npm run test:ui
+npm run test:coverage
 ```
 
 ### Environment Setup
@@ -459,6 +581,31 @@ FIRECRAWL_API_KEY=your_api_key_here
 
 Created by [@steipete](https://twitter.com/steipete) | Powered by [Firecrawl](https://firecrawl.dev)
 
+## Testing Suite
+
+### Test Coverage
+The project includes comprehensive test coverage using Vitest:
+- **API Route Tests**: Full coverage of scraping endpoint
+- **Utility Tests**: All content processing functions tested
+- **URL Validation**: Tests for all 69 supported domains
+- **File Generation**: Download and filename generation tests
+- **Error Handling**: Edge cases and failure scenarios
+
+### Running Tests
+```bash
+# Run all tests
+npm test
+
+# Interactive test UI
+npm run test:ui  
+
+# Coverage report
+npm run test:coverage
+
+# Type checking
+npm run type-check
+```
+
 ---
 
-*This specification reflects the complete implementation as of the latest commit.*
+*This specification reflects the complete implementation as of the latest commit, supporting 69 documentation sites across 10 categories.*

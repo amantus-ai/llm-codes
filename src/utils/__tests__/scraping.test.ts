@@ -19,7 +19,7 @@ describe('scraping', () => {
           },
         }),
       };
-      (global.fetch as any).mockResolvedValue(mockResponse);
+      vi.mocked(global.fetch).mockResolvedValue(mockResponse as unknown as Response);
 
       const result = await scrapeUrl('https://example.com');
 
@@ -39,7 +39,7 @@ describe('scraping', () => {
           error: 'Invalid URL',
         }),
       };
-      (global.fetch as any).mockResolvedValue(mockResponse);
+      vi.mocked(global.fetch).mockResolvedValue(mockResponse as unknown as Response);
 
       await expect(scrapeUrl('https://invalid.com')).rejects.toThrow('Invalid URL');
     });
@@ -53,7 +53,7 @@ describe('scraping', () => {
           },
         }),
       };
-      (global.fetch as any).mockResolvedValue(mockResponse);
+      vi.mocked(global.fetch).mockResolvedValue(mockResponse as unknown as Response);
 
       const result = await scrapeUrl('https://example.com');
       expect(result).toBe('');
@@ -66,14 +66,14 @@ describe('scraping', () => {
           data: {},
         }),
       };
-      (global.fetch as any).mockResolvedValue(mockResponse);
+      vi.mocked(global.fetch).mockResolvedValue(mockResponse as unknown as Response);
 
       const result = await scrapeUrl('https://example.com');
       expect(result).toBe('');
     });
 
     it('should handle network errors', async () => {
-      (global.fetch as any).mockRejectedValue(new Error('Network error'));
+      vi.mocked(global.fetch).mockRejectedValue(new Error('Network error'));
 
       await expect(scrapeUrl('https://example.com')).rejects.toThrow('Network error');
     });
@@ -84,7 +84,7 @@ describe('scraping', () => {
           success: false,
         }),
       };
-      (global.fetch as any).mockResolvedValue(mockResponse);
+      vi.mocked(global.fetch).mockResolvedValue(mockResponse as unknown as Response);
 
       await expect(scrapeUrl('https://example.com')).rejects.toThrow(
         'Scraping failed - unknown error'

@@ -41,6 +41,23 @@ export function updateUrlWithDocumentation(url: string): void {
   window.history.replaceState({}, '', newUrl);
 }
 
+export function normalizeUrl(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    // Remove fragment and query parameters
+    urlObj.hash = '';
+    urlObj.search = '';
+    // Remove trailing slash if it's not the root path
+    let normalized = urlObj.toString();
+    if (normalized.endsWith('/') && urlObj.pathname !== '/') {
+      normalized = normalized.slice(0, -1);
+    }
+    return normalized;
+  } catch {
+    return url;
+  }
+}
+
 export function generateFilename(url: string): string {
   try {
     const urlObj = new URL(url);

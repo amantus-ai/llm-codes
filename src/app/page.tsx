@@ -7,8 +7,9 @@ import {
   getSupportedDomainsText,
   extractUrlFromQueryString,
   updateUrlWithDocumentation,
+  normalizeUrl,
 } from '@/utils/url-utils';
-import { extractLinks } from '@/utils/content-processing';
+import { extractLinks, is404Page } from '@/utils/content-processing';
 import { scrapeUrl } from '@/utils/scraping';
 import { downloadMarkdown } from '@/utils/file-utils';
 import { requestNotificationPermission, showNotification } from '@/utils/notifications';
@@ -100,7 +101,7 @@ export default function Home() {
 
     // Process URLs in batches for parallel fetching
     const urlsToProcess = urls.filter(
-      (url) => !processedUrls.has(url) && processedUrls.size < maxUrlsToProcess
+      (url) => !processedUrls.has(normalizeUrl(url)) && processedUrls.size < maxUrlsToProcess
     );
 
     // Process in batches
@@ -112,7 +113,7 @@ export default function Home() {
       const batchToProcess = batch.slice(0, remainingCapacity);
 
       // Mark URLs as processed before fetching to avoid duplicates
-      batchToProcess.forEach((url) => processedUrls.add(url));
+      batchToProcess.forEach((url) => processedUrls.add(normalizeUrl(url)));
 
       // Log batch processing
       log(`🚀 Processing batch of ${batchToProcess.length} URLs at depth ${currentDepth}...`);
@@ -125,6 +126,9 @@ export default function Home() {
 
           if (!content) {
             log(`⚠️ Warning: Empty content returned for ${url}`);
+          } else if (is404Page(content)) {
+            log(`❌ 404 Page detected: ${url}`);
+            return { url, content: '' }; // Return empty content for 404 pages
           } else {
             log(
               `✅ Successfully scraped ${content.length.toLocaleString()} characters from ${url}`
@@ -135,7 +139,7 @@ export default function Home() {
           if (currentDepth < maxDepth && content) {
             const links = extractLinks(content, baseUrl || urls[0]);
             links.forEach((link) => {
-              if (!processedUrls.has(link)) {
+              if (!processedUrls.has(normalizeUrl(link))) {
                 newUrls.add(link);
               }
             });
@@ -275,10 +279,10 @@ export default function Home() {
 
       // Calculate stats
       const successfulResults = processedResults.filter(
-        (r) => r.content && r.content.trim().length > 0
+        (r) => r.content && r.content.trim().length > 0 && !is404Page(r.content)
       );
       const failedResults = processedResults.filter(
-        (r) => !r.content || r.content.trim().length === 0
+        (r) => !r.content || r.content.trim().length === 0 || is404Page(r.content)
       );
 
       const content = processedResults.map((r) => `# ${r.url}\n\n${r.content}\n\n---\n\n`).join('');
@@ -365,7 +369,7 @@ export default function Home() {
               priority
             />
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
-              Docs to Markdown Converter
+              Web Documentation to Markdown Converter
             </h1>
           </div>
           <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">

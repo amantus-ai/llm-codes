@@ -1,21 +1,23 @@
-# Apple Docs to Markdown
+# LLM Codes
 
-A modern web application that converts Apple Developer documentation to clean, readable Markdown format. Built with Next.js 15, Tailwind CSS v4, and TypeScript.
+A powerful web application that converts technical documentation from 69+ major documentation sites into clean, AI-optimized Markdown format. Transform documentation from programming languages, frameworks, cloud platforms, databases, and more into LLM-friendly content. Built with Next.js 15, Tailwind CSS v4, and TypeScript.
 
-![Apple Docs to Markdown](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=nextdotjs)
+![LLM Codes](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=nextdotjs)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=flat-square&logo=tailwind-css)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?style=flat-square&logo=typescript)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
 ## Features
 
-- 🚀 **Fast Processing**: Server-side API handling with intelligent caching
-- 📊 **Configurable Crawling**: Set depth and maximum URLs to process
-- 💾 **Smart Caching**: 1-month cache to reduce API calls and improve performance
+- 🌐 **69+ Supported Sites**: Documentation from major programming languages, frameworks, cloud platforms, and more
+- 🚀 **Fast Parallel Processing**: Process up to 20 URLs concurrently for 2x faster results
+- 📊 **Configurable Crawling**: Set depth (0-5) and maximum URLs (1-1000) to process
+- 💾 **Smart Caching**: 30-day cache to reduce API calls and improve performance
 - 🔔 **Browser Notifications**: Get notified when your documentation is ready
-- 📱 **Responsive Design**: Works beautifully on desktop and mobile
+- 📱 **Responsive Design**: Works beautifully on desktop and mobile with interactive popover UI
 - ⚡ **Turbopack**: Lightning-fast development with Next.js Turbopack
-- 🎨 **Modern UI**: Sleek, professional interface with smooth animations
+- 🎨 **Modern UI**: Sleek interface with categorized site browser and smooth animations
+- 🧪 **Comprehensive Testing**: Full test suite with Vitest for reliability
 - 🔒 **Secure**: API keys stored safely on server-side
 
 ## Live Demo
@@ -36,8 +38,8 @@ Experience the tool instantly without any setup required.
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/apple-docs-to-markdown.git
-cd apple-docs-to-markdown
+git clone https://github.com/amantus-ai/llm-codes.git
+cd llm-codes
 ```
 
 2. Install dependencies:
@@ -68,7 +70,7 @@ npm run dev
 
 The easiest way to deploy is using Vercel:
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Famantusai%2Fllm-tech&env=FIRECRAWL_API_KEY&envDescription=Your%20Firecrawl%20API%20key&envLink=https%3A%2F%2Ffirecrawl.dev)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Famantus-ai%2Fllm-codes&env=FIRECRAWL_API_KEY&envDescription=Your%20Firecrawl%20API%20key&envLink=https%3A%2F%2Ffirecrawl.dev)
 
 1. Click the button above
 2. Create a new repository
@@ -85,22 +87,34 @@ The easiest way to deploy is using Vercel:
 
 ## Usage
 
-1. **Enter URL**: Paste any Apple Developer documentation URL (must start with `https://developer.apple.com`)
+1. **Enter URL**: Paste any documentation URL from one of the 69 supported sites
+   - Click on "This document parser supports a list of selected websites" to see all supported sites
+   - Sites are organized by category for easy browsing
 
-2. **Configure Options**:
-   - **Crawl Depth**: How deep to follow links (0 = main page only)
-   - **Max URLs**: Maximum number of pages to process
+2. **Configure Options** (click "Show Options"):
+   - **Crawl Depth**: How deep to follow links (0 = main page only, max 5)
+   - **Max URLs**: Maximum number of pages to process (1-1000, default 200)
+   - **Filter URLs**: Remove hyperlinks from content (recommended for LLMs)
+   - **Deduplicate Content**: Remove duplicate paragraphs to save tokens
+   - **Filter Availability**: Remove platform availability strings (iOS 14.0+, etc.)
 
 3. **Process**: Click "Process Documentation" and grant notification permissions if prompted
 
-4. **Download**: Once complete, download your clean Markdown file
+4. **Monitor Progress**: 
+   - Real-time progress bar shows completion percentage
+   - Activity log displays detailed processing information
+   - Browser notifications alert you when complete
+
+5. **Download**: View statistics and download your clean Markdown file
 
 ## Configuration Options
 
 | Option | Description | Default | Range |
 |--------|-------------|---------|-------|
-| Crawl Depth | How many levels deep to follow links | 1 | 0-5 |
-| Max URLs | Maximum number of URLs to process | 50 | 1-1000 |
+| Crawl Depth | How many levels deep to follow links | 2 | 0-5 |
+| Max URLs | Maximum number of URLs to process | 200 | 1-1000 |
+| Batch Size | URLs processed concurrently | 20 | N/A |
+| Cache Duration | How long results are cached | 30 days | N/A |
 
 ## API Reference
 
@@ -108,12 +122,12 @@ The app exposes a single API endpoint:
 
 ### POST `/api/scrape`
 
-Scrapes and converts Apple Developer documentation to Markdown.
+Scrapes and converts documentation from any of the 69 supported sites to Markdown.
 
 **Request Body:**
 ```json
 {
-  "url": "https://developer.apple.com/documentation/swift",
+  "url": "https://react.dev/learn",
   "action": "scrape"
 }
 ```
@@ -141,22 +155,35 @@ Scrapes and converts Apple Developer documentation to Markdown.
 ## Project Structure
 
 ```
-apple-docs-to-markdown/
+llm-codes/
 ├── src/
-│   └── app/
-│       ├── api/
-│       │   └── scrape/
-│       │       └── route.ts      # API endpoint
-│       ├── globals.css           # Global styles & Tailwind
-│       ├── layout.tsx            # Root layout
-│       ├── page.tsx              # Main page component
-│       └── icon.tsx              # Dynamic favicon
+│   ├── app/
+│   │   ├── api/
+│   │   │   └── scrape/
+│   │   │       ├── route.ts           # API endpoint
+│   │   │       └── __tests__/         # API tests
+│   │   ├── globals.css                # Global styles & Tailwind
+│   │   ├── layout.tsx                 # Root layout
+│   │   ├── page.tsx                   # Main page component
+│   │   └── icon.tsx                   # Dynamic favicon
+│   ├── constants.ts                   # Configuration constants
+│   ├── utils/                         # Utility functions
+│   │   ├── content-processing.ts      # Content cleaning logic
+│   │   ├── file-utils.ts              # File handling
+│   │   ├── notifications.ts           # Browser notifications
+│   │   ├── scraping.ts                # Scraping utilities
+│   │   ├── url-utils.ts               # URL validation & handling
+│   │   └── __tests__/                 # Utility tests
+│   └── test/
+│       └── setup.ts                   # Test configuration
 ├── public/
-│   └── favicon.svg               # Static favicon
-├── next.config.js                # Next.js configuration
-├── postcss.config.js             # PostCSS with Tailwind v4
-├── tsconfig.json                 # TypeScript configuration
-└── package.json                  # Dependencies
+│   └── favicon.svg                    # Static favicon
+├── next.config.js                     # Next.js configuration
+├── postcss.config.js                  # PostCSS with Tailwind v4
+├── tsconfig.json                      # TypeScript configuration
+├── vitest.config.ts                   # Vitest test configuration
+├── spec.md                            # Detailed specification
+└── package.json                       # Dependencies
 ```
 
 ## Development
@@ -164,7 +191,17 @@ apple-docs-to-markdown/
 ### Running Tests
 
 ```bash
+# Run all tests
 npm test
+
+# Run tests with UI
+npm run test:ui
+
+# Run tests with coverage
+npm run test:coverage
+
+# Type checking
+npm run type-check
 ```
 
 ### Building for Production
@@ -212,10 +249,48 @@ The app includes a 1-month cache to minimize API calls. If you're hitting rate l
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## Supported Documentation Sites
+
+LLM Codes supports 69 documentation sites across multiple categories:
+
+### Programming Languages
+- Python, MDN Web Docs, TypeScript, Rust, Go, Java, Ruby, PHP, Swift, Kotlin
+
+### Web Frameworks  
+- React, Vue.js, Angular, Next.js, Nuxt, Svelte, Django, Flask, Express.js, Laravel
+
+### Cloud Platforms
+- AWS, Google Cloud, Azure, DigitalOcean, Heroku, Vercel, Netlify
+
+### Databases
+- PostgreSQL, MongoDB, MySQL, Redis, Elasticsearch, Couchbase, Cassandra
+
+### DevOps & Infrastructure
+- Docker, Kubernetes, Terraform, Ansible, GitHub, GitLab
+
+### AI/ML Libraries
+- PyTorch, TensorFlow, Hugging Face, scikit-learn, LangChain, pandas, NumPy
+
+### CSS Frameworks
+- Tailwind CSS, Bootstrap, Material-UI, Chakra UI, Bulma
+
+### Build Tools & Package Managers
+- npm, webpack, Vite, pip, Cargo, Maven
+
+### Testing Frameworks
+- Jest, Cypress, Playwright, pytest, Mocha
+
+### Mobile Development
+- React Native, Flutter, Android, Apple Developer
+
+## Missing a Site?
+
+If you need support for a documentation site that's not listed, please [open an issue on GitHub](https://github.com/amantus-ai/llm-codes/issues)!
+
 ## Acknowledgments
 
 - Built with [Firecrawl](https://firecrawl.dev/) for powerful web scraping
-- Inspired by the need for clean, readable Apple documentation
+- Inspired by the need for clean, readable documentation across the entire development ecosystem
 - Thanks to the Next.js and Tailwind CSS teams for amazing tools
 
 ## Support

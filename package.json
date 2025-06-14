@@ -1,7 +1,7 @@
 {
-  "name": "apple-docs-to-markdown",
+  "name": "llm-codes",
   "version": "1.0.0",
-  "description": "Convert Apple Developer documentation to clean, readable Markdown format",
+  "description": "Convert documentation from various sources to clean, readable Markdown format for LLMs",
   "scripts": {
     "dev": "next dev --turbo",
     "build": "next build",
@@ -9,7 +9,8 @@
     "lint": "next lint",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "type-check": "tsc --noEmit"
   },
   "keywords": [
     "apple",
@@ -53,6 +54,7 @@
     "@typescript-eslint/eslint-plugin": "^8.34.0",
     "@typescript-eslint/parser": "^8.34.0",
     "@vitejs/plugin-react": "^4.5.2",
+    "@vitest/coverage-v8": "^3.2.3",
     "@vitest/ui": "^3.2.3",
     "eslint": "^9.29.0",
     "eslint-config-next": "^15.3.3",

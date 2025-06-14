@@ -4,6 +4,7 @@ import {
   filterUrlsFromMarkdown,
   filterAvailabilityStrings,
   deduplicateMarkdown,
+  is404Page,
 } from './content-processing';
 
 interface ProcessingResult {
@@ -34,11 +35,17 @@ export function downloadMarkdown(options: DownloadOptions): void {
     minute: '2-digit',
   });
 
+  const validPages = results.filter(
+    (r) => r.content && r.content.trim().length > 0 && !is404Page(r.content)
+  );
+  const notFoundPages = results.filter((r) => r.content && is404Page(r.content));
+
   const header = `<!--
 Downloaded via https://llm.codes by @steipete on ${dateStr} at ${timeStr}
 Source URL: ${url}
 Total pages processed: ${results.length}
-Pages with content: ${results.filter((r) => r.content && r.content.trim().length > 0).length}
+Pages with content: ${validPages.length}
+404 pages filtered: ${notFoundPages.length}
 URLs filtered: ${filterUrls ? 'Yes' : 'No'}
 Content de-duplicated: ${deduplicateContent ? 'Yes' : 'No'}
 Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
@@ -47,7 +54,7 @@ Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
 `;
 
   const processedResults = results
-    .filter((r) => r.content && r.content.trim().length > 0) // Only include results with actual content
+    .filter((r) => r.content && r.content.trim().length > 0 && !is404Page(r.content)) // Only include results with actual content and exclude 404 pages
     .map((r) => {
       let content = r.content;
       content = removeCommonPhrases(content); // Remove common phrases first
