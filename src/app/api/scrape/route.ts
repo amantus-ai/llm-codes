@@ -6,7 +6,7 @@ const FIRECRAWL_API_URL = 'https://api.firecrawl.dev/v1';
 // Cache implementation using Edge Runtime KV storage would go here
 // For now, we'll use in-memory cache (resets on deployment)
 const cache = new Map<string, { content: string; timestamp: number }>();
-const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 1 week
+const CACHE_DURATION = 30 * 24 * 60 * 60 * 1000; // 1 month
 
 export async function POST(request: NextRequest) {
   try {

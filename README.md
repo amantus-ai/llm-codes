@@ -11,7 +11,7 @@ A modern web application that converts Apple Developer documentation to clean, r
 
 - 🚀 **Fast Processing**: Server-side API handling with intelligent caching
 - 📊 **Configurable Crawling**: Set depth and maximum URLs to process
-- 💾 **Smart Caching**: 1-week cache to reduce API calls and improve performance
+- 💾 **Smart Caching**: 1-month cache to reduce API calls and improve performance
 - 🔔 **Browser Notifications**: Get notified when your documentation is ready
 - 📱 **Responsive Design**: Works beautifully on desktop and mobile
 - ⚡ **Turbopack**: Lightning-fast development with Next.js Turbopack
@@ -212,7 +212,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ### API Rate Limits?
 
-The app includes a 1-week cache to minimize API calls. If you're hitting rate limits:
+The app includes a 1-month cache to minimize API calls. If you're hitting rate limits:
 - Reduce crawl depth
 - Lower maximum URLs
 - Wait for cached results

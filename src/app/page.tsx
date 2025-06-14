@@ -11,6 +11,7 @@ export default function Home() {
   const [url, setUrl] = useState('');
   const [depth, setDepth] = useState(1);
   const [maxUrls, setMaxUrls] = useState(100);
+  const [filterUrls, setFilterUrls] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
@@ -44,8 +45,8 @@ export default function Home() {
     if ('Notification' in window && Notification.permission === 'granted') {
       const notification = new Notification(title, {
         body,
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
+        icon: '/logo.png',
+        badge: '/logo.png',
         tag: 'apple-docs-converter',
         requireInteraction: false,
       });
@@ -215,17 +216,67 @@ export default function Home() {
     }
   };
 
+  const filterUrlsFromMarkdown = (markdown: string): string => {
+    if (!filterUrls) return markdown;
+    
+    // Remove markdown links: [text](url) -> text
+    let filtered = markdown.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+    
+    // Remove bare URLs (http://, https://, ftp://, etc.)
+    filtered = filtered.replace(/https?:\/\/[^\s\)]+/g, '');
+    filtered = filtered.replace(/ftp:\/\/[^\s\)]+/g, '');
+    
+    // Remove angle bracket URLs: <http://example.com> -> ''
+    filtered = filtered.replace(/<https?:\/\/[^>]+>/g, '');
+    
+    return filtered;
+  };
+
   const downloadMarkdown = () => {
-    const content = results.map(r => `# ${r.url}\n\n${r.content}\n\n---\n\n`).join('');
+    // Generate header with attribution
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    const timeStr = now.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+    
+    const header = `<!--
+Downloaded via https://llm.codes by @steipete on ${dateStr} at ${timeStr}
+Source URL: ${url}
+Total pages processed: ${results.length}
+URLs filtered: ${filterUrls ? 'Yes' : 'No'}
+-->
+
+`;
+    
+    const processedResults = results.map(r => ({
+      url: r.url,
+      content: filterUrlsFromMarkdown(r.content)
+    }));
+    
+    const content = header + processedResults.map(r => `# ${r.url}\n\n${r.content}\n\n---\n\n`).join('');
     const blob = new Blob([content], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
+    const downloadUrl = URL.createObjectURL(blob);
+    
+    // Generate filename from the original URL
+    const urlPath = url.replace('https://developer.apple.com/documentation/', '');
+    const pathParts = urlPath.split('/').filter(part => part.length > 0);
+    const filename = pathParts.length > 0 
+      ? `${pathParts.join('-')}.md`
+      : 'apple-developer-docs.md';
+    
     const a = document.createElement('a');
-    a.href = url;
-    a.download = 'apple-developer-docs.md';
+    a.href = downloadUrl;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(downloadUrl);
   };
 
   return (
@@ -234,23 +285,32 @@ export default function Home() {
       <header className="border-b border-slate-200 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="Apple Docs Converter" 
+              className="w-10 h-10 rounded-xl shadow-sm"
+            />
             <div>
               <h1 className="text-xl font-semibold text-slate-900">Apple Docs Converter</h1>
               <p className="text-sm text-slate-600">Transform developer documentation to clean Markdown</p>
+            </div>
+            <div className="ml-auto text-xs text-slate-500">
+              Powered by{' '}
+              <a 
+                href="https://www.firecrawl.dev/referral?rid=9CG538BE" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-orange-600 hover:text-orange-700 font-medium"
+              >
+                Firecrawl
+              </a>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8 flex-1 w-full">
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Input Section */}
-          <div className="lg:col-span-2 space-y-6">
+      <main className="flex-1 w-full px-4 py-8">
+        <div className="max-w-3xl mx-auto space-y-6">
             {/* URL Input */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
               <label htmlFor="url" className="block text-sm font-medium text-slate-700 mb-3">
@@ -283,15 +343,13 @@ export default function Home() {
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-medium text-slate-700">Processing Configuration</h3>
-                {typeof window !== 'undefined' && 'Notification' in window && (
+                {typeof window !== 'undefined' && 'Notification' in window && notificationPermission !== 'default' && (
                   <div className="flex items-center gap-2 text-xs">
                     <div className={`w-2 h-2 rounded-full ${
-                      notificationPermission === 'granted' ? 'bg-green-500' : 
-                      notificationPermission === 'denied' ? 'bg-red-500' : 'bg-yellow-500'
+                      notificationPermission === 'granted' ? 'bg-green-500' : 'bg-red-500'
                     }`} />
                     <span className="text-slate-600">
-                      Notifications {notificationPermission === 'granted' ? 'enabled' : 
-                                   notificationPermission === 'denied' ? 'blocked' : 'not set'}
+                      Notifications {notificationPermission === 'granted' ? 'enabled' : 'blocked'}
                     </span>
                   </div>
                 )}
@@ -311,7 +369,7 @@ export default function Home() {
                       onChange={(e) => setDepth(parseInt(e.target.value))}
                       className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
-                    <div className="absolute right-12 top-2.5 text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded pointer-events-none">
+                    <div className="absolute right-12 top-1/2 -translate-y-1/2 text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded pointer-events-none">
                       levels
                     </div>
                   </div>
@@ -333,7 +391,7 @@ export default function Home() {
                       onChange={(e) => setMaxUrls(parseInt(e.target.value))}
                       className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
-                    <div className="absolute right-12 top-2.5 text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded pointer-events-none">
+                    <div className="absolute right-12 top-1/2 -translate-y-1/2 text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded pointer-events-none">
                       pages
                     </div>
                   </div>
@@ -342,6 +400,23 @@ export default function Home() {
                   </p>
                 </div>
               </div>
+            </div>
+
+            {/* Options */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <h3 className="text-sm font-medium text-slate-700 mb-4">Options</h3>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filterUrls}
+                  onChange={(e) => setFilterUrls(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <span className="text-sm text-slate-600">Filter out all URLs</span>
+              </label>
+              <p className="mt-2 text-xs text-slate-500 ml-7">
+                Remove all hyperlinks from the markdown output
+              </p>
             </div>
 
             {/* Process Button */}
@@ -362,10 +437,7 @@ export default function Home() {
                 'Process Documentation'
               )}
             </button>
-          </div>
 
-          {/* Status Section */}
-          <div className="space-y-6">
             {/* Progress */}
             {(isProcessing || results.length > 0) && (
               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
@@ -433,7 +505,7 @@ export default function Home() {
             {results.length > 0 && (
               <button
                 onClick={downloadMarkdown}
-                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3.5 px-6 rounded-xl font-medium hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 flex items-center justify-center gap-3"
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3.5 px-6 rounded-xl font-medium hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 flex items-center justify-center gap-3 animate-splash animate-pulse-ring"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
@@ -441,7 +513,6 @@ export default function Home() {
                 Download Markdown
               </button>
             )}
-          </div>
         </div>
       </main>
 
