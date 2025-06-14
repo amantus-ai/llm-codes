@@ -489,7 +489,7 @@ export default function Home() {
                 </button>
               </form>
               <p className="text-xs text-slate-500 mt-3">
-                Join my newsletter for insights on technology and engineering leadership.
+                2× per month, pure signal, zero fluff.
               </p>
             </div>
           </div>
