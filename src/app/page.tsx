@@ -50,7 +50,7 @@ export default function Home() {
   useEffect(() => {
     // Get the full query string after the ?
     const queryString = window.location.search.substring(1);
-    
+
     if (queryString) {
       // Check if it looks like a URL (starts with http)
       if (queryString.startsWith('http://') || queryString.startsWith('https://')) {
@@ -238,23 +238,23 @@ export default function Home() {
       }
 
       const data = await response.json();
-      
+
       // Check if we have the expected response structure
       if (!data.success) {
         throw new Error(data.error || 'Scraping failed');
       }
-      
+
       if (data.cached) {
         log(`Using cached content for ${urlToScrape}`);
       }
-      
+
       const markdown = data.data?.markdown || '';
       if (!markdown) {
         log(`Warning: Empty content returned for ${urlToScrape}`);
       } else {
         log(`Scraped ${markdown.length} characters from ${urlToScrape}`);
       }
-      
+
       return markdown;
     } catch (error) {
       log(`Error scraping ${urlToScrape}: ${error}`);

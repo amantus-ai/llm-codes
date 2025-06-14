@@ -70,16 +70,18 @@ export async function POST(request: NextRequest) {
       }
 
       const data = await response.json();
-      
-      // Log the response structure for debugging
-      console.log(`Firecrawl response for ${url}:`, {
-        success: data.success,
-        hasData: !!data.data,
-        hasMarkdown: !!data.data?.markdown,
-        markdownLength: data.data?.markdown?.length || 0,
-        dataKeys: data.data ? Object.keys(data.data) : [],
-      });
-      
+
+      // Log the response structure for debugging (using console.error for production builds)
+      if (!data.data?.markdown) {
+        console.error(`Firecrawl response for ${url}:`, {
+          success: data.success,
+          hasData: !!data.data,
+          hasMarkdown: !!data.data?.markdown,
+          markdownLength: data.data?.markdown?.length || 0,
+          dataKeys: data.data ? Object.keys(data.data) : [],
+        });
+      }
+
       if (data.success && data.data && typeof data.data.markdown === 'string') {
         // Cache the result (even if empty)
         cache.set(cacheKey, {
@@ -95,11 +97,14 @@ export async function POST(request: NextRequest) {
       }
 
       // Provide more detailed error message
-      const errorMsg = data.error || 
-        (!data.success ? 'Firecrawl returned success: false' : 
-         !data.data ? 'No data object in response' : 
-         'No markdown content in response');
-      
+      const errorMsg =
+        data.error ||
+        (!data.success
+          ? 'Firecrawl returned success: false'
+          : !data.data
+            ? 'No data object in response'
+            : 'No markdown content in response');
+
       return NextResponse.json({ error: errorMsg }, { status: 500 });
     }
 
