@@ -225,17 +225,61 @@ export default function Home() {
   const filterUrlsFromMarkdown = (markdown: string): string => {
     if (!filterUrls) return markdown;
     
-    // Remove markdown links: [text](url) -> text
+    // Convert markdown links: [text](url) -> text
+    // This keeps the link text but removes the URL
     let filtered = markdown.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
     
-    // Remove bare URLs (http://, https://, ftp://, etc.)
-    filtered = filtered.replace(/https?:\/\/[^\s\)]+/g, '');
-    filtered = filtered.replace(/ftp:\/\/[^\s\)]+/g, '');
+    // Remove bare URLs that stand alone (not part of markdown syntax)
+    // Only remove URLs that are preceded by whitespace or start of line
+    // and followed by whitespace, punctuation, or end of line
+    filtered = filtered.replace(/(^|\s)(https?:\/\/[^\s<>\[\]()]+)(?=\s|[.,;:!?]|$)/gm, '$1');
+    filtered = filtered.replace(/(^|\s)(ftp:\/\/[^\s<>\[\]()]+)(?=\s|[.,;:!?]|$)/gm, '$1');
     
-    // Remove angle bracket URLs: <http://example.com> -> ''
+    // Remove angle bracket URLs: <http://example.com> -> (empty)
+    // These are meant to be hidden anyway
     filtered = filtered.replace(/<https?:\/\/[^>]+>/g, '');
+    filtered = filtered.replace(/<ftp:\/\/[^>]+>/g, '');
+    
+    // Clean up any double spaces left behind
+    filtered = filtered.replace(/  +/g, ' ');
     
     return filtered;
+  };
+
+  const removeCommonPhrases = (markdown: string): string => {
+    // Remove "Skip Navigation" links like [Skip Navigation](url)
+    let cleaned = markdown.replace(/\[Skip Navigation\]\([^)]+\)/gi, '');
+    
+    // Also remove standalone "Skip Navigation" text
+    cleaned = cleaned.replace(/Skip Navigation/gi, '');
+    
+    // Remove multi-line API Reference links like:
+    // API Reference\\
+    // Enumerations
+    // or
+    // [API Reference\\
+    // Macros](url)
+    cleaned = cleaned.replace(/\[?API Reference\s*\\\\\s*\n\s*[^\]]+\]?\([^)]+\)/g, '');
+    cleaned = cleaned.replace(/API Reference\s*\\\\\s*\n\s*[^\n]+/g, '');
+    
+    // Remove standalone "API Reference" 
+    cleaned = cleaned.replace(/^API Reference$/gm, '');
+    
+    // Remove "Current page is" followed by any text
+    cleaned = cleaned.replace(/Current page is\s+[^\n]+/gi, '');
+    
+    // Clean up multiple consecutive empty lines
+    cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+    
+    // Remove lines that are now empty after cleaning
+    const lines = cleaned.split('\n');
+    const filteredLines = lines.filter((line, index) => {
+      const trimmed = line.trim();
+      // Keep empty lines for paragraph breaks, but remove lines that only had removed content
+      return trimmed.length > 0 || (index > 0 && lines[index - 1].trim().length > 0);
+    });
+    
+    return filteredLines.join('\n').replace(/\n{3,}/g, '\n\n');
   };
 
   const filterAvailabilityStrings = (markdown: string): string => {
@@ -364,6 +408,7 @@ Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
     
     const processedResults = results.map(r => {
       let content = r.content;
+      content = removeCommonPhrases(content);  // Remove common phrases first
       content = filterUrlsFromMarkdown(content);
       content = filterAvailabilityStrings(content);
       content = deduplicateMarkdown(content);
@@ -671,7 +716,7 @@ Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
       <footer className="border-t border-slate-200 bg-white/80 backdrop-blur-sm mt-auto">
         <div className="max-w-4xl mx-auto px-4 py-8 text-center">
             <p className="text-sm text-slate-600 mb-6">
-              This service is being <em>offered and paid</em> for by{' '}
+              This service is being offered and <em>paid</em> for by{' '}
               <a
                 href="https://twitter.com/steipete"
                 target="_blank"
