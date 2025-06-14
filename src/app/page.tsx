@@ -443,6 +443,57 @@ export default function Home() {
             )}
           </div>
         </div>
+
+        {/* Footer */}
+        <footer className="mt-16 border-t border-slate-200 bg-white/80 backdrop-blur-sm">
+          <div className="max-w-4xl mx-auto px-4 py-8 text-center">
+            <p className="text-sm text-slate-600 mb-6">
+              This service is being offered and paid for by{' '}
+              <a
+                href="https://twitter.com/steipete"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Peter Steinberger
+              </a>
+              . If you want to thank me, give me a shoutout and follow my newsletter.
+            </p>
+            
+            {/* Newsletter Form */}
+            <div className="max-w-md mx-auto">
+              <form
+                action="https://buttondown.email/api/emails/embed-subscribe/steipete"
+                method="post"
+                target="popupwindow"
+                onSubmit={(e) => {
+                  window.open('https://buttondown.email/steipete', 'popupwindow');
+                }}
+                className="flex gap-3"
+              >
+                <input type="hidden" value="1" name="embed" />
+                <input type="hidden" name="tag" value="llm-tech" />
+                <input
+                  type="email"
+                  name="email"
+                  id="bd-email"
+                  placeholder="Enter your email"
+                  required
+                  className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                />
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg font-medium hover:from-blue-600 hover:to-indigo-700 transition-all text-sm shadow-md hover:shadow-lg"
+                >
+                  Subscribe
+                </button>
+              </form>
+              <p className="text-xs text-slate-500 mt-3">
+                Join my newsletter for insights on technology and engineering leadership.
+              </p>
+            </div>
+          </div>
+        </footer>
       </main>
     </div>
   );
