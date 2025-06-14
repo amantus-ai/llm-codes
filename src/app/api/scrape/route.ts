@@ -1,15 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isValidDocumentationUrl } from '@/utils/url-utils';
+import { PROCESSING_CONFIG } from '@/constants';
 
-const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
 const FIRECRAWL_API_URL = 'https://api.firecrawl.dev/v1';
 
 // Cache implementation using Edge Runtime KV storage would go here
 // For now, we'll use in-memory cache (resets on deployment)
 const cache = new Map<string, { content: string; timestamp: number }>();
-const CACHE_DURATION = 30 * 24 * 60 * 60 * 1000; // 1 month
+
+// Export for testing purposes
+export const _testUtils = {
+  clearCache: () => cache.clear(),
+};
 
 export async function POST(request: NextRequest) {
   try {
+    const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
+
     if (!FIRECRAWL_API_KEY) {
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
@@ -17,13 +24,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { url, action } = body;
 
-    const isValidUrl =
-      url &&
-      (url.startsWith('https://developer.apple.com') ||
-        url.startsWith('https://swiftpackageindex.com/') ||
-        /^https:\/\/[^\/]+\.github\.io\//.test(url));
-
-    if (!isValidUrl) {
+    if (!isValidDocumentationUrl(url)) {
       return NextResponse.json(
         {
           error:
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
       // Check cache
       const cacheKey = `scrape_${url}`;
       const cached = cache.get(cacheKey);
-      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      if (cached && Date.now() - cached.timestamp < PROCESSING_CONFIG.CACHE_DURATION) {
         return NextResponse.json({
           success: true,
           data: { markdown: cached.content },
@@ -56,8 +57,8 @@ export async function POST(request: NextRequest) {
           url,
           formats: ['markdown'],
           onlyMainContent: true,
-          waitFor: 5000, // Increased from 2000ms to 5000ms for complex pages
-          maxAge: 2592000000, // 30 days in milliseconds (30 * 24 * 60 * 60 * 1000)
+          waitFor: PROCESSING_CONFIG.FIRECRAWL_WAIT_TIME,
+          maxAge: PROCESSING_CONFIG.CACHE_DURATION,
         }),
       });
 

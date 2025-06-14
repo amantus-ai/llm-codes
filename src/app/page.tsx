@@ -2,6 +2,17 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import {
+  isValidDocumentationUrl,
+  getSupportedDomainsText,
+  extractUrlFromQueryString,
+  updateUrlWithDocumentation,
+} from '@/utils/url-utils';
+import { extractLinks } from '@/utils/content-processing';
+import { scrapeUrl } from '@/utils/scraping';
+import { downloadMarkdown } from '@/utils/file-utils';
+import { requestNotificationPermission, showNotification } from '@/utils/notifications';
+import { PROCESSING_CONFIG, UI_CONFIG, ALLOWED_DOMAINS } from '@/constants';
 
 interface ProcessingResult {
   url: string;
@@ -10,8 +21,8 @@ interface ProcessingResult {
 
 export default function Home() {
   const [url, setUrl] = useState('');
-  const [depth, setDepth] = useState(2);
-  const [maxUrls, setMaxUrls] = useState(200);
+  const [depth, setDepth] = useState(PROCESSING_CONFIG.DEFAULT_CRAWL_DEPTH);
+  const [maxUrls, setMaxUrls] = useState(PROCESSING_CONFIG.DEFAULT_MAX_URLS);
   const [filterUrls, setFilterUrls] = useState(true);
   const [deduplicateContent, setDeduplicateContent] = useState(true);
   const [filterAvailability, setFilterAvailability] = useState(true);
@@ -26,6 +37,7 @@ export default function Home() {
   const [notificationPermission, setNotificationPermission] =
     useState<NotificationPermission>('default');
   const [isIOS, setIsIOS] = useState(false);
+  const [showWebsitesList, setShowWebsitesList] = useState(false);
 
   const logContainerRef = useRef<HTMLDivElement>(null);
   const userScrollingRef = useRef(false);
@@ -50,12 +62,10 @@ export default function Home() {
   useEffect(() => {
     // Get the full query string after the ?
     const queryString = window.location.search.substring(1);
+    const extractedUrl = extractUrlFromQueryString(queryString);
 
-    if (queryString) {
-      // Check if it looks like a URL (starts with http)
-      if (queryString.startsWith('http://') || queryString.startsWith('https://')) {
-        setUrl(decodeURIComponent(queryString));
-      }
+    if (extractedUrl) {
+      setUrl(extractedUrl);
     }
   }, []);
 
@@ -70,220 +80,9 @@ export default function Home() {
     if (!logContainerRef.current) return;
 
     const { scrollTop, scrollHeight, clientHeight } = logContainerRef.current;
-    const isAtBottom = scrollHeight - scrollTop - clientHeight < 10; // 10px threshold
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < UI_CONFIG.LOG_SCROLL_THRESHOLD;
 
     userScrollingRef.current = !isAtBottom;
-  };
-
-  const requestNotificationPermission = async () => {
-    // Skip notification permission on iOS
-    if (isIOS) return false;
-
-    if ('Notification' in window && Notification.permission === 'default') {
-      const permission = await Notification.requestPermission();
-      setNotificationPermission(permission);
-      return permission === 'granted';
-    }
-    return Notification.permission === 'granted';
-  };
-
-  const showNotification = (title: string, body: string) => {
-    // Skip notifications on iOS
-    if (isIOS) return;
-
-    if ('Notification' in window && Notification.permission === 'granted') {
-      const notification = new Notification(title, {
-        body,
-        icon: '/logo.png',
-        badge: '/logo.png',
-        tag: 'apple-docs-converter',
-        requireInteraction: false,
-      });
-
-      notification.onclick = () => {
-        window.focus();
-        notification.close();
-      };
-
-      // Auto-close after 5 seconds
-      setTimeout(() => notification.close(), 5000);
-    }
-  };
-
-  const extractLinks = (content: string, baseUrl: string): string[] => {
-    const links = new Set<string>();
-
-    // Multiple regex patterns to catch different link formats
-    const patterns = [
-      /\[([^\]]+)\]\(([^)]+)\)/g, // Markdown links: [text](url)
-      /href="([^"]+)"/g, // HTML links that might remain
-      /href='([^']+)'/g, // HTML links with single quotes
-      /https?:\/\/[^\s<>"{}|\\^\[\]`]+/g, // Plain URLs
-    ];
-
-    // Determine the base domain and path structure
-    const urlObj = new URL(baseUrl);
-    const baseDomain = urlObj.origin;
-    const basePath = urlObj.pathname;
-
-    // Extract all potential links
-    const potentialLinks: string[] = [];
-
-    patterns.forEach((pattern) => {
-      let match;
-      while ((match = pattern.exec(content)) !== null) {
-        // Get the URL from the appropriate capture group
-        const url = match[2] || match[1] || match[0];
-        if (
-          url &&
-          !url.startsWith('#') &&
-          !url.startsWith('mailto:') &&
-          !url.startsWith('javascript:')
-        ) {
-          potentialLinks.push(url);
-        }
-      }
-    });
-
-    // Process and filter links
-    potentialLinks.forEach((href) => {
-      let fullUrl = '';
-
-      try {
-        if (href.startsWith('http://') || href.startsWith('https://')) {
-          // Absolute URL
-          fullUrl = href;
-        } else if (href.startsWith('//')) {
-          // Protocol-relative URL
-          fullUrl = 'https:' + href;
-        } else if (href.startsWith('/')) {
-          // Absolute path
-          fullUrl = `${baseDomain}${href}`;
-        } else {
-          // Relative path - improved handling
-          const baseDir = basePath.endsWith('/')
-            ? basePath
-            : basePath.substring(0, basePath.lastIndexOf('/') + 1);
-          fullUrl = `${baseDomain}${baseDir}${href}`;
-        }
-
-        // Normalize URL
-        const normalizedUrl = new URL(fullUrl);
-        fullUrl = normalizedUrl.href;
-
-        // Apply domain-specific filtering
-        if (baseDomain === 'https://developer.apple.com') {
-          // For Apple, maintain strict section filtering
-          if (fullUrl.includes('/documentation/')) {
-            const linkPath = normalizedUrl.pathname.toLowerCase();
-            const basePathLower = basePath.toLowerCase();
-            const basePathParts = basePathLower.split('/').filter((p) => p);
-            const linkPathParts = linkPath.split('/').filter((p) => p);
-
-            if (basePathParts.length >= 2 && linkPathParts.length >= 2) {
-              if (linkPathParts[0] === basePathParts[0] && linkPathParts[1] === basePathParts[1]) {
-                links.add(fullUrl);
-              }
-            }
-          }
-        } else {
-          // For non-Apple sites, be more permissive
-          // Include if it's on the same domain and shares some path similarity
-          if (normalizedUrl.origin === baseDomain) {
-            // For Swift Package Index, allow exploring the package documentation
-            if (baseDomain.includes('swiftpackageindex.com')) {
-              // Allow any path under the same package
-              const basePackageMatch = basePath.match(/\/([^\/]+\/[^\/]+)/);
-              const linkPackageMatch = normalizedUrl.pathname.match(/\/([^\/]+\/[^\/]+)/);
-
-              if (
-                basePackageMatch &&
-                linkPackageMatch &&
-                basePackageMatch[1] === linkPackageMatch[1]
-              ) {
-                links.add(fullUrl);
-              } else if (normalizedUrl.pathname.startsWith(basePath)) {
-                links.add(fullUrl);
-              }
-            } else {
-              // For GitHub Pages and other sites, allow same directory and subdirectories
-              const baseDir = basePath.endsWith('/')
-                ? basePath
-                : basePath.substring(0, basePath.lastIndexOf('/') + 1);
-              if (normalizedUrl.pathname.startsWith(baseDir)) {
-                links.add(fullUrl);
-              }
-            }
-          }
-        }
-      } catch {
-        // Invalid URL, skip it
-      }
-    });
-
-    return Array.from(links);
-  };
-
-  const scrapeUrl = async (urlToScrape: string): Promise<string> => {
-    try {
-      log(`Fetching content from ${urlToScrape}...`);
-
-      const response = await fetch('/api/scrape', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: urlToScrape, action: 'scrape' }),
-      });
-
-      if (!response.ok) {
-        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          // If JSON parsing fails, use the default error message
-        }
-        log(`❌ Failed to fetch ${urlToScrape}: ${errorMessage}`);
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json();
-
-      // Check if we have the expected response structure
-      if (!data.success) {
-        const errorMsg = data.error || 'Scraping failed - unknown error';
-        log(`❌ Scraping failed for ${urlToScrape}: ${errorMsg}`);
-        throw new Error(errorMsg);
-      }
-
-      if (data.cached) {
-        log(`📦 Using cached content for ${urlToScrape}`);
-      }
-
-      const markdown = data.data?.markdown || '';
-      if (!markdown) {
-        log(`⚠️ Warning: Empty content returned for ${urlToScrape}`);
-      } else {
-        log(
-          `✅ Successfully scraped ${markdown.length.toLocaleString()} characters from ${urlToScrape}`
-        );
-      }
-
-      return markdown;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      // Check for common error patterns
-      if (errorMessage.includes('Failed to fetch')) {
-        log(`❌ Network error for ${urlToScrape}: Unable to connect to server`);
-      } else if (errorMessage.includes('timeout')) {
-        log(`❌ Timeout error for ${urlToScrape}: Page took too long to load`);
-      } else if (!errorMessage.includes('❌')) {
-        // Only log if we haven't already logged a specific error
-        log(`❌ Error scraping ${urlToScrape}: ${errorMessage}`);
-      }
-
-      throw error;
-    }
   };
 
   const processUrlsWithDepth = async (
@@ -300,16 +99,15 @@ export default function Home() {
     const newUrls = new Set<string>();
 
     // Process URLs in batches for parallel fetching
-    const BATCH_SIZE = 10; // Process 10 URLs concurrently
     const urlsToProcess = urls.filter(
       (url) => !processedUrls.has(url) && processedUrls.size < maxUrlsToProcess
     );
 
     // Process in batches
-    for (let i = 0; i < urlsToProcess.length; i += BATCH_SIZE) {
+    for (let i = 0; i < urlsToProcess.length; i += PROCESSING_CONFIG.BATCH_SIZE) {
       if (processedUrls.size >= maxUrlsToProcess) break;
 
-      const batch = urlsToProcess.slice(i, i + BATCH_SIZE);
+      const batch = urlsToProcess.slice(i, i + PROCESSING_CONFIG.BATCH_SIZE);
       const remainingCapacity = maxUrlsToProcess - processedUrls.size;
       const batchToProcess = batch.slice(0, remainingCapacity);
 
@@ -324,6 +122,14 @@ export default function Home() {
         try {
           log(`🔄 Fetching: ${url}`);
           const content = await scrapeUrl(url);
+
+          if (!content) {
+            log(`⚠️ Warning: Empty content returned for ${url}`);
+          } else {
+            log(
+              `✅ Successfully scraped ${content.length.toLocaleString()} characters from ${url}`
+            );
+          }
 
           // Extract links for next depth level
           if (currentDepth < maxDepth && content) {
@@ -354,6 +160,9 @@ export default function Home() {
             log(
               `❌ No content found for ${url}: The page might be empty or require authentication`
             );
+          } else if (!errorMessage.includes('❌')) {
+            // Only log if we haven't already logged a specific error
+            log(`❌ Error scraping ${url}: ${errorMessage}`);
           }
 
           // Return with empty content
@@ -372,9 +181,12 @@ export default function Home() {
       setProgress(progressPercent);
 
       // Small delay between batches to avoid overwhelming the API
-      if (i + BATCH_SIZE < urlsToProcess.length && processedUrls.size < maxUrlsToProcess) {
+      if (
+        i + PROCESSING_CONFIG.BATCH_SIZE < urlsToProcess.length &&
+        processedUrls.size < maxUrlsToProcess
+      ) {
         log(`⏳ Waiting before next batch...`);
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, PROCESSING_CONFIG.BATCH_DELAY));
       }
     }
 
@@ -413,13 +225,8 @@ export default function Home() {
       return;
     }
 
-    const isValidUrl =
-      trimmedUrl.startsWith('https://developer.apple.com') ||
-      trimmedUrl.startsWith('https://swiftpackageindex.com/') ||
-      /^https:\/\/[^\/]+\.github\.io\//.test(trimmedUrl);
-
-    if (!isValidUrl) {
-      setError('URL must be from developer.apple.com, swiftpackageindex.com, or *.github.io');
+    if (!isValidDocumentationUrl(trimmedUrl)) {
+      setError(`URL must be from ${getSupportedDomainsText()}`);
 
       // Provide helpful suggestions
       if (trimmedUrl.includes('apple.com') && !trimmedUrl.includes('/documentation/')) {
@@ -438,6 +245,9 @@ export default function Home() {
       setUrl(trimmedUrl);
     }
 
+    // Update the browser URL
+    updateUrlWithDocumentation(trimmedUrl);
+
     setError('');
     setIsProcessing(true);
     setProgress(0);
@@ -446,7 +256,7 @@ export default function Home() {
     setStats({ lines: 0, size: 0, urls: 0 });
 
     // Request notification permission on first use
-    await requestNotificationPermission();
+    await requestNotificationPermission(isIOS);
 
     try {
       log(`🚀 Starting documentation processing...`);
@@ -502,549 +312,304 @@ export default function Home() {
         setError('No content could be extracted from any URL');
       }
 
-      // Collapse activity log when processing is complete
-      setShowLogs(false);
-
       // Show notification
-      if (successfulResults.length > 0) {
-        showNotification(
-          '✅ Documentation Ready!',
-          `Successfully processed ${successfulResults.length} URLs. Your Markdown file is ready to download.`
-        );
-      } else {
-        showNotification(
-          '❌ No Content Found',
-          'Unable to extract content from any URLs. Check the activity log for details.'
-        );
-      }
+      showNotification(
+        '✅ Processing Complete',
+        `Successfully processed ${processedResults.length} URLs`,
+        isIOS
+      );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Processing error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      setError(errorMessage);
+      log(`❌ Fatal error: ${errorMessage}`);
 
-      log(`❌ Processing failed: ${errorMessage}`);
-
-      // Provide helpful error messages
-      if (errorMessage.includes('network') || errorMessage.includes('Failed to fetch')) {
-        log(`💡 Tip: Check your internet connection and try again`);
-        setError('Network error: Unable to connect to the server');
+      // Additional error context
+      if (errorMessage.includes('fetch')) {
+        log(`💡 Tip: Check your internet connection and try again.`);
       } else if (errorMessage.includes('timeout')) {
-        log(`💡 Tip: The website might be slow. Try reducing the number of URLs or depth`);
-        setError('Timeout: The website took too long to respond');
-      } else {
-        setError(`Processing failed: ${errorMessage}`);
+        log(`💡 Tip: The server might be slow. Try reducing the max URLs or depth.`);
       }
 
       showNotification(
         '❌ Processing Failed',
-        'An error occurred. Check the activity log for details.'
+        'An error occurred. Check the activity log for details.',
+        isIOS
       );
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const filterUrlsFromMarkdown = (markdown: string): string => {
-    if (!filterUrls) return markdown;
-
-    // Convert markdown links: [text](url) -> text
-    // This keeps the link text but removes the URL
-    let filtered = markdown.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
-
-    // Remove bare URLs that stand alone (not part of markdown syntax)
-    // Only remove URLs that are preceded by whitespace or start of line
-    // and followed by whitespace, punctuation, or end of line
-    filtered = filtered.replace(/(^|\s)(https?:\/\/[^\s<>\[\]()]+)(?=\s|[.,;:!?]|$)/gm, '$1');
-    filtered = filtered.replace(/(^|\s)(ftp:\/\/[^\s<>\[\]()]+)(?=\s|[.,;:!?]|$)/gm, '$1');
-
-    // Remove angle bracket URLs: <http://example.com> -> (empty)
-    // These are meant to be hidden anyway
-    filtered = filtered.replace(/<https?:\/\/[^>]+>/g, '');
-    filtered = filtered.replace(/<ftp:\/\/[^>]+>/g, '');
-
-    // Clean up any double spaces left behind
-    filtered = filtered.replace(/  +/g, ' ');
-
-    return filtered;
-  };
-
-  const removeCommonPhrases = (markdown: string): string => {
-    // Remove "Skip Navigation" links like [Skip Navigation](url)
-    let cleaned = markdown.replace(/\[Skip Navigation\]\([^)]+\)/gi, '');
-
-    // Also remove standalone "Skip Navigation" text
-    cleaned = cleaned.replace(/Skip Navigation/gi, '');
-
-    // Remove multi-line API Reference links like:
-    // API Reference\\
-    // Enumerations
-    // or
-    // [API Reference\\
-    // Macros](url)
-    cleaned = cleaned.replace(/\[?API Reference\s*\\\\\s*\n\s*[^\]]+\]?\([^)]+\)/g, '');
-    cleaned = cleaned.replace(/API Reference\s*\\\\\s*\n\s*[^\n]+/g, '');
-
-    // Remove standalone "API Reference"
-    cleaned = cleaned.replace(/^API Reference$/gm, '');
-
-    // Remove "Current page is" followed by any text
-    cleaned = cleaned.replace(/Current page is\s+[^\n]+/gi, '');
-
-    // Clean up multiple consecutive empty lines
-    cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
-
-    // Remove lines that are now empty after cleaning
-    const lines = cleaned.split('\n');
-    const filteredLines = lines.filter((line, index) => {
-      const trimmed = line.trim();
-      // Keep empty lines for paragraph breaks, but remove lines that only had removed content
-      return trimmed.length > 0 || (index > 0 && lines[index - 1].trim().length > 0);
+  const handleDownload = () => {
+    downloadMarkdown({
+      url,
+      results,
+      filterUrls,
+      deduplicateContent,
+      filterAvailability,
     });
-
-    return filteredLines.join('\n').replace(/\n{3,}/g, '\n\n');
-  };
-
-  const filterAvailabilityStrings = (markdown: string): string => {
-    if (!filterAvailability) return markdown;
-
-    // Pattern to match availability strings like:
-    // iOS 14.0+iPadOS 14.0+Mac Catalyst 14.0+tvOS 14.0+visionOS 1.0+watchOS 7.0+
-    // iOS 2.0+Beta iPadOS 2.0+Beta macOS 10.15+ etc.
-    const availabilityPattern =
-      /(iOS|iPadOS|macOS|Mac Catalyst|tvOS|visionOS|watchOS)[\s]*[\d.]+\+(?:Beta)?(?:\s*(?:iOS|iPadOS|macOS|Mac Catalyst|tvOS|visionOS|watchOS)[\s]*[\d.]+\+(?:Beta)?)*/g;
-
-    // Remove standalone availability strings
-    let filtered = markdown.replace(availabilityPattern, '');
-
-    // Also remove lines that only contain availability info (after removing the strings)
-    const lines = filtered.split('\n');
-    const filteredLines = lines.filter((line) => {
-      const trimmed = line.trim();
-      // Keep the line if it has content after removing availability strings
-      return trimmed.length > 0 || line === '';
-    });
-
-    // Clean up multiple consecutive empty lines
-    filtered = filteredLines.join('\n').replace(/\n{3,}/g, '\n\n');
-
-    return filtered;
-  };
-
-  const deduplicateMarkdown = (markdown: string): string => {
-    if (!deduplicateContent) return markdown;
-
-    // Split content into lines
-    const lines = markdown.split('\n');
-    const seenContent = new Set<string>();
-    const deduplicatedLines: string[] = [];
-
-    // Track paragraphs for de-duplication
-    let currentParagraph = '';
-
-    for (const line of lines) {
-      const trimmedLine = line.trim();
-
-      // Handle empty lines (paragraph breaks)
-      if (trimmedLine === '') {
-        if (currentParagraph && !seenContent.has(currentParagraph.trim())) {
-          seenContent.add(currentParagraph.trim());
-          deduplicatedLines.push(currentParagraph);
-        }
-        if (currentParagraph) {
-          deduplicatedLines.push('');
-        }
-        currentParagraph = '';
-        continue;
-      }
-
-      // Handle headers - always keep but track their content
-      if (trimmedLine.match(/^#{1,6}\s/)) {
-        // Flush current paragraph
-        if (currentParagraph && !seenContent.has(currentParagraph.trim())) {
-          seenContent.add(currentParagraph.trim());
-          deduplicatedLines.push(currentParagraph);
-          deduplicatedLines.push('');
-        }
-        currentParagraph = '';
-
-        // Check if we've seen this exact header before
-        if (!seenContent.has(trimmedLine)) {
-          seenContent.add(trimmedLine);
-          deduplicatedLines.push(line);
-        }
-        continue;
-      }
-
-      // Handle list items
-      if (trimmedLine.match(/^[-*+]\s/) || trimmedLine.match(/^\d+\.\s/)) {
-        // For list items, check if we've seen this exact item
-        if (!seenContent.has(trimmedLine)) {
-          seenContent.add(trimmedLine);
-          if (currentParagraph) {
-            deduplicatedLines.push(currentParagraph);
-            currentParagraph = '';
-          }
-          deduplicatedLines.push(line);
-        }
-        continue;
-      }
-
-      // Build paragraphs
-      currentParagraph += (currentParagraph ? '\n' : '') + line;
-    }
-
-    // Don't forget the last paragraph
-    if (currentParagraph && !seenContent.has(currentParagraph.trim())) {
-      deduplicatedLines.push(currentParagraph);
-    }
-
-    // Clean up multiple consecutive empty lines
-    let result = deduplicatedLines.join('\n');
-    result = result.replace(/\n{3,}/g, '\n\n');
-
-    return result;
-  };
-
-  const downloadMarkdown = () => {
-    // Generate header with attribution
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-    const timeStr = now.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
-    const header = `<!--
-Downloaded via https://llm.codes by @steipete on ${dateStr} at ${timeStr}
-Source URL: ${url}
-Total pages processed: ${results.length}
-Pages with content: ${results.filter((r) => r.content && r.content.trim().length > 0).length}
-URLs filtered: ${filterUrls ? 'Yes' : 'No'}
-Content de-duplicated: ${deduplicateContent ? 'Yes' : 'No'}
-Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
--->
-
-`;
-
-    const processedResults = results
-      .filter((r) => r.content && r.content.trim().length > 0) // Only include results with actual content
-      .map((r) => {
-        let content = r.content;
-        content = removeCommonPhrases(content); // Remove common phrases first
-        content = filterUrlsFromMarkdown(content);
-        content = filterAvailabilityStrings(content);
-        content = deduplicateMarkdown(content);
-        return { url: r.url, content };
-      })
-      .filter((r) => r.content && r.content.trim().length > 0); // Filter again after processing
-
-    const content =
-      header + processedResults.map((r) => `# ${r.url}\n\n${r.content}\n\n---\n\n`).join('');
-    const blob = new Blob([content], { type: 'text/markdown' });
-    const downloadUrl = URL.createObjectURL(blob);
-
-    // Generate filename from the original URL
-    let filename = 'documentation.md';
-
-    try {
-      const urlObj = new URL(url);
-      const hostname = urlObj.hostname;
-      const pathname = urlObj.pathname;
-
-      if (hostname === 'developer.apple.com') {
-        // For Apple docs: documentation/framework/class -> framework-class-docs.md
-        const cleanPath = pathname.replace('/documentation/', '');
-        const parts = cleanPath.split('/').filter((p) => p);
-        if (parts.length > 0) {
-          filename = `${parts.join('-')}-docs.md`;
-        } else {
-          filename = 'apple-docs.md';
-        }
-      } else if (hostname === 'swiftpackageindex.com') {
-        // For Swift Package Index: /owner/package -> owner-package-docs.md
-        const parts = pathname.split('/').filter((p) => p);
-        if (parts.length >= 2) {
-          filename = `${parts[0]}-${parts[1]}-docs.md`;
-        } else {
-          filename = 'swift-package-docs.md';
-        }
-      } else if (hostname.endsWith('.github.io')) {
-        // For GitHub Pages: subdomain.github.io/project -> subdomain-project-docs.md
-        const subdomain = hostname.replace('.github.io', '');
-        const pathParts = pathname.split('/').filter((p) => p);
-
-        if (pathParts.length > 0) {
-          filename = `${subdomain}-${pathParts[0]}-docs.md`;
-        } else {
-          filename = `${subdomain}-docs.md`;
-        }
-      } else {
-        // Fallback: use hostname and first path segment
-        const pathParts = pathname.split('/').filter((p) => p);
-        const siteName = hostname.replace(/^www\./, '').split('.')[0];
-
-        if (pathParts.length > 0) {
-          filename = `${siteName}-${pathParts[0]}-docs.md`;
-        } else {
-          filename = `${siteName}-docs.md`;
-        }
-      }
-
-      // Clean up the filename: remove special characters, lowercase
-      filename = filename
-        .toLowerCase()
-        .replace(/[^a-z0-9-_.]/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
-    } catch {
-      // If URL parsing fails, use a fallback
-      filename = 'documentation.md';
-    }
-
-    const a = document.createElement('a');
-    a.href = downloadUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(downloadUrl);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col">
-      {/* Header */}
-      <header className="border-b border-slate-200 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-3 mb-4">
             <Image
               src="/logo.png"
-              alt="Apple Docs Converter"
-              width={40}
-              height={40}
-              className="rounded-xl shadow-sm"
+              alt="Apple Docs to Markdown Logo"
+              width={50}
+              height={50}
+              className="rounded-lg"
+              priority
             />
-            <div>
-              <h1 className="text-xl font-semibold text-slate-900">Apple Docs Converter</h1>
-              <p className="text-sm text-slate-600">
-                Transform developer documentation to clean Markdown
-              </p>
-            </div>
-            <div className="ml-auto text-xs text-slate-500 text-right">
-              <div>
-                Made by{' '}
-                <a
-                  href="https://steipete.me"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  @steipete
-                </a>
-              </div>
-              <div>
-                Powered by{' '}
-                <a
-                  href="https://www.firecrawl.dev/referral?rid=9CG538BE"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-orange-600 hover:text-orange-700 font-medium"
-                >
-                  Firecrawl
-                </a>
-              </div>
-            </div>
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
+              Docs to Markdown Converter
+            </h1>
           </div>
+          <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+            Convert developer documentation from {getSupportedDomainsText()} to clean, LLM-friendly
+            Markdown format. Process pages with smart filtering, deduplication, and bulk export.
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+            Made by{' '}
+            <a
+              href="https://twitter.com/steipete"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+            >
+              @steipete
+            </a>{' '}
+            •{' '}
+            <a
+              href="https://github.com/steipete/apple-docs-to-markdown"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+            >
+              View on GitHub
+            </a>
+          </p>
         </div>
-      </header>
 
-      <main className="flex-1 w-full px-4 py-8">
-        <div className="max-w-3xl mx-auto space-y-6">
-          {/* URL Input */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-            <label htmlFor="url" className="block text-sm font-medium text-slate-700 mb-3">
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
+          <div className="mb-4">
+            <label
+              htmlFor="url"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
               Documentation URL
             </label>
-            <div className="relative">
-              <input
-                id="url"
-                type="text"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://developer.apple.com/documentation/..."
-                className="w-full pl-12 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              />
-              <svg
-                className="absolute left-4 top-3.5 w-5 h-5 text-slate-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                />
-              </svg>
-            </div>
-            {error && (
-              <div className="mt-3 flex items-center gap-2 text-sm text-red-600">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                {error}
-              </div>
-            )}
-            <p className="mt-3 text-xs text-slate-500">
-              This service supports documentation from developer.apple.com, swiftpackageindex.com,
-              and *.github.io sites.
-            </p>
-          </div>
-
-          {/* Configuration & Options */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-slate-700">Processing Configuration</h3>
-              {typeof window !== 'undefined' &&
-                !isIOS &&
-                'Notification' in window &&
-                notificationPermission !== 'default' && (
-                  <div className="flex items-center gap-2 text-xs">
-                    <div
-                      className={`w-2 h-2 rounded-full ${
-                        notificationPermission === 'granted' ? 'bg-green-500' : 'bg-red-500'
-                      }`}
-                    />
-                    <span className="text-slate-600">
-                      Notifications {notificationPermission === 'granted' ? 'enabled' : 'blocked'}
-                    </span>
-                  </div>
-                )}
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="depth" className="block text-sm text-slate-600 mb-2">
-                  Crawl Depth
-                </label>
-                <div className="relative">
-                  <input
-                    id="depth"
-                    type="number"
-                    min="0"
-                    max="5"
-                    value={depth}
-                    onChange={(e) => setDepth(parseInt(e.target.value))}
-                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <div className="absolute right-12 top-1/2 -translate-y-1/2 text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded pointer-events-none">
-                    levels
-                  </div>
-                </div>
-                <p className="mt-1.5 text-xs text-slate-500">0 = main page only</p>
-              </div>
-              <div>
-                <label htmlFor="maxUrls" className="block text-sm text-slate-600 mb-2">
-                  Max URLs
-                </label>
-                <div className="relative">
-                  <input
-                    id="maxUrls"
-                    type="number"
-                    min="1"
-                    max="1000"
-                    value={maxUrls}
-                    onChange={(e) => setMaxUrls(parseInt(e.target.value))}
-                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <div className="absolute right-12 top-1/2 -translate-y-1/2 text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded pointer-events-none">
-                    pages
-                  </div>
-                </div>
-                <p className="mt-1.5 text-xs text-slate-500">Maximum pages to process</p>
-              </div>
-            </div>
-
-            {/* Collapsible Options */}
-            <div className="mt-6 border-t border-slate-200 pt-4">
+            <input
+              type="url"
+              id="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://developer.apple.com/documentation/swiftui"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
+              disabled={isProcessing}
+            />
+            <div className="relative inline-block mt-2">
               <button
-                onClick={() => setShowOptions(!showOptions)}
-                className="flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+                onClick={() => setShowWebsitesList(!showWebsitesList)}
+                onBlur={() => setTimeout(() => setShowWebsitesList(false), 200)}
+                className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 underline cursor-pointer transition-colors"
               >
-                <svg
-                  className={`w-4 h-4 transition-transform ${showOptions ? 'rotate-90' : ''}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-                Options
+                This document parser supports a list of selected websites.
               </button>
 
-              {showOptions && (
-                <div className="mt-4 space-y-4">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={filterUrls}
-                      onChange={(e) => setFilterUrls(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                    />
-                    <span className="text-sm text-slate-600">Filter out all URLs</span>
-                  </label>
-                  <p className="text-xs text-slate-500 ml-7 -mt-2">
-                    Remove all hyperlinks from the markdown output
-                  </p>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={deduplicateContent}
-                      onChange={(e) => setDeduplicateContent(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                    />
-                    <span className="text-sm text-slate-600">De-duplicate content</span>
-                  </label>
-                  <p className="text-xs text-slate-500 ml-7 -mt-2">
-                    Remove duplicate sections and paragraphs from the output
-                  </p>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={filterAvailability}
-                      onChange={(e) => setFilterAvailability(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                    />
-                    <span className="text-sm text-slate-600">Filter availability strings</span>
-                  </label>
-                  <p className="text-xs text-slate-500 ml-7 -mt-2">
-                    Remove platform availability info (iOS 14.0+, macOS 10.15+, etc.)
-                  </p>
+              {/* Popover */}
+              {showWebsitesList && (
+                <div className="absolute z-50 mt-2 left-0 w-96 max-h-96 overflow-y-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                    Supported Websites
+                  </h3>
+
+                  {/* Group domains by category */}
+                  {Object.entries(
+                    Object.values(ALLOWED_DOMAINS).reduce(
+                      (acc, domain) => {
+                        const category = domain.category || 'General';
+                        if (!acc[category]) acc[category] = [];
+                        acc[category].push(domain);
+                        return acc;
+                      },
+                      {} as Record<string, (typeof ALLOWED_DOMAINS)[keyof typeof ALLOWED_DOMAINS][]>
+                    )
+                  ).map(([category, domains]) => (
+                    <div key={category} className="mb-4">
+                      <h4 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {category}
+                      </h4>
+                      <ul className="space-y-1">
+                        {domains.map((domain) => (
+                          <li
+                            key={domain.name}
+                            className="text-xs text-gray-600 dark:text-gray-400"
+                          >
+                            <a
+                              href={domain.example}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {domain.name}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+
+                  {/* Add GitHub issue link */}
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      Are you missing a page?{' '}
+                      <a
+                        href="https://github.com/amantus-ai/llm-codes/issues"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Open an Issue on GitHub!
+                      </a>
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Process Button */}
+          {/* Advanced Options Toggle */}
+          <button
+            onClick={() => setShowOptions(!showOptions)}
+            className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mb-4 flex items-center gap-1"
+          >
+            <svg
+              className={`w-4 h-4 transition-transform ${showOptions ? 'rotate-90' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            {showOptions ? 'Hide' : 'Show'} Options
+          </button>
+
+          {/* Options */}
+          {showOptions && (
+            <div className="space-y-4 mb-6 p-4 bg-white dark:bg-gray-700 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="depth"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
+                    Crawl Depth
+                  </label>
+                  <input
+                    type="number"
+                    id="depth"
+                    value={depth}
+                    onChange={(e) =>
+                      setDepth(Math.max(0, Math.min(5, parseInt(e.target.value) || 0)))
+                    }
+                    min="0"
+                    max="5"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white"
+                    disabled={isProcessing}
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    How many levels deep to follow links (0-5)
+                  </p>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="maxUrls"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
+                    Max URLs
+                  </label>
+                  <input
+                    type="number"
+                    id="maxUrls"
+                    value={maxUrls}
+                    onChange={(e) =>
+                      setMaxUrls(Math.max(1, Math.min(1000, parseInt(e.target.value) || 1)))
+                    }
+                    min="1"
+                    max="1000"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white"
+                    disabled={isProcessing}
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Maximum pages to process (1-1000)
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filterUrls}
+                    onChange={(e) => setFilterUrls(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    disabled={isProcessing}
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                    Filter out URLs from content (recommended for LLMs)
+                  </span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={deduplicateContent}
+                    onChange={(e) => setDeduplicateContent(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    disabled={isProcessing}
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                    Remove duplicate paragraphs (reduces token usage)
+                  </span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filterAvailability}
+                    onChange={(e) => setFilterAvailability(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    disabled={isProcessing}
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                    Filter availability strings (iOS 14.0+, etc.)
+                  </span>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            </div>
+          )}
+
           <button
             onClick={processUrl}
-            disabled={isProcessing}
-            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3.5 px-6 rounded-xl font-medium hover:from-blue-600 hover:to-indigo-700 disabled:from-slate-400 disabled:to-slate-500 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30"
+            disabled={isProcessing || !url}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
           >
             {isProcessing ? (
-              <span className="flex items-center justify-center gap-3">
-                <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+              <>
+                <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
                   <circle
                     className="opacity-25"
                     cx="12"
@@ -1052,179 +617,163 @@ Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
                     r="10"
                     stroke="currentColor"
                     strokeWidth="4"
-                  ></circle>
+                  />
                   <path
                     className="opacity-75"
                     fill="currentColor"
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
+                  />
                 </svg>
-                Processing Documentation...
-              </span>
+                Processing...
+              </>
             ) : (
               'Process Documentation'
             )}
           </button>
+        </div>
 
-          {/* Help text - shown only when not processing */}
-          {!isProcessing && (
-            <p className="mt-4 text-sm text-slate-600 text-center">
-              Generates a cleaned markdown file, so your agent knows the latest Apple (or 3rd-party)
-              API.
-              <br />
-              Store the file in your project and reference the name to load it into the context, and
-              get better code.
-            </p>
-          )}
-
-          {/* Progress */}
-          {(isProcessing || results.length > 0) && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <h3 className="text-sm font-medium text-slate-700 mb-4">Progress</h3>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm text-slate-600 mb-2">
-                    <span>Processing</span>
-                    <span>{progress}%</span>
-                  </div>
-                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-500 ease-out"
-                      style={{ width: `${progress}%` }}
-                    ></div>
-                  </div>
-                </div>
-
-                {/* Logs Toggle */}
+        {/* Processing Results */}
+        {(isProcessing || results.length > 0) && (
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Processing Configuration
+              </h2>
+              {notificationPermission === 'default' && !isIOS && (
                 <button
-                  onClick={() => setShowLogs(!showLogs)}
-                  className="text-sm text-slate-600 hover:text-slate-900 flex items-center gap-2"
+                  onClick={() => requestNotificationPermission(isIOS)}
+                  className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                 >
-                  <svg
-                    className={`w-4 h-4 transition-transform ${showLogs ? 'rotate-90' : ''}`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                  {showLogs ? 'Hide' : 'Show'} activity log
+                  Enable notifications
                 </button>
+              )}
+            </div>
 
-                {showLogs && (
-                  <div
-                    ref={logContainerRef}
-                    onScroll={handleLogScroll}
-                    className="bg-slate-50 rounded-lg p-3 max-h-48 overflow-y-auto"
-                  >
-                    <div className="space-y-1 font-mono text-xs text-slate-600">
-                      {logs.map((log, i) => (
-                        <div key={i}>{log}</div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Crawl Depth</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  {depth} levels
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Max URLs</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  {maxUrls} pages
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Options</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  {[
+                    filterUrls && 'Filter URLs',
+                    deduplicateContent && 'Deduplicate',
+                    filterAvailability && 'Filter Availability',
+                  ]
+                    .filter(Boolean)
+                    .join(', ') || 'None'}
+                </span>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Statistics */}
-          {stats.urls > 0 && (
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl shadow-sm border border-blue-200 p-6">
-              <h4 className="text-sm font-medium text-slate-700 mb-4">Statistics</h4>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{stats.urls}</div>
-                  <div className="text-xs text-slate-600 mt-1">URLs</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{Math.round(stats.size)}K</div>
-                  <div className="text-xs text-slate-600 mt-1">Size</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {(stats.lines / 1000).toFixed(1)}K
-                  </div>
-                  <div className="text-xs text-slate-600 mt-1">Lines</div>
-                </div>
-              </div>
+        {/* Progress Bar */}
+        {isProcessing && (
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
+            <div className="mb-2 flex justify-between items-center">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Progress</h3>
+              <span className="text-sm text-gray-600 dark:text-gray-400">{progress}%</span>
             </div>
-          )}
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
 
-          {/* Download Button */}
-          {results.length > 0 && (
+            {/* Activity Log Toggle */}
             <button
-              onClick={downloadMarkdown}
-              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3.5 px-6 rounded-xl font-medium hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 flex items-center justify-center gap-3 animate-splash animate-pulse-ring"
+              onClick={() => setShowLogs(!showLogs)}
+              className="mt-4 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg
+                className={`w-4 h-4 transition-transform ${showLogs ? 'rotate-90' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+              {showLogs ? 'Hide' : 'Show'} activity log
+            </button>
+
+            {/* Activity Log */}
+            {showLogs && (
+              <div className="mt-4">
+                <div
+                  ref={logContainerRef}
+                  onScroll={handleLogScroll}
+                  className="bg-black text-green-400 p-4 rounded-md h-64 overflow-y-auto font-mono text-xs"
+                >
+                  {logs.map((log, index) => (
+                    <div key={index} className="mb-1">
+                      {log}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Statistics */}
+        {results.length > 0 && (
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Statistics</h2>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.urls}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">URLs</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {stats.size.toFixed(1)}K
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Size</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {(stats.lines / 1000).toFixed(1)}K
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Lines</p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleDownload}
+              className="mt-6 w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                 />
               </svg>
               Download Markdown
             </button>
-          )}
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white/80 backdrop-blur-sm mt-auto">
-        <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-          <p className="text-sm text-slate-600 mb-6">
-            This service is being offered and <em>paid</em> for by{' '}
-            <a
-              href="https://twitter.com/steipete"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-700 font-medium"
-            >
-              Peter Steinberger (@steipete)
-            </a>
-            .<br />
-            If you want to thank me, give me a shoutout and follow my newsletter.
-          </p>
-
-          {/* Newsletter Form */}
-          <div className="max-w-md mx-auto">
-            <form
-              action="https://buttondown.email/api/emails/embed-subscribe/steipete"
-              method="post"
-              target="popupwindow"
-              onSubmit={(_e) => {
-                window.open('https://buttondown.email/steipete', 'popupwindow');
-              }}
-              className="flex gap-3"
-            >
-              <input type="hidden" value="1" name="embed" />
-              <input type="hidden" name="tag" value="llm-tech" />
-              <input
-                type="email"
-                name="email"
-                id="bd-email"
-                placeholder="Enter your email"
-                required
-                className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              />
-              <button
-                type="submit"
-                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-medium hover:from-blue-600 hover:to-indigo-700 transition-all text-sm shadow-md hover:shadow-lg"
-              >
-                Subscribe
-              </button>
-            </form>
-            <p className="text-xs text-slate-500 mt-3">2× per month, pure signal, zero fluff.</p>
           </div>
-        </div>
-      </footer>
+        )}
+      </div>
     </div>
   );
 }

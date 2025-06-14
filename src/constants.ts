@@ -1,0 +1,461 @@
+// Domain configuration
+export const ALLOWED_DOMAINS = {
+  // Original domains
+  APPLE: {
+    pattern: 'https://developer.apple.com',
+    name: 'Apple Developer',
+    example: 'https://developer.apple.com/documentation/swiftui',
+    category: 'Mobile Development',
+  },
+  SWIFT_PACKAGE_INDEX: {
+    pattern: 'https://swiftpackageindex.com/',
+    name: 'Swift Package Index',
+    example: 'https://swiftpackageindex.com/pointfreeco/swift-composable-architecture',
+    category: 'Programming Languages',
+  },
+  GITHUB_PAGES: {
+    pattern: /^https:\/\/[^\/]+\.github\.io\//,
+    name: 'GitHub Pages (*.github.io)',
+    example: 'https://pointfreeco.github.io/swift-composable-architecture/',
+    category: 'General',
+  },
+
+  // Programming Languages
+  PYTHON: {
+    pattern: 'https://docs.python.org',
+    name: 'Python',
+    example: 'https://docs.python.org/3/library/asyncio.html',
+    category: 'Programming Languages',
+  },
+  MDN: {
+    pattern: 'https://developer.mozilla.org',
+    name: 'MDN Web Docs',
+    example: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript',
+    category: 'Programming Languages',
+  },
+  TYPESCRIPT: {
+    pattern: 'https://www.typescriptlang.org/docs',
+    name: 'TypeScript',
+    example: 'https://www.typescriptlang.org/docs/handbook/intro.html',
+    category: 'Programming Languages',
+  },
+  RUST: {
+    pattern: 'https://doc.rust-lang.org',
+    name: 'Rust',
+    example: 'https://doc.rust-lang.org/book/',
+    category: 'Programming Languages',
+  },
+  GOLANG: {
+    pattern: 'https://golang.org/doc',
+    name: 'Go',
+    example: 'https://golang.org/doc/effective_go',
+    category: 'Programming Languages',
+  },
+  JAVA: {
+    pattern: 'https://docs.oracle.com/javase',
+    name: 'Java',
+    example: 'https://docs.oracle.com/javase/8/docs/api/',
+    category: 'Programming Languages',
+  },
+  RUBY: {
+    pattern: 'https://ruby-doc.org',
+    name: 'Ruby',
+    example: 'https://ruby-doc.org/core-3.0.0/',
+    category: 'Programming Languages',
+  },
+  PHP: {
+    pattern: 'https://www.php.net/docs.php',
+    name: 'PHP',
+    example: 'https://www.php.net/docs.php',
+    category: 'Programming Languages',
+  },
+  SWIFT: {
+    pattern: 'https://docs.swift.org',
+    name: 'Swift',
+    example: 'https://docs.swift.org/swift-book/',
+    category: 'Programming Languages',
+  },
+  KOTLIN: {
+    pattern: 'https://kotlinlang.org/docs',
+    name: 'Kotlin',
+    example: 'https://kotlinlang.org/docs/getting-started.html',
+    category: 'Programming Languages',
+  },
+
+  // Web Frameworks
+  REACT: {
+    pattern: 'https://react.dev',
+    name: 'React',
+    example: 'https://react.dev/learn',
+    category: 'Web Frameworks',
+  },
+  VUE: {
+    pattern: 'https://vuejs.org',
+    name: 'Vue.js',
+    example: 'https://vuejs.org/guide/introduction.html',
+    category: 'Web Frameworks',
+  },
+  ANGULAR: {
+    pattern: 'https://angular.io/docs',
+    name: 'Angular',
+    example: 'https://angular.io/docs',
+    category: 'Web Frameworks',
+  },
+  NEXTJS: {
+    pattern: 'https://nextjs.org/docs',
+    name: 'Next.js',
+    example: 'https://nextjs.org/docs/getting-started',
+    category: 'Web Frameworks',
+  },
+  NUXT: {
+    pattern: 'https://nuxt.com/docs',
+    name: 'Nuxt',
+    example: 'https://nuxt.com/docs/getting-started',
+    category: 'Web Frameworks',
+  },
+  SVELTE: {
+    pattern: 'https://svelte.dev/docs',
+    name: 'Svelte',
+    example: 'https://svelte.dev/docs/introduction',
+    category: 'Web Frameworks',
+  },
+  DJANGO: {
+    pattern: 'https://docs.djangoproject.com',
+    name: 'Django',
+    example: 'https://docs.djangoproject.com/en/4.0/',
+    category: 'Web Frameworks',
+  },
+  FLASK: {
+    pattern: 'https://flask.palletsprojects.com',
+    name: 'Flask',
+    example: 'https://flask.palletsprojects.com/en/2.0.x/',
+    category: 'Web Frameworks',
+  },
+  EXPRESS: {
+    pattern: 'https://expressjs.com',
+    name: 'Express.js',
+    example: 'https://expressjs.com/en/guide/routing.html',
+    category: 'Web Frameworks',
+  },
+  LARAVEL: {
+    pattern: 'https://laravel.com/docs',
+    name: 'Laravel',
+    example: 'https://laravel.com/docs/10.x',
+    category: 'Web Frameworks',
+  },
+
+  // Cloud Platforms
+  AWS: {
+    pattern: 'https://docs.aws.amazon.com',
+    name: 'AWS',
+    example: 'https://docs.aws.amazon.com/ec2/',
+    category: 'Cloud Platforms',
+  },
+  GCP: {
+    pattern: 'https://cloud.google.com/docs',
+    name: 'Google Cloud',
+    example: 'https://cloud.google.com/docs',
+    category: 'Cloud Platforms',
+  },
+  AZURE: {
+    pattern: 'https://docs.microsoft.com/azure',
+    name: 'Azure',
+    example: 'https://docs.microsoft.com/azure',
+    category: 'Cloud Platforms',
+  },
+  DIGITALOCEAN: {
+    pattern: 'https://docs.digitalocean.com',
+    name: 'DigitalOcean',
+    example: 'https://docs.digitalocean.com/products/droplets/',
+    category: 'Cloud Platforms',
+  },
+  HEROKU: {
+    pattern: 'https://devcenter.heroku.com',
+    name: 'Heroku',
+    example: 'https://devcenter.heroku.com/articles/getting-started-with-nodejs',
+    category: 'Cloud Platforms',
+  },
+  VERCEL: {
+    pattern: 'https://vercel.com/docs',
+    name: 'Vercel',
+    example: 'https://vercel.com/docs/concepts/functions',
+    category: 'Cloud Platforms',
+  },
+  NETLIFY: {
+    pattern: 'https://docs.netlify.com',
+    name: 'Netlify',
+    example: 'https://docs.netlify.com/configure-builds/get-started/',
+    category: 'Cloud Platforms',
+  },
+
+  // Databases
+  POSTGRESQL: {
+    pattern: 'https://www.postgresql.org/docs',
+    name: 'PostgreSQL',
+    example: 'https://www.postgresql.org/docs/current/',
+    category: 'Databases',
+  },
+  MONGODB: {
+    pattern: 'https://docs.mongodb.com',
+    name: 'MongoDB',
+    example: 'https://docs.mongodb.com/manual/',
+    category: 'Databases',
+  },
+  MYSQL: {
+    pattern: 'https://dev.mysql.com/doc',
+    name: 'MySQL',
+    example: 'https://dev.mysql.com/doc/refman/8.0/en/',
+    category: 'Databases',
+  },
+  REDIS: {
+    pattern: 'https://redis.io/docs',
+    name: 'Redis',
+    example: 'https://redis.io/docs/getting-started/',
+    category: 'Databases',
+  },
+  ELASTICSEARCH: {
+    pattern: 'https://www.elastic.co/guide',
+    name: 'Elasticsearch',
+    example: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html',
+    category: 'Databases',
+  },
+  COUCHBASE: {
+    pattern: 'https://docs.couchbase.com',
+    name: 'Couchbase',
+    example: 'https://docs.couchbase.com/server/current/introduction/intro.html',
+    category: 'Databases',
+  },
+  CASSANDRA: {
+    pattern: 'https://cassandra.apache.org/doc',
+    name: 'Cassandra',
+    example: 'https://cassandra.apache.org/doc/latest/',
+    category: 'Databases',
+  },
+
+  // DevOps & Infrastructure
+  DOCKER: {
+    pattern: 'https://docs.docker.com',
+    name: 'Docker',
+    example: 'https://docs.docker.com/get-started/',
+    category: 'DevOps & Infrastructure',
+  },
+  KUBERNETES: {
+    pattern: 'https://kubernetes.io/docs',
+    name: 'Kubernetes',
+    example: 'https://kubernetes.io/docs/home/',
+    category: 'DevOps & Infrastructure',
+  },
+  TERRAFORM: {
+    pattern: 'https://www.terraform.io/docs',
+    name: 'Terraform',
+    example: 'https://www.terraform.io/docs',
+    category: 'DevOps & Infrastructure',
+  },
+  ANSIBLE: {
+    pattern: 'https://docs.ansible.com',
+    name: 'Ansible',
+    example: 'https://docs.ansible.com/ansible/latest/',
+    category: 'DevOps & Infrastructure',
+  },
+  GITHUB: {
+    pattern: 'https://docs.github.com',
+    name: 'GitHub',
+    example: 'https://docs.github.com/en/actions',
+    category: 'DevOps & Infrastructure',
+  },
+  GITLAB: {
+    pattern: 'https://docs.gitlab.com',
+    name: 'GitLab',
+    example: 'https://docs.gitlab.com/ee/ci/',
+    category: 'DevOps & Infrastructure',
+  },
+
+  // AI/ML Libraries
+  PYTORCH: {
+    pattern: 'https://pytorch.org/docs',
+    name: 'PyTorch',
+    example: 'https://pytorch.org/docs/stable/index.html',
+    category: 'AI/ML Libraries',
+  },
+  TENSORFLOW: {
+    pattern: 'https://www.tensorflow.org/api_docs',
+    name: 'TensorFlow',
+    example: 'https://www.tensorflow.org/api_docs/python/tf',
+    category: 'AI/ML Libraries',
+  },
+  HUGGINGFACE: {
+    pattern: 'https://huggingface.co/docs',
+    name: 'Hugging Face',
+    example: 'https://huggingface.co/docs/transformers',
+    category: 'AI/ML Libraries',
+  },
+  SCIKIT_LEARN: {
+    pattern: 'https://scikit-learn.org/stable',
+    name: 'scikit-learn',
+    example: 'https://scikit-learn.org/stable/user_guide.html',
+    category: 'AI/ML Libraries',
+  },
+  LANGCHAIN: {
+    pattern: 'https://docs.langchain.com',
+    name: 'LangChain',
+    example: 'https://docs.langchain.com/docs/',
+    category: 'AI/ML Libraries',
+  },
+  PANDAS: {
+    pattern: 'https://pandas.pydata.org/docs',
+    name: 'pandas',
+    example: 'https://pandas.pydata.org/docs/user_guide/index.html',
+    category: 'AI/ML Libraries',
+  },
+  NUMPY: {
+    pattern: 'https://numpy.org/doc',
+    name: 'NumPy',
+    example: 'https://numpy.org/doc/stable/',
+    category: 'AI/ML Libraries',
+  },
+
+  // CSS Frameworks
+  TAILWIND: {
+    pattern: 'https://tailwindcss.com/docs',
+    name: 'Tailwind CSS',
+    example: 'https://tailwindcss.com/docs/installation',
+    category: 'CSS Frameworks',
+  },
+  BOOTSTRAP: {
+    pattern: 'https://getbootstrap.com/docs',
+    name: 'Bootstrap',
+    example: 'https://getbootstrap.com/docs/5.0/getting-started/introduction/',
+    category: 'CSS Frameworks',
+  },
+  MUI: {
+    pattern: 'https://mui.com/material-ui',
+    name: 'Material-UI',
+    example: 'https://mui.com/material-ui/getting-started/',
+    category: 'CSS Frameworks',
+  },
+  CHAKRA: {
+    pattern: 'https://chakra-ui.com/docs',
+    name: 'Chakra UI',
+    example: 'https://chakra-ui.com/docs/getting-started',
+    category: 'CSS Frameworks',
+  },
+  BULMA: {
+    pattern: 'https://bulma.io/documentation',
+    name: 'Bulma',
+    example: 'https://bulma.io/documentation/',
+    category: 'CSS Frameworks',
+  },
+
+  // Build Tools & Package Managers
+  NPM: {
+    pattern: 'https://docs.npmjs.com',
+    name: 'npm',
+    example: 'https://docs.npmjs.com/cli/v8/commands/npm-install',
+    category: 'Build Tools & Package Managers',
+  },
+  WEBPACK: {
+    pattern: 'https://webpack.js.org/docs',
+    name: 'webpack',
+    example: 'https://webpack.js.org/docs/',
+    category: 'Build Tools & Package Managers',
+  },
+  VITE: {
+    pattern: 'https://vitejs.dev/guide',
+    name: 'Vite',
+    example: 'https://vitejs.dev/guide/',
+    category: 'Build Tools & Package Managers',
+  },
+  PIP: {
+    pattern: 'https://pip.pypa.io/en/stable',
+    name: 'pip',
+    example: 'https://pip.pypa.io/en/stable/user_guide/',
+    category: 'Build Tools & Package Managers',
+  },
+  CARGO: {
+    pattern: 'https://doc.rust-lang.org/cargo',
+    name: 'Cargo',
+    example: 'https://doc.rust-lang.org/cargo/',
+    category: 'Build Tools & Package Managers',
+  },
+  MAVEN: {
+    pattern: 'https://maven.apache.org/guides',
+    name: 'Maven',
+    example: 'https://maven.apache.org/guides/index.html',
+    category: 'Build Tools & Package Managers',
+  },
+
+  // Testing Frameworks
+  JEST: {
+    pattern: 'https://jestjs.io/docs',
+    name: 'Jest',
+    example: 'https://jestjs.io/docs/getting-started',
+    category: 'Testing Frameworks',
+  },
+  CYPRESS: {
+    pattern: 'https://docs.cypress.io',
+    name: 'Cypress',
+    example: 'https://docs.cypress.io/guides/overview/why-cypress',
+    category: 'Testing Frameworks',
+  },
+  PLAYWRIGHT: {
+    pattern: 'https://playwright.dev/docs',
+    name: 'Playwright',
+    example: 'https://playwright.dev/docs/intro',
+    category: 'Testing Frameworks',
+  },
+  PYTEST: {
+    pattern: 'https://docs.pytest.org',
+    name: 'pytest',
+    example: 'https://docs.pytest.org/en/7.1.x/',
+    category: 'Testing Frameworks',
+  },
+  MOCHA: {
+    pattern: 'https://mochajs.org',
+    name: 'Mocha',
+    example: 'https://mochajs.org/#getting-started',
+    category: 'Testing Frameworks',
+  },
+
+  // Mobile Development
+  REACT_NATIVE: {
+    pattern: 'https://reactnative.dev/docs',
+    name: 'React Native',
+    example: 'https://reactnative.dev/docs/getting-started',
+    category: 'Mobile Development',
+  },
+  FLUTTER: {
+    pattern: 'https://flutter.dev/docs',
+    name: 'Flutter',
+    example: 'https://flutter.dev/docs/get-started/install',
+    category: 'Mobile Development',
+  },
+  ANDROID: {
+    pattern: 'https://developer.android.com/docs',
+    name: 'Android',
+    example: 'https://developer.android.com/docs',
+    category: 'Mobile Development',
+  },
+} as const;
+
+// Processing configuration
+export const PROCESSING_CONFIG = {
+  BATCH_SIZE: 20 as number, // Process 20 URLs concurrently
+  BATCH_DELAY: 500 as number, // Delay between batches in ms
+  CACHE_DURATION: (30 * 24 * 60 * 60 * 1000) as number, // 1 month in ms
+  FIRECRAWL_WAIT_TIME: 5000 as number, // Wait time for Firecrawl API in ms
+  DEFAULT_CRAWL_DEPTH: 2 as number,
+  DEFAULT_MAX_URLS: 200 as number,
+};
+
+// UI configuration
+export const UI_CONFIG = {
+  LOG_SCROLL_THRESHOLD: 10, // Pixels from bottom to consider "at bottom"
+  PROGRESS_UPDATE_INTERVAL: 100, // Update progress every N processed URLs
+} as const;
+
+// File configuration
+export const FILE_CONFIG = {
+  DEFAULT_FILENAME: 'documentation.md',
+  APPLE_DEFAULT_FILENAME: 'apple-docs.md',
+  SWIFT_PACKAGE_DEFAULT_FILENAME: 'swift-package-docs.md',
+} as const;
