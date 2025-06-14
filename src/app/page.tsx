@@ -225,6 +225,12 @@ export default function Home() {
       }
 
       const data = await response.json();
+      
+      // Check if we have the expected response structure
+      if (!data.success) {
+        throw new Error(data.error || 'Scraping failed');
+      }
+      
       if (data.cached) {
         log(`Using cached content for ${urlToScrape}`);
       }
