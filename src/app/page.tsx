@@ -799,9 +799,9 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted flex flex-col">
       {/* Header */}
-      <header className="border-b border-slate-200 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
             <Image
@@ -812,21 +812,21 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
               className="rounded-xl shadow-sm"
             />
             <div>
-              <h1 className="text-xl font-semibold text-slate-900">
+              <h1 className="text-xl font-semibold text-foreground">
                 Documentation to llms.txt Generator
               </h1>
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-muted-foreground">
                 Transform developer documentation to clean, LLM-friendly Markdown
               </p>
             </div>
-            <div className="ml-auto text-xs text-slate-500 text-right">
+            <div className="ml-auto text-xs text-muted-foreground text-right">
               <div>
                 Made by{' '}
                 <a
                   href="https://steipete.me"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-700 font-medium"
+                  className="text-primary hover:text-primary/90 font-medium"
                 >
                   @steipete
                 </a>
@@ -850,8 +850,8 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
       <main className="flex-1 w-full px-4 py-8">
         <div className="max-w-3xl mx-auto space-y-6">
           {/* URL Input */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-            <label htmlFor="url" className="block text-sm font-medium text-slate-700 mb-3">
+          <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
+            <label htmlFor="url" className="block text-sm font-medium text-foreground mb-3">
               Documentation URL
             </label>
             <div className="relative">
@@ -861,10 +861,10 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://developer.apple.com/documentation/..."
-                className="w-full pl-12 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full pl-12 pr-4 py-3 border border-input rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
               />
               <svg
-                className="absolute left-4 top-3.5 w-5 h-5 text-slate-400"
+                className="absolute left-4 top-3.5 w-5 h-5 text-muted-foreground"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -893,16 +893,16 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
             <div className="mt-3">
               <Popover open={showPopover} onOpenChange={setShowPopover}>
                 <PopoverTrigger asChild>
-                  <button className="text-xs text-slate-500 hover:text-slate-700 underline cursor-pointer transition-colors">
+                  <button className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer transition-colors">
                     This document parser supports {getSupportedDomainsText()}
                   </button>
                 </PopoverTrigger>
                 <PopoverContent
-                  className="w-[36rem] max-h-[36rem] overflow-y-auto bg-white rounded-xl shadow-xl border border-slate-200"
+                  className="w-[36rem] max-h-[36rem] overflow-y-auto bg-popover rounded-xl shadow-xl border border-border"
                   align="start"
                 >
                   <div className="space-y-4">
-                    <h3 className="text-sm font-semibold text-slate-900">
+                    <h3 className="text-sm font-semibold text-foreground">
                       Supported Documentation Sites
                     </h3>
 
@@ -922,14 +922,14 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                       )
                     ).map(([category, domains]) => (
                       <div key={category} className="space-y-2">
-                        <h4 className="text-xs font-medium text-slate-700 uppercase tracking-wider">
+                        <h4 className="text-xs font-medium text-foreground uppercase tracking-wider">
                           {category}
                         </h4>
                         <ul className="space-y-1">
                           {domains.map((domain) => (
                             <li key={domain.name} className="text-xs">
                               <button
-                                className="w-full text-left hover:bg-slate-50 rounded px-2 py-1 transition-colors"
+                                className="w-full text-left hover:bg-accent rounded px-2 py-1 transition-colors"
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
@@ -938,8 +938,8 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                                   setShowPopover(false);
                                 }}
                               >
-                                <span className="text-slate-700 font-medium">{domain.name}</span>
-                                <span className="text-slate-400 ml-2 text-[11px]">
+                                <span className="text-foreground font-medium">{domain.name}</span>
+                                <span className="text-muted-foreground ml-2 text-[11px]">
                                   {domain.example}
                                 </span>
                               </button>
@@ -950,14 +950,14 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                     ))}
 
                     {/* Add GitHub issue link */}
-                    <div className="pt-4 border-t border-slate-200">
-                      <p className="text-xs text-slate-600">
+                    <div className="pt-4 border-t border-border">
+                      <p className="text-xs text-muted-foreground">
                         Missing a site?{' '}
                         <a
                           href="https://github.com/amantus-ai/llm-codes/issues"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-700 underline"
+                          className="text-primary hover:text-primary/90 underline">
                         >
                           Open an issue on GitHub
                         </a>
@@ -970,9 +970,9 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
           </div>
 
           {/* Configuration & Options */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-slate-700">Processing Configuration</h3>
+              <h3 className="text-sm font-medium text-foreground">Processing Configuration</h3>
               {typeof window !== 'undefined' &&
                 !isIOS &&
                 'Notification' in window &&
@@ -983,7 +983,7 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                         notificationPermission === 'granted' ? 'bg-green-500' : 'bg-red-500'
                       }`}
                     />
-                    <span className="text-slate-600">
+                    <span className="text-muted-foreground">
                       Notifications {notificationPermission === 'granted' ? 'enabled' : 'blocked'}
                     </span>
                   </div>
@@ -991,7 +991,7 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="depth" className="block text-sm text-slate-600 mb-2">
+                <label htmlFor="depth" className="block text-sm text-muted-foreground mb-2">
                   Crawl Depth
                 </label>
                 <div className="relative">
@@ -1002,16 +1002,16 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                     max="5"
                     value={depth}
                     onChange={(e) => setDepth(parseInt(e.target.value))}
-                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
-                  <div className="absolute right-12 top-1/2 -translate-y-1/2 text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded pointer-events-none">
+                  <div className="absolute right-12 top-1/2 -translate-y-1/2 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded pointer-events-none">
                     levels
                   </div>
                 </div>
-                <p className="mt-1.5 text-xs text-slate-500">0 = main page only</p>
+                <p className="mt-1.5 text-xs text-muted-foreground">0 = main page only</p>
               </div>
               <div>
-                <label htmlFor="maxUrls" className="block text-sm text-slate-600 mb-2">
+                <label htmlFor="maxUrls" className="block text-sm text-muted-foreground mb-2">
                   Max URLs
                 </label>
                 <div className="relative">
@@ -1022,21 +1022,21 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                     max="1000"
                     value={maxUrls}
                     onChange={(e) => setMaxUrls(parseInt(e.target.value))}
-                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
-                  <div className="absolute right-12 top-1/2 -translate-y-1/2 text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded pointer-events-none">
+                  <div className="absolute right-12 top-1/2 -translate-y-1/2 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded pointer-events-none">
                     pages
                   </div>
                 </div>
-                <p className="mt-1.5 text-xs text-slate-500">Maximum pages to process</p>
+                <p className="mt-1.5 text-xs text-muted-foreground">Maximum pages to process</p>
               </div>
             </div>
 
             {/* Collapsible Options */}
-            <div className="mt-6 border-t border-slate-200 pt-4">
+            <div className="mt-6 border-t border-border pt-4">
               <button
                 onClick={() => setShowOptions(!showOptions)}
-                className="flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+                className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-foreground/90 transition-colors"
               >
                 <svg
                   className={`w-4 h-4 transition-transform ${showOptions ? 'rotate-90' : ''}`}
@@ -1061,11 +1061,11 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                       type="checkbox"
                       checked={filterUrls}
                       onChange={(e) => setFilterUrls(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                      className="w-4 h-4 text-primary bg-background border-input rounded focus:ring-primary focus:ring-2"
                     />
-                    <span className="text-sm text-slate-600">Filter out all URLs</span>
+                    <span className="text-sm text-muted-foreground">Filter out all URLs</span>
                   </label>
-                  <p className="text-xs text-slate-500 ml-7 -mt-2">
+                  <p className="text-xs text-muted-foreground ml-7 -mt-2">
                     Remove all hyperlinks from the markdown output
                   </p>
                   <label className="flex items-center gap-3 cursor-pointer">
@@ -1073,11 +1073,11 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                       type="checkbox"
                       checked={deduplicateContent}
                       onChange={(e) => setDeduplicateContent(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                      className="w-4 h-4 text-primary bg-background border-input rounded focus:ring-primary focus:ring-2"
                     />
-                    <span className="text-sm text-slate-600">De-duplicate content</span>
+                    <span className="text-sm text-muted-foreground">De-duplicate content</span>
                   </label>
-                  <p className="text-xs text-slate-500 ml-7 -mt-2">
+                  <p className="text-xs text-muted-foreground ml-7 -mt-2">
                     Remove duplicate sections and paragraphs from the output
                   </p>
                   <label className="flex items-center gap-3 cursor-pointer">
@@ -1085,11 +1085,11 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                       type="checkbox"
                       checked={filterAvailability}
                       onChange={(e) => setFilterAvailability(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                      className="w-4 h-4 text-primary bg-background border-input rounded focus:ring-primary focus:ring-2"
                     />
-                    <span className="text-sm text-slate-600">Filter availability strings</span>
+                    <span className="text-sm text-muted-foreground">Filter availability strings</span>
                   </label>
-                  <p className="text-xs text-slate-500 ml-7 -mt-2">
+                  <p className="text-xs text-muted-foreground ml-7 -mt-2">
                     Remove platform availability info (iOS 14.0+, macOS 10.15+, etc.)
                   </p>
                   <label className="flex items-center gap-3 cursor-pointer">
@@ -1097,13 +1097,13 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                       type="checkbox"
                       checked={useComprehensiveFilter}
                       onChange={(e) => setUseComprehensiveFilter(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                      className="w-4 h-4 text-primary bg-background border-input rounded focus:ring-primary focus:ring-2"
                     />
-                    <span className="text-sm text-slate-600">
+                    <span className="text-sm text-muted-foreground">
                       Comprehensive documentation filter
                     </span>
                   </label>
-                  <p className="text-xs text-slate-500 ml-7 -mt-2">
+                  <p className="text-xs text-muted-foreground ml-7 -mt-2">
                     Apply advanced filtering to remove navigation, legal text, empty sections, and
                     other documentation noise
                   </p>
@@ -1116,7 +1116,7 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
           <button
             onClick={processUrl}
             disabled={isProcessing}
-            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3.5 px-6 rounded-xl font-medium hover:from-blue-600 hover:to-indigo-700 disabled:from-slate-400 disabled:to-slate-500 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30"
+            className="w-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground py-3.5 px-6 rounded-xl font-medium hover:from-primary/90 hover:to-primary/70 disabled:from-muted disabled:to-muted/80 disabled:cursor-not-allowed transition-all shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30"
           >
             {isProcessing ? (
               <span className="flex items-center justify-center gap-3">
@@ -1144,28 +1144,37 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
 
           {/* Help text - shown only when not processing */}
           {!isProcessing && (
-            <p className="mt-4 text-sm text-slate-600 text-center">
+            <p className="mt-4 text-sm text-muted-foreground text-center">
               Generates a cleaned markdown file (llms.txt), so your agent knows the latest Apple (or
               3rd-party) API.
               <br />
               Store the file in your project and reference the name to load it into the context, and
               get better code.
+              <br />
+              <a
+                href="https://steipete.me/posts/llm-codes-transform-developer-docs"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:text-primary/90 underline mt-1 inline-block"
+              >
+                Learn how llm.codes transforms documentation for AI agents →
+              </a>
             </p>
           )}
 
           {/* Progress */}
           {(isProcessing || results.length > 0) && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <h3 className="text-sm font-medium text-slate-700 mb-4">Progress</h3>
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
+              <h3 className="text-sm font-medium text-foreground mb-4">Progress</h3>
               <div className="space-y-4">
                 <div>
-                  <div className="flex justify-between text-sm text-slate-600 mb-2">
+                  <div className="flex justify-between text-sm text-muted-foreground mb-2">
                     <span>Processing</span>
                     <span>{progress}%</span>
                   </div>
-                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                  <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
                     <div
-                      className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-500 ease-out"
+                      className="bg-gradient-to-r from-primary to-primary/80 h-2 rounded-full transition-all duration-500 ease-out"
                       style={{ width: `${progress}%` }}
                     ></div>
                   </div>
@@ -1174,7 +1183,7 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                 {/* Logs Toggle */}
                 <button
                   onClick={() => setShowLogs(!showLogs)}
-                  className="text-sm text-slate-600 hover:text-slate-900 flex items-center gap-2"
+                  className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-2"
                 >
                   <svg
                     className={`w-4 h-4 transition-transform ${showLogs ? 'rotate-90' : ''}`}
@@ -1196,9 +1205,9 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                   <div
                     ref={logContainerRef}
                     onScroll={handleLogScroll}
-                    className="bg-slate-50 rounded-lg p-3 max-h-48 overflow-y-auto"
+                    className="bg-muted/50 rounded-lg p-3 max-h-48 overflow-y-auto"
                   >
-                    <div className="space-y-1 font-mono text-xs text-slate-600">
+                    <div className="space-y-1 font-mono text-xs text-muted-foreground">
                       {logs.map((log, i) => (
                         <div key={i}>{log}</div>
                       ))}
@@ -1211,22 +1220,22 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
 
           {/* Statistics */}
           {stats.urls > 0 && (
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl shadow-sm border border-blue-200 p-6">
-              <h4 className="text-sm font-medium text-slate-700 mb-4">Statistics</h4>
+            <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl shadow-sm border border-primary/20 p-6">
+              <h4 className="text-sm font-medium text-foreground mb-4">Statistics</h4>
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{stats.urls}</div>
-                  <div className="text-xs text-slate-600 mt-1">URLs</div>
+                  <div className="text-2xl font-bold text-primary">{stats.urls}</div>
+                  <div className="text-xs text-muted-foreground mt-1">URLs</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{Math.round(stats.size)}K</div>
-                  <div className="text-xs text-slate-600 mt-1">Size</div>
+                  <div className="text-2xl font-bold text-primary">{Math.round(stats.size)}K</div>
+                  <div className="text-xs text-muted-foreground mt-1">Size</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
+                  <div className="text-2xl font-bold text-primary">
                     {(stats.lines / 1000).toFixed(1)}K
                   </div>
-                  <div className="text-xs text-slate-600 mt-1">Lines</div>
+                  <div className="text-xs text-muted-foreground mt-1">Lines</div>
                 </div>
               </div>
             </div>
@@ -1236,7 +1245,7 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
           {results.length > 0 && (
             <button
               onClick={downloadMarkdown}
-              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3.5 px-6 rounded-xl font-medium hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 flex items-center justify-center gap-3 animate-splash animate-pulse-ring"
+              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-primary-foreground py-3.5 px-6 rounded-xl font-medium hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 flex items-center justify-center gap-3 animate-splash animate-pulse-ring"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
@@ -1253,15 +1262,15 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white/80 backdrop-blur-sm mt-auto">
+      <footer className="border-t border-border bg-card/80 backdrop-blur-sm mt-auto">
         <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-          <p className="text-sm text-slate-600 mb-6">
+          <p className="text-sm text-muted-foreground mb-6">
             This service is being offered and <em>paid</em> for by{' '}
             <a
               href="https://twitter.com/steipete"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-700 font-medium"
+              className="text-primary hover:text-primary/90 font-medium"
             >
               Peter Steinberger (@steipete)
             </a>
@@ -1288,16 +1297,16 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                 id="bd-email"
                 placeholder="Enter your email"
                 required
-                className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="flex-1 px-4 py-3 border border-input rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
               />
               <button
                 type="submit"
-                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-medium hover:from-blue-600 hover:to-indigo-700 transition-all text-sm shadow-md hover:shadow-lg"
+                className="px-6 py-3 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-xl font-medium hover:from-primary/90 hover:to-primary/70 transition-all text-sm shadow-md hover:shadow-lg"
               >
                 Subscribe
               </button>
             </form>
-            <p className="text-xs text-slate-500 mt-3">2× per month, pure signal, zero fluff.</p>
+            <p className="text-xs text-muted-foreground mt-3">2× per month, pure signal, zero fluff.</p>
           </div>
         </div>
       </footer>
