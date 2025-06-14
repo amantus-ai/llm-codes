@@ -1119,7 +1119,7 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
           {/* Help text - shown only when not processing */}
           {!isProcessing && (
             <p className="mt-4 text-sm text-slate-600 text-center">
-              Generates a cleaned markdown file, so your agent knows the latest Apple (or 3rd-party)
+              Generates a cleaned markdown file (llms.txt), so your agent knows the latest Apple (or 3rd-party)
               API.
               <br />
               Store the file in your project and reference the name to load it into the context, and
