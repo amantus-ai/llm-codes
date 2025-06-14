@@ -10,7 +10,7 @@ interface ProcessingResult {
 export default function Home() {
   const [url, setUrl] = useState('');
   const [depth, setDepth] = useState(1);
-  const [maxUrls, setMaxUrls] = useState(50);
+  const [maxUrls, setMaxUrls] = useState(100);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
@@ -229,7 +229,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col">
       {/* Header */}
       <header className="border-b border-slate-200 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4">
@@ -247,7 +247,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <main className="max-w-6xl mx-auto px-4 py-8 flex-1 w-full">
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Input Section */}
           <div className="lg:col-span-2 space-y-6">
@@ -311,7 +311,7 @@ export default function Home() {
                       onChange={(e) => setDepth(parseInt(e.target.value))}
                       className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
-                    <div className="absolute right-3 top-2.5 text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                    <div className="absolute right-12 top-2.5 text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded pointer-events-none">
                       levels
                     </div>
                   </div>
@@ -333,7 +333,7 @@ export default function Home() {
                       onChange={(e) => setMaxUrls(parseInt(e.target.value))}
                       className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
-                    <div className="absolute right-3 top-2.5 text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                    <div className="absolute right-12 top-2.5 text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded pointer-events-none">
                       pages
                     </div>
                   </div>
@@ -443,10 +443,11 @@ export default function Home() {
             )}
           </div>
         </div>
+      </main>
 
-        {/* Footer */}
-        <footer className="mt-16 border-t border-slate-200 bg-white/80 backdrop-blur-sm">
-          <div className="max-w-4xl mx-auto px-4 py-8 text-center">
+      {/* Footer */}
+      <footer className="border-t border-slate-200 bg-white/80 backdrop-blur-sm mt-auto">
+        <div className="max-w-4xl mx-auto px-4 py-8 text-center">
             <p className="text-sm text-slate-600 mb-6">
               This service is being offered and paid for by{' '}
               <a
@@ -455,9 +456,10 @@ export default function Home() {
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:text-blue-700 font-medium"
               >
-                Peter Steinberger
+                Peter Steinberger (@steipete)
               </a>
-              . If you want to thank me, give me a shoutout and follow my newsletter.
+              .<br />
+              If you want to thank me, give me a shoutout and follow my newsletter.
             </p>
             
             {/* Newsletter Form */}
@@ -479,11 +481,11 @@ export default function Home() {
                   id="bd-email"
                   placeholder="Enter your email"
                   required
-                  className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                 />
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg font-medium hover:from-blue-600 hover:to-indigo-700 transition-all text-sm shadow-md hover:shadow-lg"
+                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-medium hover:from-blue-600 hover:to-indigo-700 transition-all text-sm shadow-md hover:shadow-lg"
                 >
                   Subscribe
                 </button>
@@ -494,7 +496,6 @@ export default function Home() {
             </div>
           </div>
         </footer>
-      </main>
     </div>
   );
 }
