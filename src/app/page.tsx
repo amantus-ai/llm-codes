@@ -450,16 +450,29 @@ Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
               <h1 className="text-xl font-semibold text-slate-900">Apple Docs Converter</h1>
               <p className="text-sm text-slate-600">Transform developer documentation to clean Markdown</p>
             </div>
-            <div className="ml-auto text-xs text-slate-500">
-              Powered by{' '}
-              <a 
-                href="https://www.firecrawl.dev/referral?rid=9CG538BE" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-orange-600 hover:text-orange-700 font-medium"
-              >
-                Firecrawl
-              </a>
+            <div className="ml-auto text-xs text-slate-500 text-right">
+              <div>
+                Made by{' '}
+                <a 
+                  href="https://steipete.me" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  @steipete
+                </a>
+              </div>
+              <div>
+                Powered by{' '}
+                <a 
+                  href="https://www.firecrawl.dev/referral?rid=9CG538BE" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-orange-600 hover:text-orange-700 font-medium"
+                >
+                  Firecrawl
+                </a>
+              </div>
             </div>
           </div>
         </div>
