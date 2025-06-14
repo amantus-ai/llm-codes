@@ -4,13 +4,13 @@ export const ALLOWED_DOMAINS = {
   APPLE: {
     pattern: 'https://developer.apple.com',
     name: 'Apple Developer',
-    example: 'https://developer.apple.com/documentation/swiftui',
+    example: 'https://developer.apple.com/documentation',
     category: 'Mobile Development',
   },
   SWIFT_PACKAGE_INDEX: {
     pattern: 'https://swiftpackageindex.com/',
     name: 'Swift Package Index',
-    example: 'https://swiftpackageindex.com/pointfreeco/swift-composable-architecture',
+    example: 'https://swiftpackageindex.com',
     category: 'Programming Languages',
   },
   GITHUB_PAGES: {
@@ -24,43 +24,43 @@ export const ALLOWED_DOMAINS = {
   PYTHON: {
     pattern: 'https://docs.python.org',
     name: 'Python',
-    example: 'https://docs.python.org/3/library/asyncio.html',
+    example: 'https://docs.python.org',
     category: 'Programming Languages',
   },
   MDN: {
     pattern: 'https://developer.mozilla.org',
     name: 'MDN Web Docs',
-    example: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript',
+    example: 'https://developer.mozilla.org',
     category: 'Programming Languages',
   },
   TYPESCRIPT: {
     pattern: 'https://www.typescriptlang.org/docs',
     name: 'TypeScript',
-    example: 'https://www.typescriptlang.org/docs/handbook/intro.html',
+    example: 'https://www.typescriptlang.org/docs',
     category: 'Programming Languages',
   },
   RUST: {
     pattern: 'https://doc.rust-lang.org',
     name: 'Rust',
-    example: 'https://doc.rust-lang.org/book/',
+    example: 'https://doc.rust-lang.org',
     category: 'Programming Languages',
   },
   GOLANG: {
     pattern: 'https://golang.org/doc',
     name: 'Go',
-    example: 'https://golang.org/doc/effective_go',
+    example: 'https://golang.org/doc',
     category: 'Programming Languages',
   },
   JAVA: {
     pattern: 'https://docs.oracle.com/javase',
     name: 'Java',
-    example: 'https://docs.oracle.com/javase/8/docs/api/',
+    example: 'https://docs.oracle.com/javase',
     category: 'Programming Languages',
   },
   RUBY: {
     pattern: 'https://ruby-doc.org',
     name: 'Ruby',
-    example: 'https://ruby-doc.org/core-3.0.0/',
+    example: 'https://ruby-doc.org',
     category: 'Programming Languages',
   },
   PHP: {
@@ -72,13 +72,13 @@ export const ALLOWED_DOMAINS = {
   SWIFT: {
     pattern: 'https://docs.swift.org',
     name: 'Swift',
-    example: 'https://docs.swift.org/swift-book/',
+    example: 'https://docs.swift.org',
     category: 'Programming Languages',
   },
   KOTLIN: {
     pattern: 'https://kotlinlang.org/docs',
     name: 'Kotlin',
-    example: 'https://kotlinlang.org/docs/getting-started.html',
+    example: 'https://kotlinlang.org/docs',
     category: 'Programming Languages',
   },
 
@@ -92,7 +92,7 @@ export const ALLOWED_DOMAINS = {
   VUE: {
     pattern: 'https://vuejs.org',
     name: 'Vue.js',
-    example: 'https://vuejs.org/guide/introduction.html',
+    example: 'https://vuejs.org/guide',
     category: 'Web Frameworks',
   },
   ANGULAR: {
@@ -104,43 +104,43 @@ export const ALLOWED_DOMAINS = {
   NEXTJS: {
     pattern: 'https://nextjs.org/docs',
     name: 'Next.js',
-    example: 'https://nextjs.org/docs/getting-started',
+    example: 'https://nextjs.org/docs',
     category: 'Web Frameworks',
   },
   NUXT: {
     pattern: 'https://nuxt.com/docs',
     name: 'Nuxt',
-    example: 'https://nuxt.com/docs/getting-started',
+    example: 'https://nuxt.com/docs',
     category: 'Web Frameworks',
   },
   SVELTE: {
     pattern: 'https://svelte.dev/docs',
     name: 'Svelte',
-    example: 'https://svelte.dev/docs/introduction',
+    example: 'https://svelte.dev/docs',
     category: 'Web Frameworks',
   },
   DJANGO: {
     pattern: 'https://docs.djangoproject.com',
     name: 'Django',
-    example: 'https://docs.djangoproject.com/en/4.0/',
+    example: 'https://docs.djangoproject.com',
     category: 'Web Frameworks',
   },
   FLASK: {
     pattern: 'https://flask.palletsprojects.com',
     name: 'Flask',
-    example: 'https://flask.palletsprojects.com/en/2.0.x/',
+    example: 'https://flask.palletsprojects.com',
     category: 'Web Frameworks',
   },
   EXPRESS: {
     pattern: 'https://expressjs.com',
     name: 'Express.js',
-    example: 'https://expressjs.com/en/guide/routing.html',
+    example: 'https://expressjs.com',
     category: 'Web Frameworks',
   },
   LARAVEL: {
     pattern: 'https://laravel.com/docs',
     name: 'Laravel',
-    example: 'https://laravel.com/docs/10.x',
+    example: 'https://laravel.com/docs',
     category: 'Web Frameworks',
   },
 
@@ -148,7 +148,7 @@ export const ALLOWED_DOMAINS = {
   AWS: {
     pattern: 'https://docs.aws.amazon.com',
     name: 'AWS',
-    example: 'https://docs.aws.amazon.com/ec2/',
+    example: 'https://docs.aws.amazon.com',
     category: 'Cloud Platforms',
   },
   GCP: {
@@ -166,25 +166,25 @@ export const ALLOWED_DOMAINS = {
   DIGITALOCEAN: {
     pattern: 'https://docs.digitalocean.com',
     name: 'DigitalOcean',
-    example: 'https://docs.digitalocean.com/products/droplets/',
+    example: 'https://docs.digitalocean.com',
     category: 'Cloud Platforms',
   },
   HEROKU: {
     pattern: 'https://devcenter.heroku.com',
     name: 'Heroku',
-    example: 'https://devcenter.heroku.com/articles/getting-started-with-nodejs',
+    example: 'https://devcenter.heroku.com',
     category: 'Cloud Platforms',
   },
   VERCEL: {
     pattern: 'https://vercel.com/docs',
     name: 'Vercel',
-    example: 'https://vercel.com/docs/concepts/functions',
+    example: 'https://vercel.com/docs',
     category: 'Cloud Platforms',
   },
   NETLIFY: {
     pattern: 'https://docs.netlify.com',
     name: 'Netlify',
-    example: 'https://docs.netlify.com/configure-builds/get-started/',
+    example: 'https://docs.netlify.com',
     category: 'Cloud Platforms',
   },
 
@@ -192,43 +192,43 @@ export const ALLOWED_DOMAINS = {
   POSTGRESQL: {
     pattern: 'https://www.postgresql.org/docs',
     name: 'PostgreSQL',
-    example: 'https://www.postgresql.org/docs/current/',
+    example: 'https://www.postgresql.org/docs',
     category: 'Databases',
   },
   MONGODB: {
     pattern: 'https://docs.mongodb.com',
     name: 'MongoDB',
-    example: 'https://docs.mongodb.com/manual/',
+    example: 'https://docs.mongodb.com',
     category: 'Databases',
   },
   MYSQL: {
     pattern: 'https://dev.mysql.com/doc',
     name: 'MySQL',
-    example: 'https://dev.mysql.com/doc/refman/8.0/en/',
+    example: 'https://dev.mysql.com/doc',
     category: 'Databases',
   },
   REDIS: {
     pattern: 'https://redis.io/docs',
     name: 'Redis',
-    example: 'https://redis.io/docs/getting-started/',
+    example: 'https://redis.io/docs',
     category: 'Databases',
   },
   ELASTICSEARCH: {
     pattern: 'https://www.elastic.co/guide',
     name: 'Elasticsearch',
-    example: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html',
+    example: 'https://www.elastic.co/guide',
     category: 'Databases',
   },
   COUCHBASE: {
     pattern: 'https://docs.couchbase.com',
     name: 'Couchbase',
-    example: 'https://docs.couchbase.com/server/current/introduction/intro.html',
+    example: 'https://docs.couchbase.com',
     category: 'Databases',
   },
   CASSANDRA: {
     pattern: 'https://cassandra.apache.org/doc',
     name: 'Cassandra',
-    example: 'https://cassandra.apache.org/doc/latest/',
+    example: 'https://cassandra.apache.org/doc',
     category: 'Databases',
   },
 
@@ -236,13 +236,13 @@ export const ALLOWED_DOMAINS = {
   DOCKER: {
     pattern: 'https://docs.docker.com',
     name: 'Docker',
-    example: 'https://docs.docker.com/get-started/',
+    example: 'https://docs.docker.com',
     category: 'DevOps & Infrastructure',
   },
   KUBERNETES: {
     pattern: 'https://kubernetes.io/docs',
     name: 'Kubernetes',
-    example: 'https://kubernetes.io/docs/home/',
+    example: 'https://kubernetes.io/docs',
     category: 'DevOps & Infrastructure',
   },
   TERRAFORM: {
@@ -254,19 +254,19 @@ export const ALLOWED_DOMAINS = {
   ANSIBLE: {
     pattern: 'https://docs.ansible.com',
     name: 'Ansible',
-    example: 'https://docs.ansible.com/ansible/latest/',
+    example: 'https://docs.ansible.com',
     category: 'DevOps & Infrastructure',
   },
   GITHUB: {
     pattern: 'https://docs.github.com',
     name: 'GitHub',
-    example: 'https://docs.github.com/en/actions',
+    example: 'https://docs.github.com',
     category: 'DevOps & Infrastructure',
   },
   GITLAB: {
     pattern: 'https://docs.gitlab.com',
     name: 'GitLab',
-    example: 'https://docs.gitlab.com/ee/ci/',
+    example: 'https://docs.gitlab.com',
     category: 'DevOps & Infrastructure',
   },
 
@@ -274,43 +274,43 @@ export const ALLOWED_DOMAINS = {
   PYTORCH: {
     pattern: 'https://pytorch.org/docs',
     name: 'PyTorch',
-    example: 'https://pytorch.org/docs/stable/index.html',
+    example: 'https://pytorch.org/docs',
     category: 'AI/ML Libraries',
   },
   TENSORFLOW: {
     pattern: 'https://www.tensorflow.org/api_docs',
     name: 'TensorFlow',
-    example: 'https://www.tensorflow.org/api_docs/python/tf',
+    example: 'https://www.tensorflow.org/api_docs',
     category: 'AI/ML Libraries',
   },
   HUGGINGFACE: {
     pattern: 'https://huggingface.co/docs',
     name: 'Hugging Face',
-    example: 'https://huggingface.co/docs/transformers',
+    example: 'https://huggingface.co/docs',
     category: 'AI/ML Libraries',
   },
   SCIKIT_LEARN: {
     pattern: 'https://scikit-learn.org/stable',
     name: 'scikit-learn',
-    example: 'https://scikit-learn.org/stable/user_guide.html',
+    example: 'https://scikit-learn.org/stable',
     category: 'AI/ML Libraries',
   },
   LANGCHAIN: {
     pattern: 'https://docs.langchain.com',
     name: 'LangChain',
-    example: 'https://docs.langchain.com/docs/',
+    example: 'https://docs.langchain.com',
     category: 'AI/ML Libraries',
   },
   PANDAS: {
     pattern: 'https://pandas.pydata.org/docs',
     name: 'pandas',
-    example: 'https://pandas.pydata.org/docs/user_guide/index.html',
+    example: 'https://pandas.pydata.org/docs',
     category: 'AI/ML Libraries',
   },
   NUMPY: {
     pattern: 'https://numpy.org/doc',
     name: 'NumPy',
-    example: 'https://numpy.org/doc/stable/',
+    example: 'https://numpy.org/doc',
     category: 'AI/ML Libraries',
   },
 
@@ -318,31 +318,31 @@ export const ALLOWED_DOMAINS = {
   TAILWIND: {
     pattern: 'https://tailwindcss.com/docs',
     name: 'Tailwind CSS',
-    example: 'https://tailwindcss.com/docs/installation',
+    example: 'https://tailwindcss.com/docs',
     category: 'CSS Frameworks',
   },
   BOOTSTRAP: {
     pattern: 'https://getbootstrap.com/docs',
     name: 'Bootstrap',
-    example: 'https://getbootstrap.com/docs/5.0/getting-started/introduction/',
+    example: 'https://getbootstrap.com/docs',
     category: 'CSS Frameworks',
   },
   MUI: {
     pattern: 'https://mui.com/material-ui',
     name: 'Material-UI',
-    example: 'https://mui.com/material-ui/getting-started/',
+    example: 'https://mui.com/material-ui',
     category: 'CSS Frameworks',
   },
   CHAKRA: {
     pattern: 'https://chakra-ui.com/docs',
     name: 'Chakra UI',
-    example: 'https://chakra-ui.com/docs/getting-started',
+    example: 'https://chakra-ui.com/docs',
     category: 'CSS Frameworks',
   },
   BULMA: {
     pattern: 'https://bulma.io/documentation',
     name: 'Bulma',
-    example: 'https://bulma.io/documentation/',
+    example: 'https://bulma.io/documentation',
     category: 'CSS Frameworks',
   },
 
@@ -350,37 +350,37 @@ export const ALLOWED_DOMAINS = {
   NPM: {
     pattern: 'https://docs.npmjs.com',
     name: 'npm',
-    example: 'https://docs.npmjs.com/cli/v8/commands/npm-install',
+    example: 'https://docs.npmjs.com',
     category: 'Build Tools & Package Managers',
   },
   WEBPACK: {
     pattern: 'https://webpack.js.org/docs',
     name: 'webpack',
-    example: 'https://webpack.js.org/docs/',
+    example: 'https://webpack.js.org/docs',
     category: 'Build Tools & Package Managers',
   },
   VITE: {
     pattern: 'https://vitejs.dev/guide',
     name: 'Vite',
-    example: 'https://vitejs.dev/guide/',
+    example: 'https://vitejs.dev/guide',
     category: 'Build Tools & Package Managers',
   },
   PIP: {
     pattern: 'https://pip.pypa.io/en/stable',
     name: 'pip',
-    example: 'https://pip.pypa.io/en/stable/user_guide/',
+    example: 'https://pip.pypa.io/en/stable',
     category: 'Build Tools & Package Managers',
   },
   CARGO: {
     pattern: 'https://doc.rust-lang.org/cargo',
     name: 'Cargo',
-    example: 'https://doc.rust-lang.org/cargo/',
+    example: 'https://doc.rust-lang.org/cargo',
     category: 'Build Tools & Package Managers',
   },
   MAVEN: {
     pattern: 'https://maven.apache.org/guides',
     name: 'Maven',
-    example: 'https://maven.apache.org/guides/index.html',
+    example: 'https://maven.apache.org/guides',
     category: 'Build Tools & Package Managers',
   },
 
@@ -388,31 +388,31 @@ export const ALLOWED_DOMAINS = {
   JEST: {
     pattern: 'https://jestjs.io/docs',
     name: 'Jest',
-    example: 'https://jestjs.io/docs/getting-started',
+    example: 'https://jestjs.io/docs',
     category: 'Testing Frameworks',
   },
   CYPRESS: {
     pattern: 'https://docs.cypress.io',
     name: 'Cypress',
-    example: 'https://docs.cypress.io/guides/overview/why-cypress',
+    example: 'https://docs.cypress.io',
     category: 'Testing Frameworks',
   },
   PLAYWRIGHT: {
     pattern: 'https://playwright.dev/docs',
     name: 'Playwright',
-    example: 'https://playwright.dev/docs/intro',
+    example: 'https://playwright.dev/docs',
     category: 'Testing Frameworks',
   },
   PYTEST: {
     pattern: 'https://docs.pytest.org',
     name: 'pytest',
-    example: 'https://docs.pytest.org/en/7.1.x/',
+    example: 'https://docs.pytest.org',
     category: 'Testing Frameworks',
   },
   MOCHA: {
     pattern: 'https://mochajs.org',
     name: 'Mocha',
-    example: 'https://mochajs.org/#getting-started',
+    example: 'https://mochajs.org',
     category: 'Testing Frameworks',
   },
 
@@ -420,13 +420,13 @@ export const ALLOWED_DOMAINS = {
   REACT_NATIVE: {
     pattern: 'https://reactnative.dev/docs',
     name: 'React Native',
-    example: 'https://reactnative.dev/docs/getting-started',
+    example: 'https://reactnative.dev/docs',
     category: 'Mobile Development',
   },
   FLUTTER: {
     pattern: 'https://flutter.dev/docs',
     name: 'Flutter',
-    example: 'https://flutter.dev/docs/get-started/install',
+    example: 'https://flutter.dev/docs',
     category: 'Mobile Development',
   },
   ANDROID: {
