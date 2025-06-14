@@ -34,11 +34,20 @@ export async function POST(request: NextRequest) {
       const cacheKey = `scrape_${url}`;
       const cached = cache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < PROCESSING_CONFIG.CACHE_DURATION) {
-        return NextResponse.json({
-          success: true,
-          data: { markdown: cached.content },
-          cached: true,
-        });
+        // Validate cached content isn't truncated
+        if (cached.content.length < 200 && cached.content.trim().startsWith('[Skip Navigation]')) {
+          // Remove invalid cached entry
+          cache.delete(cacheKey);
+          console.warn(
+            `Removed truncated cached content for ${url} (${cached.content.length} chars)`
+          );
+        } else {
+          return NextResponse.json({
+            success: true,
+            data: { markdown: cached.content },
+            cached: true,
+          });
+        }
       }
 
       // Retry configuration from constants
@@ -69,7 +78,10 @@ export async function POST(request: NextRequest) {
               formats: ['markdown'],
               onlyMainContent: true,
               waitFor: PROCESSING_CONFIG.FIRECRAWL_WAIT_TIME,
-              maxAge: PROCESSING_CONFIG.CACHE_DURATION,
+              timeout: 30000, // Add explicit timeout
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; Documentation-Scraper/1.0)',
+              },
             }),
           });
 
@@ -91,17 +103,54 @@ export async function POST(request: NextRequest) {
             }
 
             if (data.success && data.data && typeof data.data.markdown === 'string') {
-              // Cache the result (even if empty)
-              cache.set(cacheKey, {
-                content: data.data.markdown,
-                timestamp: Date.now(),
-              });
+              const markdown = data.data.markdown;
+
+              // Detect various types of truncated/incomplete content
+              const contentLength = markdown.length;
+              const trimmedContent = markdown.trim();
+
+              // Check for known truncated patterns
+              const isTruncated =
+                // Only navigation link (exactly 82 chars is the common case)
+                (contentLength === 82 && trimmedContent.startsWith('[Skip Navigation]')) ||
+                // Very short content that's likely incomplete
+                (contentLength < 200 &&
+                  (trimmedContent.startsWith('[Skip Navigation]') ||
+                    trimmedContent === 'Skip Navigation' ||
+                    trimmedContent.endsWith('...') ||
+                    trimmedContent.includes('Loading') ||
+                    trimmedContent.includes('Please wait'))) ||
+                // No actual content headers or paragraphs
+                (!trimmedContent.includes('#') && contentLength < 500);
+
+              if (isTruncated) {
+                const warningMsg = `Received suspicious/truncated content for ${url}: ${contentLength} chars`;
+                console.error(warningMsg);
+                console.error(`First 100 chars: ${trimmedContent.substring(0, 100)}`);
+                console.error(`Attempt ${attempt + 1}/${MAX_RETRIES + 1}`);
+
+                lastError = `Truncated content detected (${contentLength} chars)`;
+
+                // Don't cache truncated content, continue retrying
+                continue;
+              }
+
+              // Only cache valid content (at least 200 chars)
+              if (contentLength >= 200) {
+                cache.set(cacheKey, {
+                  content: markdown,
+                  timestamp: Date.now(),
+                });
+              } else {
+                console.warn(`Content for ${url} is short (${contentLength} chars) but proceeding`);
+              }
 
               return NextResponse.json({
                 success: true,
-                data: { markdown: data.data.markdown },
+                data: { markdown },
                 cached: false,
                 retriesUsed: attempt,
+                contentLength, // Include length in response for debugging
               });
             }
 
@@ -176,6 +225,21 @@ export async function POST(request: NextRequest) {
       }
 
       // If we got here, all retries failed
+      // Provide helpful error message for truncated content
+      if (lastError?.includes('Truncated content')) {
+        return NextResponse.json(
+          {
+            error:
+              'Failed to get complete content from the page. This is usually a temporary issue.',
+            details: lastError,
+            suggestion:
+              'Please try again in a few moments. The server may be experiencing high load.',
+            attempts: MAX_RETRIES + 1,
+          },
+          { status: 500 }
+        );
+      }
+
       return NextResponse.json(
         { error: lastError || 'Failed to scrape after multiple attempts' },
         { status: lastStatus || 500 }
