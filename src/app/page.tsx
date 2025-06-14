@@ -228,7 +228,15 @@ export default function Home() {
       if (data.cached) {
         log(`Using cached content for ${urlToScrape}`);
       }
-      return data.data.markdown;
+      
+      const markdown = data.data?.markdown || '';
+      if (!markdown) {
+        log(`Warning: Empty content returned for ${urlToScrape}`);
+      } else {
+        log(`Scraped ${markdown.length} characters from ${urlToScrape}`);
+      }
+      
+      return markdown;
     } catch (error) {
       log(`Error scraping ${urlToScrape}: ${error}`);
       throw error;
@@ -259,13 +267,16 @@ export default function Home() {
         results.push({ url, content });
 
         // Extract links for next depth level
-        if (currentDepth < maxDepth) {
+        if (currentDepth < maxDepth && content) {
           const links = extractLinks(content, baseUrl || urls[0]);
           links.forEach((link) => {
             if (!processedUrls.has(link)) {
               newUrls.add(link);
             }
           });
+          if (links.length > 0) {
+            log(`Found ${links.length} links to follow from ${url}`);
+          }
         }
 
         // Update progress
@@ -273,8 +284,10 @@ export default function Home() {
           Math.min(90, (processedUrls.size / maxUrlsToProcess) * 90)
         );
         setProgress(progressPercent);
-      } catch {
-        log(`Failed to process ${url}`);
+      } catch (error) {
+        log(`Failed to process ${url}: ${error}`);
+        // Still record the URL with empty content so user knows it was attempted
+        results.push({ url, content: '' });
       }
 
       if (processedUrls.size >= maxUrlsToProcess) {

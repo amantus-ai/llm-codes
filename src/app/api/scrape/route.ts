@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
           url,
           formats: ['markdown'],
           onlyMainContent: true,
-          waitFor: 2000,
+          waitFor: 5000, // Increased from 2000ms to 5000ms for complex pages
           maxAge: 2592000000, // 30 days in milliseconds (30 * 24 * 60 * 60 * 1000)
         }),
       });
@@ -70,8 +70,8 @@ export async function POST(request: NextRequest) {
       }
 
       const data = await response.json();
-      if (data.success && data.data?.markdown) {
-        // Cache the result
+      if (data.success && data.data && typeof data.data.markdown === 'string') {
+        // Cache the result (even if empty)
         cache.set(cacheKey, {
           content: data.data.markdown,
           timestamp: Date.now(),
