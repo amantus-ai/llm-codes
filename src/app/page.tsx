@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ALLOWED_DOMAINS } from '@/constants';
-import { getSupportedDomainsText } from '@/utils/url-utils';
+import { getSupportedDomainsText, isValidDocumentationUrl } from '@/utils/url-utils';
 import { filterDocumentation } from '@/utils/documentation-filter';
 
 interface ProcessingResult {
@@ -28,6 +28,7 @@ export default function Home() {
   const [stats, setStats] = useState({ lines: 0, size: 0, urls: 0 });
   const [showLogs, setShowLogs] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
+  const [showPopover, setShowPopover] = useState(false);
   const [notificationPermission, setNotificationPermission] =
     useState<NotificationPermission>('default');
   const [isIOS, setIsIOS] = useState(false);
@@ -418,13 +419,8 @@ export default function Home() {
       return;
     }
 
-    const isValidUrl =
-      trimmedUrl.startsWith('https://developer.apple.com') ||
-      trimmedUrl.startsWith('https://swiftpackageindex.com/') ||
-      /^https:\/\/[^\/]+\.github\.io\//.test(trimmedUrl);
-
-    if (!isValidUrl) {
-      setError('URL must be from developer.apple.com, swiftpackageindex.com, or *.github.io');
+    if (!isValidDocumentationUrl(trimmedUrl)) {
+      setError(`URL must be from one of the ${getSupportedDomainsText()}`);
 
       // Provide helpful suggestions
       if (trimmedUrl.includes('apple.com') && !trimmedUrl.includes('/documentation/')) {
@@ -789,7 +785,9 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
               className="rounded-xl shadow-sm"
             />
             <div>
-              <h1 className="text-xl font-semibold text-slate-900">Documentation to llms.txt Generator</h1>
+              <h1 className="text-xl font-semibold text-slate-900">
+                Documentation to llms.txt Generator
+              </h1>
               <p className="text-sm text-slate-600">
                 Transform developer documentation to clean, LLM-friendly Markdown
               </p>
@@ -866,7 +864,7 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
               </div>
             )}
             <div className="mt-3">
-              <Popover>
+              <Popover open={showPopover} onOpenChange={setShowPopover}>
                 <PopoverTrigger asChild>
                   <button className="text-xs text-slate-500 hover:text-slate-700 underline cursor-pointer transition-colors">
                     This document parser supports {getSupportedDomainsText()}
@@ -910,6 +908,7 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                                   e.stopPropagation();
                                   setUrl(domain.example);
                                   setError('');
+                                  setShowPopover(false);
                                 }}
                               >
                                 <span className="text-slate-700 font-medium">{domain.name}</span>
@@ -1119,8 +1118,8 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
           {/* Help text - shown only when not processing */}
           {!isProcessing && (
             <p className="mt-4 text-sm text-slate-600 text-center">
-              Generates a cleaned markdown file (llms.txt), so your agent knows the latest Apple (or 3rd-party)
-              API.
+              Generates a cleaned markdown file (llms.txt), so your agent knows the latest Apple (or
+              3rd-party) API.
               <br />
               Store the file in your project and reference the name to load it into the context, and
               get better code.
