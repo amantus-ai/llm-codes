@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface ProcessingResult {
   url: string;
@@ -9,8 +9,8 @@ interface ProcessingResult {
 
 export default function Home() {
   const [url, setUrl] = useState('');
-  const [depth, setDepth] = useState(1);
-  const [maxUrls, setMaxUrls] = useState(100);
+  const [depth, setDepth] = useState(2);
+  const [maxUrls, setMaxUrls] = useState(200);
   const [filterUrls, setFilterUrls] = useState(true);
   const [deduplicateContent, setDeduplicateContent] = useState(true);
   const [filterAvailability, setFilterAvailability] = useState(true);
@@ -24,6 +24,9 @@ export default function Home() {
   const [showOptions, setShowOptions] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const [isIOS, setIsIOS] = useState(false);
+  
+  const logContainerRef = useRef<HTMLDivElement>(null);
+  const userScrollingRef = useRef(false);
 
   const log = (message: string) => {
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
@@ -40,6 +43,22 @@ export default function Home() {
       setNotificationPermission(Notification.permission);
     }
   }, []);
+
+  // Auto-scroll logs to bottom when new messages arrive (if user isn't scrolling)
+  useEffect(() => {
+    if (logContainerRef.current && !userScrollingRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
+  }, [logs]);
+
+  const handleLogScroll = () => {
+    if (!logContainerRef.current) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = logContainerRef.current;
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < 10; // 10px threshold
+    
+    userScrollingRef.current = !isAtBottom;
+  };
 
   const requestNotificationPermission = async () => {
     // Skip notification permission on iOS
@@ -76,17 +95,37 @@ export default function Home() {
     }
   };
 
-  const extractLinks = (content: string): string[] => {
+  const extractLinks = (content: string, baseUrl: string): string[] => {
     const links = new Set<string>();
     const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
     let match;
     
+    // Extract the base path from the original URL (e.g., /documentation/appkit)
+    const basePath = baseUrl.replace('https://developer.apple.com', '').toLowerCase();
+    const basePathParts = basePath.split('/').filter(p => p);
+    
     while ((match = linkRegex.exec(content)) !== null) {
       const href = match[2];
+      let fullUrl = '';
+      
       if (href.startsWith('/documentation/')) {
-        links.add(`https://developer.apple.com${href}`);
+        fullUrl = `https://developer.apple.com${href}`;
       } else if (href.startsWith('https://developer.apple.com/documentation/')) {
-        links.add(href);
+        fullUrl = href;
+      } else {
+        continue; // Skip non-documentation links
+      }
+      
+      // Check if the link is within the same documentation section
+      const linkPath = fullUrl.replace('https://developer.apple.com', '').toLowerCase();
+      const linkPathParts = linkPath.split('/').filter(p => p);
+      
+      // Ensure the link starts with the same path structure
+      // For /documentation/appkit, allow /documentation/appkit/*
+      if (basePathParts.length >= 2 && linkPathParts.length >= 2) {
+        if (linkPathParts[0] === basePathParts[0] && linkPathParts[1] === basePathParts[1]) {
+          links.add(fullUrl);
+        }
       }
     }
     
@@ -122,7 +161,8 @@ export default function Home() {
     currentDepth: number,
     maxDepth: number,
     maxUrlsToProcess: number,
-    processedUrls: Set<string> = new Set()
+    processedUrls: Set<string> = new Set(),
+    baseUrl: string = ''
   ): Promise<ProcessingResult[]> => {
     if (currentDepth > maxDepth) return [];
     
@@ -141,7 +181,7 @@ export default function Home() {
         
         // Extract links for next depth level
         if (currentDepth < maxDepth) {
-          const links = extractLinks(content);
+          const links = extractLinks(content, baseUrl || urls[0]);
           links.forEach(link => {
             if (!processedUrls.has(link)) {
               newUrls.add(link);
@@ -165,12 +205,17 @@ export default function Home() {
     
     // Process next depth level
     if (currentDepth < maxDepth && newUrls.size > 0 && processedUrls.size < maxUrlsToProcess) {
+      // Only pass as many URLs as we have room for
+      const remainingCapacity = maxUrlsToProcess - processedUrls.size;
+      const urlsToProcess = Array.from(newUrls).slice(0, remainingCapacity);
+      
       const nextResults = await processUrlsWithDepth(
-        Array.from(newUrls),
+        urlsToProcess,
         currentDepth + 1,
         maxDepth,
         maxUrlsToProcess,
-        processedUrls
+        processedUrls,
+        baseUrl || urls[0]
       );
       results.push(...nextResults);
     }
@@ -197,7 +242,7 @@ export default function Home() {
     try {
       log(`Starting documentation processing (depth: ${depth}, max URLs: ${maxUrls})...`);
       
-      const processedResults = await processUrlsWithDepth([url], 0, depth, maxUrls);
+      const processedResults = await processUrlsWithDepth([url], 0, depth, maxUrls, new Set(), url);
       setResults(processedResults);
       
       // Calculate stats
@@ -689,9 +734,13 @@ Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
                   </button>
                   
                   {showLogs && (
-                    <div className="bg-slate-50 rounded-lg p-3 max-h-48 overflow-y-auto">
+                    <div 
+                      ref={logContainerRef}
+                      onScroll={handleLogScroll}
+                      className="bg-slate-50 rounded-lg p-3 max-h-48 overflow-y-auto"
+                    >
                       <div className="space-y-1 font-mono text-xs text-slate-600">
-                        {logs.slice(-10).map((log, i) => (
+                        {logs.map((log, i) => (
                           <div key={i}>{log}</div>
                         ))}
                       </div>
