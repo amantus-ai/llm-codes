@@ -215,13 +215,30 @@ export default function Home() {
               } else if (normalizedUrl.pathname.startsWith(basePath)) {
                 links.add(fullUrl);
               }
-            } else {
-              // For GitHub Pages and other sites, allow same directory and subdirectories
-              const baseDir = basePath.endsWith('/')
-                ? basePath
-                : basePath.substring(0, basePath.lastIndexOf('/') + 1);
-              if (normalizedUrl.pathname.startsWith(baseDir)) {
+            } else if (baseDomain.includes('vercel.com') && basePath.startsWith('/docs')) {
+              // For Vercel docs, allow any path under /docs
+              if (normalizedUrl.pathname.startsWith('/docs')) {
                 links.add(fullUrl);
+              }
+            } else {
+              // For GitHub Pages and other sites, check if they're documentation sites
+              const pathParts = basePath.split('/').filter(p => p);
+              const linkParts = normalizedUrl.pathname.split('/').filter(p => p);
+              
+              // If the base path contains 'docs' or 'documentation', allow broader exploration
+              if (pathParts.length > 0 && (pathParts[0] === 'docs' || pathParts[0] === 'documentation')) {
+                // Allow any path that starts with the same docs root
+                if (linkParts.length > 0 && linkParts[0] === pathParts[0]) {
+                  links.add(fullUrl);
+                }
+              } else {
+                // For other sites, allow same directory and subdirectories
+                const baseDir = basePath.endsWith('/')
+                  ? basePath
+                  : basePath.substring(0, basePath.lastIndexOf('/') + 1);
+                if (normalizedUrl.pathname.startsWith(baseDir)) {
+                  links.add(fullUrl);
+                }
               }
             }
           }
