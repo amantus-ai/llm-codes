@@ -97,65 +97,101 @@ export default function Home() {
 
   const extractLinks = (content: string, baseUrl: string): string[] => {
     const links = new Set<string>();
-    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-    let match;
+    
+    // Multiple regex patterns to catch different link formats
+    const patterns = [
+      /\[([^\]]+)\]\(([^)]+)\)/g,  // Markdown links: [text](url)
+      /href="([^"]+)"/g,            // HTML links that might remain
+      /href='([^']+)'/g,            // HTML links with single quotes
+      /https?:\/\/[^\s<>"{}|\\^\[\]`]+/g,  // Plain URLs
+    ];
     
     // Determine the base domain and path structure
     const urlObj = new URL(baseUrl);
     const baseDomain = urlObj.origin;
-    const basePath = urlObj.pathname.toLowerCase();
-    const basePathParts = basePath.split('/').filter(p => p);
+    const basePath = urlObj.pathname;
     
-    while ((match = linkRegex.exec(content)) !== null) {
-      const href = match[2];
+    // Extract all potential links
+    const potentialLinks: string[] = [];
+    
+    patterns.forEach(pattern => {
+      let match;
+      while ((match = pattern.exec(content)) !== null) {
+        // Get the URL from the appropriate capture group
+        const url = match[2] || match[1] || match[0];
+        if (url && !url.startsWith('#') && !url.startsWith('mailto:') && !url.startsWith('javascript:')) {
+          potentialLinks.push(url);
+        }
+      }
+    });
+    
+    // Process and filter links
+    potentialLinks.forEach(href => {
       let fullUrl = '';
       
-      // Handle different documentation structures
-      if (baseDomain === 'https://developer.apple.com') {
-        if (href.startsWith('/documentation/')) {
-          fullUrl = `${baseDomain}${href}`;
-        } else if (href.startsWith('https://developer.apple.com/documentation/')) {
-          fullUrl = href;
-        } else {
-          continue;
-        }
-        
-        // Check if the link is within the same documentation section
-        const linkPath = fullUrl.replace(baseDomain, '').toLowerCase();
-        const linkPathParts = linkPath.split('/').filter(p => p);
-        
-        // For /documentation/appkit, allow /documentation/appkit/*
-        if (basePathParts.length >= 2 && linkPathParts.length >= 2) {
-          if (linkPathParts[0] === basePathParts[0] && linkPathParts[1] === basePathParts[1]) {
-            links.add(fullUrl);
-          }
-        }
-      } else {
-        // For Swift Package Index and GitHub Pages, handle relative and absolute URLs
+      try {
         if (href.startsWith('http://') || href.startsWith('https://')) {
-          // Absolute URL - only include if it's from the same domain
-          if (href.startsWith(baseDomain)) {
-            fullUrl = href;
-          } else {
-            continue;
-          }
+          // Absolute URL
+          fullUrl = href;
+        } else if (href.startsWith('//')) {
+          // Protocol-relative URL
+          fullUrl = 'https:' + href;
         } else if (href.startsWith('/')) {
           // Absolute path
           fullUrl = `${baseDomain}${href}`;
-        } else if (!href.startsWith('#') && !href.startsWith('mailto:')) {
-          // Relative path
-          const baseDir = basePath.substring(0, basePath.lastIndexOf('/'));
-          fullUrl = `${baseDomain}${baseDir}/${href}`;
         } else {
-          continue;
+          // Relative path - improved handling
+          const baseDir = basePath.endsWith('/') ? basePath : basePath.substring(0, basePath.lastIndexOf('/') + 1);
+          fullUrl = `${baseDomain}${baseDir}${href}`;
         }
         
-        // For non-Apple sites, stay within the same path hierarchy
-        if (fullUrl.startsWith(baseUrl) || baseUrl.startsWith(fullUrl)) {
-          links.add(fullUrl);
+        // Normalize URL
+        const normalizedUrl = new URL(fullUrl);
+        fullUrl = normalizedUrl.href;
+        
+        // Apply domain-specific filtering
+        if (baseDomain === 'https://developer.apple.com') {
+          // For Apple, maintain strict section filtering
+          if (fullUrl.includes('/documentation/')) {
+            const linkPath = normalizedUrl.pathname.toLowerCase();
+            const basePathLower = basePath.toLowerCase();
+            const basePathParts = basePathLower.split('/').filter(p => p);
+            const linkPathParts = linkPath.split('/').filter(p => p);
+            
+            if (basePathParts.length >= 2 && linkPathParts.length >= 2) {
+              if (linkPathParts[0] === basePathParts[0] && linkPathParts[1] === basePathParts[1]) {
+                links.add(fullUrl);
+              }
+            }
+          }
+        } else {
+          // For non-Apple sites, be more permissive
+          // Include if it's on the same domain and shares some path similarity
+          if (normalizedUrl.origin === baseDomain) {
+            // For Swift Package Index, allow exploring the package documentation
+            if (baseDomain.includes('swiftpackageindex.com')) {
+              // Allow any path under the same package
+              const basePackageMatch = basePath.match(/\/([^\/]+\/[^\/]+)/);
+              const linkPackageMatch = normalizedUrl.pathname.match(/\/([^\/]+\/[^\/]+)/);
+              
+              if (basePackageMatch && linkPackageMatch && basePackageMatch[1] === linkPackageMatch[1]) {
+                links.add(fullUrl);
+              } else if (normalizedUrl.pathname.startsWith(basePath)) {
+                links.add(fullUrl);
+              }
+            } else {
+              // For GitHub Pages and other sites, allow same directory and subdirectories
+              const baseDir = basePath.endsWith('/') ? basePath : basePath.substring(0, basePath.lastIndexOf('/') + 1);
+              if (normalizedUrl.pathname.startsWith(baseDir)) {
+                links.add(fullUrl);
+              }
+            }
+          }
         }
+      } catch (e) {
+        // Invalid URL, skip it
       }
-    }
+    });
     
     return Array.from(links);
   };
