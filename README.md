@@ -18,26 +18,11 @@ A modern web application that converts Apple Developer documentation to clean, r
 - 🎨 **Modern UI**: Sleek, professional interface with smooth animations
 - 🔒 **Secure**: API keys stored safely on server-side
 
-## Demo
+## Live Demo
 
-[Live Demo](https://apple-docs-to-markdown.vercel.app) (requires your own API key deployment)
+🚀 **Try it now at [llm.codes](https://llm.codes/)**
 
-## Screenshots
-
-<details>
-<summary>View Screenshots</summary>
-
-### Main Interface
-The clean, modern interface makes it easy to convert documentation:
-- Simple URL input with validation
-- Configuration options for crawl depth and URL limits
-- Real-time progress tracking
-- Download ready files
-
-### Notification Support
-Get browser notifications when processing completes, even if you're in another tab.
-
-</details>
+Experience the tool instantly without any setup required.
 
 ## Quick Start
 
@@ -83,7 +68,7 @@ npm run dev
 
 The easiest way to deploy is using Vercel:
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fyourusername%2Fapple-docs-to-markdown&env=FIRECRAWL_API_KEY&envDescription=Your%20Firecrawl%20API%20key&envLink=https%3A%2F%2Ffirecrawl.dev)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Famantusai%2Fllm-tech&env=FIRECRAWL_API_KEY&envDescription=Your%20Firecrawl%20API%20key&envLink=https%3A%2F%2Ffirecrawl.dev)
 
 1. Click the button above
 2. Create a new repository

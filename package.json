@@ -19,16 +19,16 @@
     "developer-tools",
     "web-scraping"
   ],
-  "author": "Apple Docs to Markdown Contributors",
+  "author": "Peter Steinberger",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/apple-docs-to-markdown.git"
+    "url": "https://github.com/amantusai/llm-tech.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/apple-docs-to-markdown/issues"
+    "url": "https://github.com/amantusai/llm-tech/issues"
   },
-  "homepage": "https://github.com/yourusername/apple-docs-to-markdown#readme",
+  "homepage": "https://llm.codes/",
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.10",
     "@tailwindcss/vite": "^4.1.10",

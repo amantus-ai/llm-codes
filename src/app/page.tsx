@@ -12,6 +12,7 @@ export default function Home() {
   const [depth, setDepth] = useState(1);
   const [maxUrls, setMaxUrls] = useState(100);
   const [filterUrls, setFilterUrls] = useState(true);
+  const [deduplicateContent, setDeduplicateContent] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
@@ -232,6 +233,81 @@ export default function Home() {
     return filtered;
   };
 
+  const deduplicateMarkdown = (markdown: string): string => {
+    if (!deduplicateContent) return markdown;
+    
+    // Split content into lines
+    const lines = markdown.split('\n');
+    const seenContent = new Set<string>();
+    const deduplicatedLines: string[] = [];
+    
+    // Track paragraphs for de-duplication
+    let currentParagraph = '';
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      
+      // Handle empty lines (paragraph breaks)
+      if (trimmedLine === '') {
+        if (currentParagraph && !seenContent.has(currentParagraph.trim())) {
+          seenContent.add(currentParagraph.trim());
+          deduplicatedLines.push(currentParagraph);
+        }
+        if (currentParagraph) {
+          deduplicatedLines.push('');
+        }
+        currentParagraph = '';
+        continue;
+      }
+      
+      // Handle headers - always keep but track their content
+      if (trimmedLine.match(/^#{1,6}\s/)) {
+        // Flush current paragraph
+        if (currentParagraph && !seenContent.has(currentParagraph.trim())) {
+          seenContent.add(currentParagraph.trim());
+          deduplicatedLines.push(currentParagraph);
+          deduplicatedLines.push('');
+        }
+        currentParagraph = '';
+        
+        // Check if we've seen this exact header before
+        if (!seenContent.has(trimmedLine)) {
+          seenContent.add(trimmedLine);
+          deduplicatedLines.push(line);
+        }
+        continue;
+      }
+      
+      // Handle list items
+      if (trimmedLine.match(/^[-*+]\s/) || trimmedLine.match(/^\d+\.\s/)) {
+        // For list items, check if we've seen this exact item
+        if (!seenContent.has(trimmedLine)) {
+          seenContent.add(trimmedLine);
+          if (currentParagraph) {
+            deduplicatedLines.push(currentParagraph);
+            currentParagraph = '';
+          }
+          deduplicatedLines.push(line);
+        }
+        continue;
+      }
+      
+      // Build paragraphs
+      currentParagraph += (currentParagraph ? '\n' : '') + line;
+    }
+    
+    // Don't forget the last paragraph
+    if (currentParagraph && !seenContent.has(currentParagraph.trim())) {
+      deduplicatedLines.push(currentParagraph);
+    }
+    
+    // Clean up multiple consecutive empty lines
+    let result = deduplicatedLines.join('\n');
+    result = result.replace(/\n{3,}/g, '\n\n');
+    
+    return result;
+  };
+
   const downloadMarkdown = () => {
     // Generate header with attribution
     const now = new Date();
@@ -250,14 +326,17 @@ Downloaded via https://llm.codes by @steipete on ${dateStr} at ${timeStr}
 Source URL: ${url}
 Total pages processed: ${results.length}
 URLs filtered: ${filterUrls ? 'Yes' : 'No'}
+Content de-duplicated: ${deduplicateContent ? 'Yes' : 'No'}
 -->
 
 `;
     
-    const processedResults = results.map(r => ({
-      url: r.url,
-      content: filterUrlsFromMarkdown(r.content)
-    }));
+    const processedResults = results.map(r => {
+      let content = r.content;
+      content = filterUrlsFromMarkdown(content);
+      content = deduplicateMarkdown(content);
+      return { url: r.url, content };
+    });
     
     const content = header + processedResults.map(r => `# ${r.url}\n\n${r.content}\n\n---\n\n`).join('');
     const blob = new Blob([content], { type: 'text/markdown' });
@@ -417,6 +496,18 @@ URLs filtered: ${filterUrls ? 'Yes' : 'No'}
               <p className="mt-2 text-xs text-slate-500 ml-7">
                 Remove all hyperlinks from the markdown output
               </p>
+              <label className="flex items-center gap-3 cursor-pointer mt-4">
+                <input
+                  type="checkbox"
+                  checked={deduplicateContent}
+                  onChange={(e) => setDeduplicateContent(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <span className="text-sm text-slate-600">De-duplicate content</span>
+              </label>
+              <p className="mt-2 text-xs text-slate-500 ml-7">
+                Remove duplicate sections and paragraphs from the output
+              </p>
             </div>
 
             {/* Process Button */}
@@ -520,7 +611,7 @@ URLs filtered: ${filterUrls ? 'Yes' : 'No'}
       <footer className="border-t border-slate-200 bg-white/80 backdrop-blur-sm mt-auto">
         <div className="max-w-4xl mx-auto px-4 py-8 text-center">
             <p className="text-sm text-slate-600 mb-6">
-              This service is being offered and paid for by{' '}
+              This service is being <em>offered and paid</em> for by{' '}
               <a
                 href="https://twitter.com/steipete"
                 target="_blank"
