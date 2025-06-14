@@ -842,6 +842,17 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                   Firecrawl
                 </a>
               </div>
+              <div>
+                open-source on{' '}
+                <a
+                  href="https://github.com/amantus-ai/llm-codes"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-green-600 hover:text-green-700 font-medium"
+                >
+                  GitHub
+                </a>
+              </div>
             </div>
           </div>
         </div>
