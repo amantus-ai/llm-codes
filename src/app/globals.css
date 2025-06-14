@@ -1,7 +1,136 @@
 @import "tailwindcss";
 
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+  }
+}
+
 @theme {
   --font-family-sans: 'Inter', system-ui, sans-serif;
+}
+
+/* Animations for popover */
+@keyframes animate-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes animate-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes zoom-in {
+  from { transform: scale(0.95); }
+  to { transform: scale(1); }
+}
+
+@keyframes zoom-out {
+  from { transform: scale(1); }
+  to { transform: scale(0.95); }
+}
+
+@keyframes slide-in-from-top {
+  from { transform: translateY(-10px); }
+  to { transform: translateY(0); }
+}
+
+@keyframes slide-in-from-left {
+  from { transform: translateX(-10px); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slide-in-from-right {
+  from { transform: translateX(10px); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slide-in-from-bottom {
+  from { transform: translateY(10px); }
+  to { transform: translateY(0); }
+}
+
+/* Utility classes for animations */
+.animate-in {
+  animation: animate-in 200ms ease-out;
+}
+
+.animate-out {
+  animation: animate-out 200ms ease-in;
+}
+
+.fade-in-0 {
+  animation: fade-in 200ms ease-out;
+}
+
+.fade-out-0 {
+  animation: fade-out 200ms ease-in;
+}
+
+.zoom-in-95 {
+  animation: zoom-in 200ms ease-out;
+}
+
+.zoom-out-95 {
+  animation: zoom-out 200ms ease-in;
+}
+
+.slide-in-from-top-2 {
+  animation: slide-in-from-top 200ms ease-out;
+}
+
+.slide-in-from-left-2 {
+  animation: slide-in-from-left 200ms ease-out;
+}
+
+.slide-in-from-right-2 {
+  animation: slide-in-from-right 200ms ease-out;
+}
+
+.slide-in-from-bottom-2 {
+  animation: slide-in-from-bottom 200ms ease-out;
 }
 
 @keyframes splash {

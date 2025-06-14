@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ALLOWED_DOMAINS } from '@/constants';
+import { getSupportedDomainsText } from '@/utils/url-utils';
 
 interface ProcessingResult {
   url: string;
@@ -759,15 +762,15 @@ Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
           <div className="flex items-center gap-3">
             <Image
               src="/logo.png"
-              alt="Apple Docs Converter"
+              alt="Documentation to Markdown Converter"
               width={40}
               height={40}
               className="rounded-xl shadow-sm"
             />
             <div>
-              <h1 className="text-xl font-semibold text-slate-900">Apple Docs Converter</h1>
+              <h1 className="text-xl font-semibold text-slate-900">Documentation to Markdown</h1>
               <p className="text-sm text-slate-600">
-                Transform developer documentation to clean Markdown
+                Transform developer documentation to clean, LLM-friendly Markdown
               </p>
             </div>
             <div className="ml-auto text-xs text-slate-500 text-right">
@@ -841,10 +844,77 @@ Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
                 {error}
               </div>
             )}
-            <p className="mt-3 text-xs text-slate-500">
-              This service supports documentation from developer.apple.com, swiftpackageindex.com,
-              and *.github.io sites.
-            </p>
+            <div className="mt-3">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="text-xs text-slate-500 hover:text-slate-700 underline cursor-pointer transition-colors">
+                    This document parser supports {getSupportedDomainsText()}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-96 max-h-96 overflow-y-auto bg-white rounded-xl shadow-xl border border-slate-200"
+                  align="start"
+                >
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-slate-900">
+                      Supported Documentation Sites
+                    </h3>
+
+                    {/* Group domains by category */}
+                    {Object.entries(
+                      Object.values(ALLOWED_DOMAINS).reduce(
+                        (acc, domain) => {
+                          const category = domain.category || 'General';
+                          if (!acc[category]) acc[category] = [];
+                          acc[category].push(domain);
+                          return acc;
+                        },
+                        {} as Record<
+                          string,
+                          (typeof ALLOWED_DOMAINS)[keyof typeof ALLOWED_DOMAINS][]
+                        >
+                      )
+                    ).map(([category, domains]) => (
+                      <div key={category} className="space-y-2">
+                        <h4 className="text-xs font-medium text-slate-700 uppercase tracking-wider">
+                          {category}
+                        </h4>
+                        <ul className="space-y-1">
+                          {domains.map((domain) => (
+                            <li key={domain.name} className="text-xs text-slate-600">
+                              <a
+                                href={domain.example}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:text-blue-600 transition-colors"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {domain.name}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+
+                    {/* Add GitHub issue link */}
+                    <div className="pt-4 border-t border-slate-200">
+                      <p className="text-xs text-slate-600">
+                        Missing a site?{' '}
+                        <a
+                          href="https://github.com/amantus-ai/llm-codes/issues"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-700 underline"
+                        >
+                          Open an issue on GitHub
+                        </a>
+                      </p>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
 
           {/* Configuration & Options */}

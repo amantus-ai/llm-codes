@@ -1,7 +1,7 @@
 {
-  "name": "llm-codes",
+  "name": "web-documentation-to-markdown",
   "version": "1.0.0",
-  "description": "Convert documentation from various sources to clean, readable Markdown format for LLMs",
+  "description": "Convert technical documentation from 69+ major sites to clean, LLM-friendly Markdown format",
   "scripts": {
     "dev": "next dev --turbo",
     "build": "next build",
@@ -11,6 +11,9 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "type-check": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   },
   "keywords": [
     "apple",
@@ -34,6 +37,7 @@
   },
   "homepage": "https://llm.codes/",
   "dependencies": {
+    "@radix-ui/react-popover": "^1.1.14",
     "@tailwindcss/postcss": "^4.1.10",
     "@tailwindcss/vite": "^4.1.10",
     "@types/node": "^24.0.1",
@@ -41,10 +45,12 @@
     "@types/react-dom": "^19.1.6",
     "@vercel/analytics": "^1.5.0",
     "autoprefixer": "^10.4.21",
+    "clsx": "^2.1.1",
     "next": "^15.3.3",
     "postcss": "^8.5.5",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.8.3"
   },
