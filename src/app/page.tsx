@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ALLOWED_DOMAINS } from '@/constants';
 import {
+  extractUrlFromQueryString,
   getSupportedDomainsText,
   isValidDocumentationUrl,
   updateUrlWithDocumentation,
@@ -62,9 +63,10 @@ export default function Home() {
     const queryString = window.location.search.substring(1);
 
     if (queryString) {
-      // Check if it looks like a URL (starts with http)
-      if (queryString.startsWith('http://') || queryString.startsWith('https://')) {
-        setUrl(decodeURIComponent(queryString));
+      // Use the utility function that properly handles URL decoding
+      const extractedUrl = extractUrlFromQueryString(queryString);
+      if (extractedUrl) {
+        setUrl(extractedUrl);
       }
     }
   }, []);
@@ -125,7 +127,7 @@ export default function Home() {
 
     // Multiple regex patterns to catch different link formats
     const patterns = [
-      /\[([^\]]+)\]\(([^)]+)\)/g, // Markdown links: [text](url)
+      /\[([^\]]+)\]\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g, // Markdown links with nested parentheses support
       /href="([^"]+)"/g, // HTML links that might remain
       /href='([^']+)'/g, // HTML links with single quotes
       /https?:\/\/[^\s<>"{}|\\^\[\]`]+/g, // Plain URLs
