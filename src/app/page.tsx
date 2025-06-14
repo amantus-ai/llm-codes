@@ -23,19 +23,28 @@ export default function Home() {
   const [showLogs, setShowLogs] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+  const [isIOS, setIsIOS] = useState(false);
 
   const log = (message: string) => {
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
   };
 
-  // Check notification permission on mount
+  // Check for iOS and notification permission on mount
   useEffect(() => {
-    if ('Notification' in window) {
+    // Detect iOS devices (iPhone, iPad, iPod)
+    const checkIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    setIsIOS(checkIOS);
+    
+    // Only check notification permission if not on iOS and Notification API is available
+    if (!checkIOS && 'Notification' in window) {
       setNotificationPermission(Notification.permission);
     }
   }, []);
 
   const requestNotificationPermission = async () => {
+    // Skip notification permission on iOS
+    if (isIOS) return false;
+    
     if ('Notification' in window && Notification.permission === 'default') {
       const permission = await Notification.requestPermission();
       setNotificationPermission(permission);
@@ -45,6 +54,9 @@ export default function Home() {
   };
 
   const showNotification = (title: string, body: string) => {
+    // Skip notifications on iOS
+    if (isIOS) return;
+    
     if ('Notification' in window && Notification.permission === 'granted') {
       const notification = new Notification(title, {
         body,
@@ -515,7 +527,7 @@ Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-medium text-slate-700">Processing Configuration</h3>
-                {typeof window !== 'undefined' && 'Notification' in window && notificationPermission !== 'default' && (
+                {typeof window !== 'undefined' && !isIOS && 'Notification' in window && notificationPermission !== 'default' && (
                   <div className="flex items-center gap-2 text-xs">
                     <div className={`w-2 h-2 rounded-full ${
                       notificationPermission === 'granted' ? 'bg-green-500' : 'bg-red-500'
