@@ -1,24 +1,37 @@
-# Web Documentation to llms.txt Generator
+# llm.codes - Transform Developer Documentation for AI Agents
 
-A powerful web application that converts technical documentation from 69+ major documentation sites into clean, AI-optimized Markdown format. Transform documentation from programming languages, frameworks, cloud platforms, databases, and more into LLM-friendly content. Built with Next.js 15, Tailwind CSS v4, and TypeScript.
+A high-performance web service that converts JavaScript-heavy documentation sites into clean, LLM-optimized Markdown. Built specifically to solve the problem of AI agents being unable to parse modern documentation sites that rely heavily on client-side rendering.
+
+**Why llm.codes exists**: Modern AI agents like Claude Code struggle with JavaScript-heavy documentation sites, particularly Apple's developer docs. This tool bridges that gap by converting dynamic content into clean, parseable Markdown that AI agents can actually use.
+
+📖 **Read the full story**: [How llm.codes Transforms Developer Documentation for AI Agents](https://steipete.me/posts/llm-codes-transform-developer-docs)
 
 ![Web Documentation to Markdown Converter](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=nextdotjs)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=flat-square&logo=tailwind-css)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?style=flat-square&logo=typescript)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
-## Features
+## Technical Architecture
 
-- 🌐 **69+ Supported Sites**: Documentation from major programming languages, frameworks, cloud platforms, and more
-- 🚀 **Fast Parallel Processing**: Process up to 20 URLs concurrently for 2x faster results
-- 📊 **Configurable Crawling**: Set depth (0-5) and maximum URLs (1-1000) to process
-- 💾 **Smart Caching**: 30-day cache to reduce API calls and improve performance
-- 🔔 **Browser Notifications**: Get notified when your documentation is ready
-- 📱 **Responsive Design**: Works beautifully on desktop and mobile with interactive popover UI
-- ⚡ **Turbopack**: Lightning-fast development with Next.js Turbopack
-- 🎨 **Modern UI**: Sleek interface with categorized site browser and smooth animations
-- 🧪 **Comprehensive Testing**: Full test suite with Vitest for reliability
-- 🔒 **Secure**: API keys stored safely on server-side
+### Core Problem Solved
+Modern documentation sites (especially Apple's) use heavy JavaScript rendering that makes content invisible to AI agents. llm.codes solves this by:
+- Using Firecrawl's headless browser to execute JavaScript and capture fully-rendered content
+- Converting dynamic HTML to clean, semantic Markdown
+- Removing noise (navigation, footers, duplicate content) that wastes AI context tokens
+- Providing parallel URL processing for efficient multi-page documentation crawling
+
+### Key Features
+
+- **Parallel Processing**: Fetches up to 20 URLs concurrently using batched promises
+- **Smart Caching**: Redis-backed 30-day cache reduces API calls and improves response times
+- **Content Filtering**: Multiple filtering strategies to remove:
+  - Navigation elements and boilerplate
+  - Platform availability strings (iOS 14.0+, etc.)
+  - Duplicate content across pages
+  - Empty sections and formatting artifacts
+- **Recursive Crawling**: Configurable depth-first crawling with intelligent link extraction
+- **Browser Notifications**: Web Notifications API integration for background processing alerts
+- **URL State Management**: Query parameter-based URL sharing for easy documentation links
 
 ## Live Demo
 
@@ -124,34 +137,43 @@ The easiest way to deploy is using Vercel:
 | Batch Size     | URLs processed concurrently          | 20      | N/A    |
 | Cache Duration | How long results are cached          | 30 days | N/A    |
 
-## API Reference
-
-The app exposes a single API endpoint:
+## API Architecture
 
 ### POST `/api/scrape`
 
-Scrapes and converts documentation from any of the 69 supported sites to Markdown.
+The core API endpoint that handles documentation conversion.
+
+**Request Flow:**
+1. URL validation against allowed domains whitelist
+2. Cache check (Redis/in-memory with 30-day TTL)
+3. Firecrawl API call with optimized scraping parameters
+4. Content post-processing and filtering
+5. Response with markdown and cache status
 
 **Request Body:**
-
 ```json
 {
-  "url": "https://react.dev/learn",
+  "url": "https://developer.apple.com/documentation/swiftui",
   "action": "scrape"
 }
 ```
 
 **Response:**
-
 ```json
 {
   "success": true,
   "data": {
-    "markdown": "# Swift Documentation\n\n..."
+    "markdown": "# SwiftUI Documentation\n\n..."
   },
   "cached": false
 }
 ```
+
+**Error Handling:**
+- Domain validation errors (400)
+- Firecrawl API errors (500)
+- Network timeouts (504)
+- Rate limiting (429)
 
 ## Tech Stack
 
@@ -196,9 +218,24 @@ llm-codes/
 └── package.json                       # Dependencies
 ```
 
-## Development
+## Technical Implementation Details
 
-### Running Tests
+### Content Processing Pipeline
+
+1. **URL Extraction**: Custom regex patterns extract links from markdown and HTML
+2. **Domain-Specific Filtering**: Each documentation site has custom rules for link following
+3. **Parallel Batch Processing**: URLs processed in batches of 10 for optimal performance
+4. **Content Deduplication**: Hash-based paragraph and section deduplication
+5. **Multi-Stage Filtering**: Sequential filters for URLs, navigation, boilerplate, and platform strings
+
+### Performance Optimizations
+
+- **Batched API Calls**: Reduces Firecrawl API latency by processing multiple URLs per request
+- **Progressive Loading**: UI updates with real-time progress during long crawls
+- **Smart Link Extraction**: Only follows relevant documentation links based on URL patterns
+- **Client-Side Caching**: Browser-based result caching for repeat operations
+
+### Testing Strategy
 
 ```bash
 # Run all tests
@@ -214,15 +251,12 @@ npm run test:coverage
 npm run type-check
 ```
 
-### Building for Production
-
-```bash
-npm run build
-```
-
-### Code Style
-
-This project uses TypeScript strict mode and follows React best practices.
+Tests cover:
+- URL validation and domain filtering
+- Content processing and deduplication
+- API error handling
+- Cache behavior
+- UI component interactions
 
 ## Contributing
 
@@ -308,21 +342,38 @@ LLM Codes supports 69 documentation sites across multiple categories:
 
 If you need support for a documentation site that's not listed, please [open an issue on GitHub](https://github.com/amantus-ai/llm-codes/issues)!
 
+## Architecture Decisions
+
+### Why Firecrawl?
+- Handles JavaScript-heavy sites that traditional scrapers can't parse
+- Built-in markdown conversion with semantic structure preservation
+- Reliable headless browser automation at scale
+
+### Why Next.js 15 + App Router?
+- Server-side API key security
+- Built-in caching with fetch()
+- Streaming responses for large documentation sets
+- Edge-ready deployment on Vercel
+
+### Why Client-Side Processing?
+- Reduces server load for filtering operations
+- Enables real-time UI updates during processing
+- Allows users to customize output without re-fetching
+
+## Future Enhancements
+
+- WebSocket support for real-time crawl progress
+- Custom domain rule configuration
+- Batch URL upload via CSV/JSON
+- Export to multiple formats (PDF, EPUB, Docusaurus)
+- LLM-specific formatting profiles
+
 ## Acknowledgments
 
-- Built with [Firecrawl](https://firecrawl.dev/) for powerful web scraping
-- Inspired by the need for clean, readable documentation across the entire development ecosystem
-- Thanks to the Next.js and Tailwind CSS teams for amazing tools
-
-## Support
-
-If you find this project helpful, please consider:
-
-- ⭐ Starring the repository
-- 🐛 Reporting issues
-- 💡 Suggesting new features
-- 🤝 Contributing to the codebase
+- Powered by [Firecrawl](https://firecrawl.dev/referral?rid=9CG538BE) for JavaScript rendering
+- Inspired by the challenges of making documentation accessible to AI agents
+- Built with Next.js 15, Tailwind CSS v4, and TypeScript
 
 ---
 
-Made with ❤️ by Peter Steinberger, for developers.
+Built by [Peter Steinberger](https://steipete.me) | [Blog Post](https://steipete.me/posts/llm-codes-transform-developer-docs) | [Twitter](https://twitter.com/steipete)

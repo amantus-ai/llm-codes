@@ -957,7 +957,7 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                           href="https://github.com/amantus-ai/llm-codes/issues"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-primary hover:text-primary/90 underline">
+                          className="text-primary hover:text-primary/90 underline"
                         >
                           Open an issue on GitHub
                         </a>
@@ -1087,7 +1087,9 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                       onChange={(e) => setFilterAvailability(e.target.checked)}
                       className="w-4 h-4 text-primary bg-background border-input rounded focus:ring-primary focus:ring-2"
                     />
-                    <span className="text-sm text-muted-foreground">Filter availability strings</span>
+                    <span className="text-sm text-muted-foreground">
+                      Filter availability strings
+                    </span>
                   </label>
                   <p className="text-xs text-muted-foreground ml-7 -mt-2">
                     Remove platform availability info (iOS 14.0+, macOS 10.15+, etc.)
@@ -1306,7 +1308,9 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                 Subscribe
               </button>
             </form>
-            <p className="text-xs text-muted-foreground mt-3">2× per month, pure signal, zero fluff.</p>
+            <p className="text-xs text-muted-foreground mt-3">
+              2× per month, pure signal, zero fluff.
+            </p>
           </div>
         </div>
       </footer>

@@ -73,16 +73,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <head>
         <ThemeScript />
-        <meta
-          name="theme-color"
-          content="#ffffff"
-          media="(prefers-color-scheme: light)"
-        />
-        <meta
-          name="theme-color"
-          content="#0c0c0f"
-          media="(prefers-color-scheme: dark)"
-        />
+        <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#0c0c0f" media="(prefers-color-scheme: dark)" />
       </head>
       <body className={inter.className}>
         {children}
