@@ -464,8 +464,12 @@ export default function Home() {
       setResults(processedResults);
 
       // Calculate stats
-      const successfulResults = processedResults.filter((r) => r.content);
-      const failedResults = processedResults.filter((r) => !r.content);
+      const successfulResults = processedResults.filter(
+        (r) => r.content && r.content.trim().length > 0
+      );
+      const failedResults = processedResults.filter(
+        (r) => !r.content || r.content.trim().length === 0
+      );
 
       const content = processedResults.map((r) => `# ${r.url}\n\n${r.content}\n\n---\n\n`).join('');
       const lines = content.split('\n').length;
@@ -716,6 +720,7 @@ export default function Home() {
 Downloaded via https://llm.codes by @steipete on ${dateStr} at ${timeStr}
 Source URL: ${url}
 Total pages processed: ${results.length}
+Pages with content: ${results.filter((r) => r.content && r.content.trim().length > 0).length}
 URLs filtered: ${filterUrls ? 'Yes' : 'No'}
 Content de-duplicated: ${deduplicateContent ? 'Yes' : 'No'}
 Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
@@ -723,14 +728,17 @@ Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
 
 `;
 
-    const processedResults = results.map((r) => {
-      let content = r.content;
-      content = removeCommonPhrases(content); // Remove common phrases first
-      content = filterUrlsFromMarkdown(content);
-      content = filterAvailabilityStrings(content);
-      content = deduplicateMarkdown(content);
-      return { url: r.url, content };
-    });
+    const processedResults = results
+      .filter((r) => r.content && r.content.trim().length > 0) // Only include results with actual content
+      .map((r) => {
+        let content = r.content;
+        content = removeCommonPhrases(content); // Remove common phrases first
+        content = filterUrlsFromMarkdown(content);
+        content = filterAvailabilityStrings(content);
+        content = deduplicateMarkdown(content);
+        return { url: r.url, content };
+      })
+      .filter((r) => r.content && r.content.trim().length > 0); // Filter again after processing
 
     const content =
       header + processedResults.map((r) => `# ${r.url}\n\n${r.content}\n\n---\n\n`).join('');
@@ -738,9 +746,62 @@ Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
     const downloadUrl = URL.createObjectURL(blob);
 
     // Generate filename from the original URL
-    const urlPath = url.replace('https://developer.apple.com/documentation/', '');
-    const pathParts = urlPath.split('/').filter((part) => part.length > 0);
-    const filename = pathParts.length > 0 ? `${pathParts.join('-')}.md` : 'apple-developer-docs.md';
+    let filename = 'documentation.md';
+
+    try {
+      const urlObj = new URL(url);
+      const hostname = urlObj.hostname;
+      const pathname = urlObj.pathname;
+
+      if (hostname === 'developer.apple.com') {
+        // For Apple docs: documentation/framework/class -> framework-class-docs.md
+        const cleanPath = pathname.replace('/documentation/', '');
+        const parts = cleanPath.split('/').filter((p) => p);
+        if (parts.length > 0) {
+          filename = `${parts.join('-')}-docs.md`;
+        } else {
+          filename = 'apple-docs.md';
+        }
+      } else if (hostname === 'swiftpackageindex.com') {
+        // For Swift Package Index: /owner/package -> owner-package-docs.md
+        const parts = pathname.split('/').filter((p) => p);
+        if (parts.length >= 2) {
+          filename = `${parts[0]}-${parts[1]}-docs.md`;
+        } else {
+          filename = 'swift-package-docs.md';
+        }
+      } else if (hostname.endsWith('.github.io')) {
+        // For GitHub Pages: subdomain.github.io/project -> subdomain-project-docs.md
+        const subdomain = hostname.replace('.github.io', '');
+        const pathParts = pathname.split('/').filter((p) => p);
+
+        if (pathParts.length > 0) {
+          filename = `${subdomain}-${pathParts[0]}-docs.md`;
+        } else {
+          filename = `${subdomain}-docs.md`;
+        }
+      } else {
+        // Fallback: use hostname and first path segment
+        const pathParts = pathname.split('/').filter((p) => p);
+        const siteName = hostname.replace(/^www\./, '').split('.')[0];
+
+        if (pathParts.length > 0) {
+          filename = `${siteName}-${pathParts[0]}-docs.md`;
+        } else {
+          filename = `${siteName}-docs.md`;
+        }
+      }
+
+      // Clean up the filename: remove special characters, lowercase
+      filename = filename
+        .toLowerCase()
+        .replace(/[^a-z0-9-_.]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+    } catch {
+      // If URL parsing fails, use a fallback
+      filename = 'documentation.md';
+    }
 
     const a = document.createElement('a');
     a.href = downloadUrl;
