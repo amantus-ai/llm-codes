@@ -737,6 +737,14 @@ Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
                 'Process Documentation'
               )}
             </button>
+            
+            {/* Help text - shown only when not processing */}
+            {!isProcessing && (
+              <p className="mt-4 text-sm text-slate-600 text-center">
+                Generates cleaned markdown file, so your agent knows the latest Apple (or 3rd-party) API.<br />
+                Store the file in your project and reference the name to load it into the context, and get better code.
+              </p>
+            )}
 
             {/* Progress */}
             {(isProcessing || results.length > 0) && (
