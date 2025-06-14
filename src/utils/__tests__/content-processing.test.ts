@@ -52,6 +52,13 @@ describe('content-processing', () => {
       const result = filterUrlsFromMarkdown(input, true);
       expect(result).toBe('See method1 and method2.');
     });
+
+    it('should handle Apple documentation URL with call(arguments:) pattern correctly', () => {
+      const input =
+        'See the [Tool.call(arguments:)](https://developer.apple.com/documentation/foundationmodels/tool/call(arguments:)) method for details.';
+      const result = filterUrlsFromMarkdown(input, true);
+      expect(result).toBe('See the Tool.call(arguments:) method for details.');
+    });
   });
 
   describe('removeCommonPhrases', () => {
@@ -193,6 +200,24 @@ describe('content-processing', () => {
       const links = extractLinks(input, baseUrl);
       expect(links).toContain('https://developer.apple.com/documentation/swiftui/view');
       expect(links).not.toContain('https://developer.apple.com/documentation/swiftui/view.');
+    });
+
+    it('should extract URLs with parentheses from markdown links', () => {
+      const input =
+        'Check [this method](https://developer.apple.com/documentation/foundationmodels/tool/call(arguments:)) for details.';
+      const links = extractLinks(input, 'https://developer.apple.com');
+      expect(links).toContain(
+        'https://developer.apple.com/documentation/foundationmodels/tool/call(arguments:)'
+      );
+    });
+
+    it('should extract plain URLs with parentheses', () => {
+      const input =
+        'Visit https://developer.apple.com/documentation/foundationmodels/tool/init(name:description:) for more info.';
+      const links = extractLinks(input, 'https://developer.apple.com');
+      expect(links).toContain(
+        'https://developer.apple.com/documentation/foundationmodels/tool/init(name:description:)'
+      );
     });
   });
 });

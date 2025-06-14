@@ -46,7 +46,8 @@ export function extractLinks(markdown: string, baseUrl: string): string[] {
   const isAppleDocs = baseUrlObj.hostname === 'developer.apple.com';
 
   // Extract URLs from markdown links: [text](url)
-  const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  // Handle URLs with parentheses by matching balanced parentheses
+  const markdownLinkRegex = /\[([^\]]+)\]\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g;
   let match;
   while ((match = markdownLinkRegex.exec(markdown)) !== null) {
     const url = match[2];

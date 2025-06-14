@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ALLOWED_DOMAINS } from '@/constants';
 import { getSupportedDomainsText } from '@/utils/url-utils';
+import { filterDocumentation } from '@/utils/documentation-filter';
 
 interface ProcessingResult {
   url: string;
@@ -723,16 +724,35 @@ Total pages processed: ${results.length}
 URLs filtered: ${filterUrls ? 'Yes' : 'No'}
 Content de-duplicated: ${deduplicateContent ? 'Yes' : 'No'}
 Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
+Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
 -->
 
 `;
 
     const processedResults = results.map((r) => {
       let content = r.content;
-      content = removeCommonPhrases(content); // Remove common phrases first
-      content = filterUrlsFromMarkdown(content);
-      content = filterAvailabilityStrings(content);
-      content = deduplicateMarkdown(content);
+
+      if (useComprehensiveFilter) {
+        // Use the comprehensive documentation filter
+        content = filterDocumentation(content, {
+          filterUrls,
+          filterAvailability,
+          filterNavigation: true,
+          filterLegalBoilerplate: true,
+          filterEmptyContent: true,
+          filterRedundantTypeAliases: true,
+          filterExcessivePlatformNotices: true,
+          filterFormattingArtifacts: true,
+          deduplicateContent,
+        });
+      } else {
+        // Use the original simple filters
+        content = removeCommonPhrases(content); // Remove common phrases first
+        content = filterUrlsFromMarkdown(content);
+        content = filterAvailabilityStrings(content);
+        content = deduplicateMarkdown(content);
+      }
+
       return { url: r.url, content };
     });
 
@@ -1040,6 +1060,21 @@ Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
                   </label>
                   <p className="text-xs text-slate-500 ml-7 -mt-2">
                     Remove platform availability info (iOS 14.0+, macOS 10.15+, etc.)
+                  </p>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useComprehensiveFilter}
+                      onChange={(e) => setUseComprehensiveFilter(e.target.checked)}
+                      className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                    />
+                    <span className="text-sm text-slate-600">
+                      Comprehensive documentation filter
+                    </span>
+                  </label>
+                  <p className="text-xs text-slate-500 ml-7 -mt-2">
+                    Apply advanced filtering to remove navigation, legal text, empty sections, and
+                    other documentation noise
                   </p>
                 </div>
               )}
