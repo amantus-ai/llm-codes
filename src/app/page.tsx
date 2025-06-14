@@ -873,7 +873,7 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                   </button>
                 </PopoverTrigger>
                 <PopoverContent
-                  className="w-96 max-h-96 overflow-y-auto bg-white rounded-xl shadow-xl border border-slate-200"
+                  className="w-[36rem] max-h-[36rem] overflow-y-auto bg-white rounded-xl shadow-xl border border-slate-200"
                   align="start"
                 >
                   <div className="space-y-4">
@@ -902,16 +902,21 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                         </h4>
                         <ul className="space-y-1">
                           {domains.map((domain) => (
-                            <li key={domain.name} className="text-xs text-slate-600">
-                              <a
-                                href={domain.example}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="hover:text-blue-600 transition-colors"
-                                onClick={(e) => e.stopPropagation()}
+                            <li key={domain.name} className="text-xs">
+                              <button
+                                className="w-full text-left hover:bg-slate-50 rounded px-2 py-1 transition-colors"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setUrl(domain.example);
+                                  setError('');
+                                }}
                               >
-                                {domain.name}
-                              </a>
+                                <span className="text-slate-700 font-medium">{domain.name}</span>
+                                <span className="text-slate-400 ml-2 text-[11px]">
+                                  {domain.example}
+                                </span>
+                              </button>
                             </li>
                           ))}
                         </ul>
