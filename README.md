@@ -325,4 +325,4 @@ If you find this project helpful, please consider:
 
 ---
 
-Made with ❤️ by developers, for developers.
+Made with ❤️ by Peter Steinberger, for developers.
