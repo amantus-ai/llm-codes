@@ -4,7 +4,11 @@ import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ALLOWED_DOMAINS } from '@/constants';
-import { getSupportedDomainsText, isValidDocumentationUrl } from '@/utils/url-utils';
+import {
+  getSupportedDomainsText,
+  isValidDocumentationUrl,
+  updateUrlWithDocumentation,
+} from '@/utils/url-utils';
 import { filterDocumentation } from '@/utils/documentation-filter';
 
 interface ProcessingResult {
@@ -445,6 +449,9 @@ export default function Home() {
     setLogs([]);
     setResults([]);
     setStats({ lines: 0, size: 0, urls: 0 });
+
+    // Update the browser URL to include the documentation URL
+    updateUrlWithDocumentation(trimmedUrl);
 
     // Request notification permission on first use
     await requestNotificationPermission();
