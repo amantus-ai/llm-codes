@@ -821,7 +821,7 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
             </div>
             <div className="ml-auto text-xs text-muted-foreground text-right">
               <div>
-                Made by{' '}
+                made by{' '}
                 <a
                   href="https://steipete.me"
                   target="_blank"
@@ -832,7 +832,7 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                 </a>
               </div>
               <div>
-                Powered by{' '}
+                powered by{' '}
                 <a
                   href="https://www.firecrawl.dev/referral?rid=9CG538BE"
                   target="_blank"
