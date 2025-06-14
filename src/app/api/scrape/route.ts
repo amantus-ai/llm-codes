@@ -20,9 +20,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { url, action } = body;
 
-    if (!url || !url.startsWith('https://developer.apple.com')) {
+    const isValidUrl = url && (
+      url.startsWith('https://developer.apple.com') ||
+      url.startsWith('https://swiftpackageindex.com/') ||
+      /^https:\/\/[^\/]+\.github\.io\//.test(url)
+    );
+    
+    if (!isValidUrl) {
       return NextResponse.json(
-        { error: 'Invalid URL. Must start with https://developer.apple.com' },
+        { error: 'Invalid URL. Must be from developer.apple.com, swiftpackageindex.com, or *.github.io' },
         { status: 400 }
       );
     }

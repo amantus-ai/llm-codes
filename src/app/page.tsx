@@ -100,30 +100,58 @@ export default function Home() {
     const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
     let match;
     
-    // Extract the base path from the original URL (e.g., /documentation/appkit)
-    const basePath = baseUrl.replace('https://developer.apple.com', '').toLowerCase();
+    // Determine the base domain and path structure
+    const urlObj = new URL(baseUrl);
+    const baseDomain = urlObj.origin;
+    const basePath = urlObj.pathname.toLowerCase();
     const basePathParts = basePath.split('/').filter(p => p);
     
     while ((match = linkRegex.exec(content)) !== null) {
       const href = match[2];
       let fullUrl = '';
       
-      if (href.startsWith('/documentation/')) {
-        fullUrl = `https://developer.apple.com${href}`;
-      } else if (href.startsWith('https://developer.apple.com/documentation/')) {
-        fullUrl = href;
+      // Handle different documentation structures
+      if (baseDomain === 'https://developer.apple.com') {
+        if (href.startsWith('/documentation/')) {
+          fullUrl = `${baseDomain}${href}`;
+        } else if (href.startsWith('https://developer.apple.com/documentation/')) {
+          fullUrl = href;
+        } else {
+          continue;
+        }
+        
+        // Check if the link is within the same documentation section
+        const linkPath = fullUrl.replace(baseDomain, '').toLowerCase();
+        const linkPathParts = linkPath.split('/').filter(p => p);
+        
+        // For /documentation/appkit, allow /documentation/appkit/*
+        if (basePathParts.length >= 2 && linkPathParts.length >= 2) {
+          if (linkPathParts[0] === basePathParts[0] && linkPathParts[1] === basePathParts[1]) {
+            links.add(fullUrl);
+          }
+        }
       } else {
-        continue; // Skip non-documentation links
-      }
-      
-      // Check if the link is within the same documentation section
-      const linkPath = fullUrl.replace('https://developer.apple.com', '').toLowerCase();
-      const linkPathParts = linkPath.split('/').filter(p => p);
-      
-      // Ensure the link starts with the same path structure
-      // For /documentation/appkit, allow /documentation/appkit/*
-      if (basePathParts.length >= 2 && linkPathParts.length >= 2) {
-        if (linkPathParts[0] === basePathParts[0] && linkPathParts[1] === basePathParts[1]) {
+        // For Swift Package Index and GitHub Pages, handle relative and absolute URLs
+        if (href.startsWith('http://') || href.startsWith('https://')) {
+          // Absolute URL - only include if it's from the same domain
+          if (href.startsWith(baseDomain)) {
+            fullUrl = href;
+          } else {
+            continue;
+          }
+        } else if (href.startsWith('/')) {
+          // Absolute path
+          fullUrl = `${baseDomain}${href}`;
+        } else if (!href.startsWith('#') && !href.startsWith('mailto:')) {
+          // Relative path
+          const baseDir = basePath.substring(0, basePath.lastIndexOf('/'));
+          fullUrl = `${baseDomain}${baseDir}/${href}`;
+        } else {
+          continue;
+        }
+        
+        // For non-Apple sites, stay within the same path hierarchy
+        if (fullUrl.startsWith(baseUrl) || baseUrl.startsWith(fullUrl)) {
           links.add(fullUrl);
         }
       }
@@ -224,8 +252,14 @@ export default function Home() {
   };
 
   const processUrl = async () => {
-    if (!url || !url.startsWith('https://developer.apple.com')) {
-      setError('URL must start with https://developer.apple.com');
+    const isValidUrl = url && (
+      url.startsWith('https://developer.apple.com') ||
+      url.startsWith('https://swiftpackageindex.com/') ||
+      /^https:\/\/[^\/]+\.github\.io\//.test(url)
+    );
+    
+    if (!isValidUrl) {
+      setError('URL must be from developer.apple.com, swiftpackageindex.com, or *.github.io');
       return;
     }
 
@@ -564,7 +598,7 @@ Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
                 </div>
               )}
               <p className="mt-3 text-xs text-slate-500">
-                This service is limited to sub-pages of Apple's Documentation Website to reduce costs.
+                This service supports documentation from developer.apple.com, swiftpackageindex.com, and *.github.io sites.
               </p>
             </div>
 
