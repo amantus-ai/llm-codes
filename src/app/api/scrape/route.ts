@@ -1,0 +1,97 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
+const FIRECRAWL_API_URL = 'https://api.firecrawl.dev/v1';
+
+// Cache implementation using Edge Runtime KV storage would go here
+// For now, we'll use in-memory cache (resets on deployment)
+const cache = new Map<string, { content: string; timestamp: number }>();
+const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 1 week
+
+export async function POST(request: NextRequest) {
+  try {
+    if (!FIRECRAWL_API_KEY) {
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+
+    const body = await request.json();
+    const { url, action } = body;
+
+    if (!url || !url.startsWith('https://developer.apple.com')) {
+      return NextResponse.json(
+        { error: 'Invalid URL. Must start with https://developer.apple.com' },
+        { status: 400 }
+      );
+    }
+
+    if (action === 'scrape') {
+      // Check cache
+      const cacheKey = `scrape_${url}`;
+      const cached = cache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        return NextResponse.json({ 
+          success: true, 
+          data: { markdown: cached.content },
+          cached: true 
+        });
+      }
+
+      // Scrape the URL
+      const response = await fetch(`${FIRECRAWL_API_URL}/scrape`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url,
+          formats: ['markdown'],
+          onlyMainContent: true,
+          waitFor: 2000,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        return NextResponse.json(
+          { error: `Firecrawl API error: ${error}` },
+          { status: response.status }
+        );
+      }
+
+      const data = await response.json();
+      if (data.success && data.data?.markdown) {
+        // Cache the result
+        cache.set(cacheKey, {
+          content: data.data.markdown,
+          timestamp: Date.now(),
+        });
+
+        return NextResponse.json({ 
+          success: true, 
+          data: { markdown: data.data.markdown },
+          cached: false 
+        });
+      }
+
+      return NextResponse.json(
+        { error: 'No content returned from API' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: 'Invalid action' },
+      { status: 400 }
+    );
+  } catch (error) {
+    console.error('API Error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

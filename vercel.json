@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "src/app/api/scrape/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}

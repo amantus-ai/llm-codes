@@ -1,0 +1,46 @@
+{
+  "name": "apple-docs-to-markdown",
+  "version": "1.0.0",
+  "description": "Convert Apple Developer documentation to clean, readable Markdown format",
+  "scripts": {
+    "dev": "next dev --turbo",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "keywords": [
+    "apple",
+    "documentation",
+    "markdown",
+    "converter",
+    "nextjs",
+    "tailwindcss",
+    "typescript",
+    "developer-tools",
+    "web-scraping"
+  ],
+  "author": "Apple Docs to Markdown Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/apple-docs-to-markdown.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/apple-docs-to-markdown/issues"
+  },
+  "homepage": "https://github.com/yourusername/apple-docs-to-markdown#readme",
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.1.10",
+    "@tailwindcss/vite": "^4.1.10",
+    "@types/node": "^24.0.1",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "autoprefixer": "^10.4.21",
+    "next": "^15.3.3",
+    "postcss": "^8.5.5",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.8.3"
+  }
+}
