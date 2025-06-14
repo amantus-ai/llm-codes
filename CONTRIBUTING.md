@@ -29,23 +29,27 @@ By participating in this project, you agree to abide by our Code of Conduct. Ple
 ### Development Setup
 
 1. Clone your fork:
+
 ```bash
 git clone https://github.com/yourusername/apple-docs-to-markdown.git
 cd apple-docs-to-markdown
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Create `.env.local`:
+
 ```bash
 cp .env.local.example .env.local
 # Add your Firecrawl API key
 ```
 
 4. Run development server:
+
 ```bash
 npm run dev
 ```
@@ -61,6 +65,7 @@ npm run dev
 ### Testing
 
 Run tests before submitting:
+
 ```bash
 npm test
 ```
@@ -68,6 +73,7 @@ npm test
 ### Commit Messages
 
 Follow conventional commits:
+
 - `feat:` New features
 - `fix:` Bug fixes
 - `docs:` Documentation changes

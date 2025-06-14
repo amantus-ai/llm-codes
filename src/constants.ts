@@ -445,6 +445,11 @@ export const PROCESSING_CONFIG = {
   FIRECRAWL_WAIT_TIME: 5000 as number, // Wait time for Firecrawl API in ms
   DEFAULT_CRAWL_DEPTH: 2 as number,
   DEFAULT_MAX_URLS: 200 as number,
+  // Retry configuration
+  MAX_RETRIES: 5 as number, // Maximum number of retry attempts
+  INITIAL_RETRY_DELAY: 1000 as number, // Initial delay in ms (1 second)
+  MAX_RETRY_DELAY: 30000 as number, // Maximum delay in ms (30 seconds)
+  RETRY_STATUS_CODES: [429, 500, 502, 503, 504] as number[], // HTTP status codes that trigger retries
 };
 
 // UI configuration

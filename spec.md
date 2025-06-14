@@ -1,6 +1,7 @@
-# LLM Codes - Comprehensive Project Specification
+# Web Documentation to Markdown Converter - Comprehensive Project Specification
 
 ## Table of Contents
+
 1. [Executive Summary](#executive-summary)
 2. [Problem Statement](#problem-statement)
 3. [Solution Overview](#solution-overview)
@@ -16,11 +17,12 @@
 
 ## Executive Summary
 
-LLM Codes is a powerful web application that transforms technical documentation from 69+ major documentation sites into clean, AI-optimized markdown files. Supporting everything from programming languages and web frameworks to cloud platforms and AI/ML libraries, the tool addresses the critical gap between rapidly evolving technologies and AI coding assistants' knowledge cutoffs, enabling developers to provide current documentation context across the entire development ecosystem for better code generation.
+Web Documentation to Markdown Converter is a powerful web application that transforms technical documentation from 69+ major documentation sites into clean, AI-optimized markdown files. Supporting everything from programming languages and web frameworks to cloud platforms and AI/ML libraries, the tool addresses the critical gap between rapidly evolving technologies and AI coding assistants' knowledge cutoffs, enabling developers to provide current documentation context across the entire development ecosystem for better code generation.
 
 ## Problem Statement
 
 AI coding assistants face several challenges with documentation:
+
 - Knowledge cutoffs prevent awareness of new APIs and frameworks
 - Raw HTML documentation contains noise that confuses AI models
 - Platform-specific availability strings clutter the context
@@ -30,6 +32,7 @@ AI coding assistants face several challenges with documentation:
 ## Solution Overview
 
 The application provides:
+
 - **Intelligent Web Scraping**: Extracts documentation while preserving structure
 - **Multi-level Crawling**: Discovers related documentation automatically
 - **Advanced Content Cleaning**: Removes noise while preserving signal
@@ -38,9 +41,10 @@ The application provides:
 
 ## Supported Documentation Sources
 
-LLM Codes supports 69 documentation sites across 10 major categories:
+The Web Documentation to Markdown Converter supports 69 documentation sites across 10 major categories:
 
 ### Programming Languages (10 sites)
+
 - **Python** (`https://docs.python.org`)
 - **MDN Web Docs** (`https://developer.mozilla.org`) - JavaScript/Web APIs
 - **TypeScript** (`https://www.typescriptlang.org/docs`)
@@ -53,6 +57,7 @@ LLM Codes supports 69 documentation sites across 10 major categories:
 - **Kotlin** (`https://kotlinlang.org/docs`)
 
 ### Web Frameworks (10 sites)
+
 - **React** (`https://react.dev`)
 - **Vue.js** (`https://vuejs.org`)
 - **Angular** (`https://angular.io/docs`)
@@ -65,6 +70,7 @@ LLM Codes supports 69 documentation sites across 10 major categories:
 - **Laravel** (`https://laravel.com/docs`)
 
 ### Cloud Platforms (7 sites)
+
 - **AWS** (`https://docs.aws.amazon.com`)
 - **Google Cloud** (`https://cloud.google.com/docs`)
 - **Azure** (`https://docs.microsoft.com/azure`)
@@ -74,6 +80,7 @@ LLM Codes supports 69 documentation sites across 10 major categories:
 - **Netlify** (`https://docs.netlify.com`)
 
 ### Databases (7 sites)
+
 - **PostgreSQL** (`https://www.postgresql.org/docs`)
 - **MongoDB** (`https://docs.mongodb.com`)
 - **MySQL** (`https://dev.mysql.com/doc`)
@@ -83,6 +90,7 @@ LLM Codes supports 69 documentation sites across 10 major categories:
 - **Cassandra** (`https://cassandra.apache.org/doc`)
 
 ### DevOps & Infrastructure (6 sites)
+
 - **Docker** (`https://docs.docker.com`)
 - **Kubernetes** (`https://kubernetes.io/docs`)
 - **Terraform** (`https://www.terraform.io/docs`)
@@ -91,6 +99,7 @@ LLM Codes supports 69 documentation sites across 10 major categories:
 - **GitLab** (`https://docs.gitlab.com`)
 
 ### AI/ML Libraries (7 sites)
+
 - **PyTorch** (`https://pytorch.org/docs`)
 - **TensorFlow** (`https://www.tensorflow.org/api_docs`)
 - **Hugging Face** (`https://huggingface.co/docs`)
@@ -100,6 +109,7 @@ LLM Codes supports 69 documentation sites across 10 major categories:
 - **NumPy** (`https://numpy.org/doc`)
 
 ### CSS Frameworks (5 sites)
+
 - **Tailwind CSS** (`https://tailwindcss.com/docs`)
 - **Bootstrap** (`https://getbootstrap.com/docs`)
 - **Material-UI** (`https://mui.com/material-ui`)
@@ -107,6 +117,7 @@ LLM Codes supports 69 documentation sites across 10 major categories:
 - **Bulma** (`https://bulma.io/documentation`)
 
 ### Build Tools & Package Managers (6 sites)
+
 - **npm** (`https://docs.npmjs.com`)
 - **webpack** (`https://webpack.js.org/docs`)
 - **Vite** (`https://vitejs.dev/guide`)
@@ -115,6 +126,7 @@ LLM Codes supports 69 documentation sites across 10 major categories:
 - **Maven** (`https://maven.apache.org/guides`)
 
 ### Testing Frameworks (5 sites)
+
 - **Jest** (`https://jestjs.io/docs`)
 - **Cypress** (`https://docs.cypress.io`)
 - **Playwright** (`https://playwright.dev/docs`)
@@ -122,18 +134,21 @@ LLM Codes supports 69 documentation sites across 10 major categories:
 - **Mocha** (`https://mochajs.org`)
 
 ### Mobile Development (4 sites)
+
 - **React Native** (`https://reactnative.dev/docs`)
 - **Flutter** (`https://flutter.dev/docs`)
 - **Android** (`https://developer.android.com/docs`)
 - **Apple Developer** (`https://developer.apple.com`)
 
 ### Special Support
+
 - **Swift Package Index** (`https://swiftpackageindex.com/`)
 - **GitHub Pages** (`https://*.github.io/*` - any subdomain)
 
 ## Technical Architecture
 
 ### Frontend Stack
+
 ```
 - Framework: Next.js 15.3.3 (App Router)
 - Language: TypeScript (strict mode)
@@ -144,6 +159,7 @@ LLM Codes supports 69 documentation sites across 10 major categories:
 ```
 
 ### Backend Architecture
+
 ```
 - API: Next.js API Routes (Edge Runtime)
 - External Service: Firecrawl API
@@ -154,6 +170,7 @@ LLM Codes supports 69 documentation sites across 10 major categories:
 ```
 
 ### Project Structure
+
 ```
 /src/
 ├── app/
@@ -181,6 +198,7 @@ LLM Codes supports 69 documentation sites across 10 major categories:
 ### 1. URL Processing System
 
 #### Validation Logic
+
 ```typescript
 export function isValidDocumentationUrl(url: string): boolean {
   if (!url) return false;
@@ -198,6 +216,7 @@ export function isValidDocumentationUrl(url: string): boolean {
 ```
 
 #### Processing Pipeline
+
 1. Validate URL against 69 whitelisted domains
 2. Check in-memory cache (30-day retention)
 3. Fetch via Firecrawl API with options:
@@ -211,6 +230,7 @@ export function isValidDocumentationUrl(url: string): boolean {
 ### 2. Multi-Level Crawling Engine
 
 #### Depth Configuration
+
 - **Range**: 0-5 levels (0 = single page only)
 - **Default**: 2 levels
 - **Behavior**: Depth-first traversal with URL deduplication
@@ -218,6 +238,7 @@ export function isValidDocumentationUrl(url: string): boolean {
 - **Batch Delay**: 500ms between batches
 
 #### URL Discovery Algorithm
+
 ```javascript
 // Extract links from markdown content
 const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
@@ -225,8 +246,7 @@ const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
 // Domain-specific link filtering
 if (baseDomain === 'https://developer.apple.com') {
   // Only follow same documentation section
-  if (linkPathParts[0] === basePathParts[0] && 
-      linkPathParts[1] === basePathParts[1]) {
+  if (linkPathParts[0] === basePathParts[0] && linkPathParts[1] === basePathParts[1]) {
     links.add(fullUrl);
   }
 } else {
@@ -238,6 +258,7 @@ if (baseDomain === 'https://developer.apple.com') {
 ```
 
 #### Crawl Limitations
+
 - **Max URLs**: Configurable 1-1000 (default: 200)
 - **Timeout**: None (processes until complete or limit reached)
 - **Deduplication**: Uses Set to prevent revisiting URLs
@@ -245,7 +266,9 @@ if (baseDomain === 'https://developer.apple.com') {
 ### 3. Content Cleaning Algorithms
 
 #### a) Common Phrase Removal
+
 Removes navigation and boilerplate elements:
+
 - "Skip Navigation"
 - "On This Page"
 - "API Reference" sections
@@ -254,21 +277,27 @@ Removes navigation and boilerplate elements:
 - Breadcrumb indicators ("Current page is")
 
 #### b) Hyperlink Removal (`filterUrlsFromMarkdown`)
+
 Three-pass approach:
+
 1. Convert `[text](url)` → `text`
 2. Remove standalone URLs with whitespace prefix
 3. Remove `<http://...>` formatted URLs
 4. Clean up resulting double spaces
 
 #### c) Content Deduplication (`deduplicateMarkdown`)
+
 Intelligent deduplication that:
+
 - Tracks seen paragraphs, headers, and list items
 - Preserves first occurrence
 - Maintains document structure
 - Handles different markdown elements separately
 
 #### d) Availability String Filtering (`filterAvailabilityStrings`)
+
 Removes platform availability information:
+
 - Pattern: `iOS 14.0+iPadOS 14.0+Mac Catalyst 14.0+...`
 - Removes entire lines containing only availability info
 - Cleans up empty lines after removal
@@ -276,15 +305,16 @@ Removes platform availability information:
 ### 4. Output Generation
 
 #### File Naming Convention
+
 ```javascript
 // Extract meaningful path components
-const pathParts = urlPath.split('/').filter(p => p);
-const filename = pathParts.length > 0 
-  ? `${pathParts.join('-')}-docs.md`
-  : 'apple-developer-docs.md';
+const pathParts = urlPath.split('/').filter((p) => p);
+const filename =
+  pathParts.length > 0 ? `${pathParts.join('-')}-docs.md` : 'apple-developer-docs.md';
 ```
 
 #### Markdown Structure
+
 ```markdown
 <!--
 Downloaded via https://llm.codes by @steipete on [Date] at [Time]
@@ -309,15 +339,14 @@ Availability strings filtered: [Yes/No]
 ### 5. Progress Tracking System
 
 #### Progress Calculation
+
 ```javascript
-const progressPercentage = Math.min(
-  Math.round((processedUrls.size / maxUrlsToProcess) * 90),
-  90
-);
+const progressPercentage = Math.min(Math.round((processedUrls.size / maxUrlsToProcess) * 90), 90);
 // Jumps to 100% on completion
 ```
 
 #### Real-time Updates
+
 - Updates every processed URL
 - Shows current processing URL
 - Displays queue size
@@ -326,6 +355,7 @@ const progressPercentage = Math.min(
 ## User Interface & Experience
 
 ### 1. Layout Structure
+
 - **Header**: Title, attribution, API credit
 - **Main Content**:
   - URL input with validation
@@ -339,6 +369,7 @@ const progressPercentage = Math.min(
 ### 2. Visual Design
 
 #### Color Palette
+
 - Primary: Blue gradient (#1d4ed8 → #2563eb)
 - Success: Green (#22c55e)
 - Error: Red with proper contrast
@@ -346,6 +377,7 @@ const progressPercentage = Math.min(
 - Dark mode support with appropriate color variants
 
 #### Interactive Elements
+
 - **Popover UI**: Click "This document parser supports a list of selected websites" to view all 69 sites
   - Organized by category with scrollable content
   - Each site is clickable with example URLs
@@ -357,6 +389,7 @@ const progressPercentage = Math.min(
 - "rays" animation effect on header
 
 ### 3. Responsive Behavior
+
 - Max width: 768px (3xl:max-w-3xl)
 - Mobile-optimized with proper padding
 - Touch-friendly interaction targets
@@ -364,27 +397,28 @@ const progressPercentage = Math.min(
 ### 4. Notification System
 
 #### Implementation
+
 ```javascript
 // iOS Detection and handling
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && 
-              !window.MSStream;
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
 if (!isIOS && 'Notification' in window) {
   // Request permission on first use
   if (Notification.permission === 'default') {
     await Notification.requestPermission();
   }
-  
+
   // Show notification with custom icon
   new Notification(title, {
     body: message,
     icon: '/icon-192.png',
-    requireInteraction: false
+    requireInteraction: false,
   });
 }
 ```
 
 #### Features
+
 - Auto-closes after 5 seconds
 - Click to focus window
 - Falls back to console on iOS
@@ -393,16 +427,17 @@ if (!isIOS && 'Notification' in window) {
 ### 5. Activity Log
 
 #### Smart Scrolling
+
 ```javascript
 // Auto-scroll only if user hasn't scrolled up
-const isNearBottom = container.scrollHeight - container.scrollTop 
-                     <= container.clientHeight + 100;
+const isNearBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
 if (isNearBottom) {
   container.scrollTop = container.scrollHeight;
 }
 ```
 
 #### Log Entry Format
+
 ```
 [HH:MM:SS] Action description
 ```
@@ -483,6 +518,7 @@ const [showOptions, setShowOptions] = useState(false);
 ### POST /api/scrape
 
 #### Request
+
 ```json
 {
   "url": "https://developer.apple.com/documentation/appkit",
@@ -491,6 +527,7 @@ const [showOptions, setShowOptions] = useState(false);
 ```
 
 #### Response (Success)
+
 ```json
 {
   "success": true,
@@ -502,6 +539,7 @@ const [showOptions, setShowOptions] = useState(false);
 ```
 
 #### Response (Error)
+
 ```json
 {
   "error": "Invalid URL. Must be from one of the 69 supported documentation sites"
@@ -511,12 +549,14 @@ const [showOptions, setShowOptions] = useState(false);
 ## Future Enhancements
 
 ### Phase 1: Core Improvements
+
 - Persistent cache using Redis/KV storage
 - Concurrent URL processing
 - Incremental content updates
 - Resume interrupted sessions
 
 ### Phase 2: Advanced Features
+
 - Custom cleaning rules per domain
 - API endpoint for programmatic access
 - CLI tool for batch processing
@@ -524,6 +564,7 @@ const [showOptions, setShowOptions] = useState(false);
 - Content diffing between versions
 
 ### Phase 3: Integration & Scale
+
 - Direct AI assistant integrations
 - Team collaboration features
 - Usage analytics and insights
@@ -555,6 +596,7 @@ const [showOptions, setShowOptions] = useState(false);
 ## Development Notes
 
 ### Local Development
+
 ```bash
 npm install
 npm run dev
@@ -567,12 +609,14 @@ npm run test:coverage
 ```
 
 ### Environment Setup
+
 ```bash
 # Required
 FIRECRAWL_API_KEY=your_api_key_here
 ```
 
 ### Deployment
+
 - Vercel recommended for Edge Runtime support
 - Set environment variables in deployment platform
 - No additional configuration required
@@ -584,7 +628,9 @@ Created by [@steipete](https://twitter.com/steipete) | Powered by [Firecrawl](ht
 ## Testing Suite
 
 ### Test Coverage
+
 The project includes comprehensive test coverage using Vitest:
+
 - **API Route Tests**: Full coverage of scraping endpoint
 - **Utility Tests**: All content processing functions tested
 - **URL Validation**: Tests for all 69 supported domains
@@ -592,12 +638,13 @@ The project includes comprehensive test coverage using Vitest:
 - **Error Handling**: Edge cases and failure scenarios
 
 ### Running Tests
+
 ```bash
 # Run all tests
 npm test
 
 # Interactive test UI
-npm run test:ui  
+npm run test:ui
 
 # Coverage report
 npm run test:coverage
@@ -608,4 +655,4 @@ npm run type-check
 
 ---
 
-*This specification reflects the complete implementation as of the latest commit, supporting 69 documentation sites across 10 categories.*
+_This specification reflects the complete implementation as of the latest commit, supporting 69 documentation sites across 10 categories._

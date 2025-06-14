@@ -1,7 +1,7 @@
 {
-  "name": "Apple Docs to Markdown Converter",
+  "name": "Web Documentation to Markdown Converter",
   "short_name": "LLM.codes",
-  "description": "Convert Apple Developer documentation to clean, LLM-friendly Markdown format",
+  "description": "Convert technical documentation from 69+ major sites to clean, LLM-friendly Markdown format",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

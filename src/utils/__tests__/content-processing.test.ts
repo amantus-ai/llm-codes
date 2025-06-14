@@ -38,6 +38,20 @@ describe('content-processing', () => {
       const result = filterUrlsFromMarkdown(input, true);
       expect(result).toBe('Text with multiple spaces');
     });
+
+    it('should handle URLs with parentheses correctly', () => {
+      const input =
+        'Check out [this method](https://developer.apple.com/documentation/foundationmodels/tool/call(arguments:)) for details.';
+      const result = filterUrlsFromMarkdown(input, true);
+      expect(result).toBe('Check out this method for details.');
+    });
+
+    it('should handle multiple URLs with parentheses', () => {
+      const input =
+        'See [method1](https://example.com/api/function(param1:param2:)) and [method2](https://example.com/api/init()).';
+      const result = filterUrlsFromMarkdown(input, true);
+      expect(result).toBe('See method1 and method2.');
+    });
   });
 
   describe('removeCommonPhrases', () => {

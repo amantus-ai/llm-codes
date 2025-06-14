@@ -148,18 +148,35 @@ export function filterLegalAndCopyrightBoilerplate(content: string): string {
     /Terms of (Service|Use)/gi,
     /Privacy Policy/gi,
 
-    // License mentions (but keep important license info in code blocks)
-    /^(?!```)[^\n]*\b(MIT|Apache|GPL|BSD|ISC) License\b[^\n]*$/gim,
-
-    // Trademark notices
-    /\b(TM|™|®|©)\b/g,
+    // Trademark notices - remove the symbols but preserve the words
+    /™/g, // ™
+    /®/g, // ®
+    /\bTM\b/g, // TM as standalone word
+    // Remove copyright symbol when standalone
+    /©/g,
   ];
 
   legalPatterns.forEach((pattern) => {
     filtered = filtered.replace(pattern, '');
   });
 
-  return filtered;
+  // Handle license mentions outside of code blocks
+  const lines = filtered.split('\n');
+  let inCodeBlock = false;
+  const filteredLines = lines.map((line) => {
+    if (line.trim().startsWith('```')) {
+      inCodeBlock = !inCodeBlock;
+      return line;
+    }
+
+    if (!inCodeBlock && line.match(/\b(MIT|Apache|GPL|BSD|ISC) License\b/i)) {
+      return ''; // Remove license mentions outside code blocks
+    }
+
+    return line;
+  });
+
+  return filteredLines.join('\n');
 }
 
 /**
@@ -172,11 +189,47 @@ export function filterEmptyOrPlaceholderContent(content: string): string {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const trimmedLine = line.trim();
-    const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : '';
+    // const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : ''; // Currently unused
 
     // Skip section headers with no content
     if (trimmedLine.startsWith('#')) {
-      // Check if this header has content after it
+      // Check if this is an empty section pattern that should always be removed
+      const emptyHeaderPatterns = [
+        /^##\s*Mentioned in$/i,
+        /^###?\s*Conforms To$/i,
+        /^###?\s*Deprecated initializers$/i,
+        /^###?\s*See Also$/i,
+      ];
+
+      const isEmptyPattern = emptyHeaderPatterns.some((pattern) => pattern.test(trimmedLine));
+
+      if (isEmptyPattern) {
+        // Check if there's actual content after this header
+        let hasContent = false;
+        for (let j = i + 1; j < lines.length; j++) {
+          const checkLine = lines[j].trim();
+          if (checkLine && !checkLine.startsWith('#')) {
+            hasContent = true;
+            break;
+          }
+          if (checkLine.startsWith('#')) {
+            // Hit another header without finding content
+            break;
+          }
+        }
+
+        if (!hasContent) {
+          continue; // Skip empty pattern headers
+        }
+      }
+
+      // For h1/h2 headers that aren't empty patterns, keep them
+      if (trimmedLine.match(/^#{1,2}\s/) && !isEmptyPattern) {
+        filteredLines.push(line);
+        continue;
+      }
+
+      // For all other headers (h3+), check if they have content
       let hasContent = false;
       for (let j = i + 1; j < lines.length; j++) {
         const checkLine = lines[j].trim();
@@ -190,26 +243,10 @@ export function filterEmptyOrPlaceholderContent(content: string): string {
         }
       }
 
-      if (hasContent || trimmedLine.match(/^#{1,2}\s/)) {
-        // Keep h1 and h2 headers, or headers with content
+      if (hasContent) {
         filteredLines.push(line);
       }
       continue;
-    }
-
-    // Skip common empty section patterns
-    const emptyPatterns = [
-      /^##\s*Mentioned in$/i,
-      /^###?\s*Conforms To$/i,
-      /^###?\s*Deprecated initializers$/i,
-      /^###?\s*See Also$/i,
-    ];
-
-    if (emptyPatterns.some((pattern) => pattern.test(trimmedLine))) {
-      // Check if there's actual content after this header
-      if (!nextLine || nextLine.startsWith('#')) {
-        continue; // Skip empty sections
-      }
     }
 
     // Skip broken image links
@@ -218,9 +255,24 @@ export function filterEmptyOrPlaceholderContent(content: string): string {
     }
 
     // Skip empty code blocks
-    if (trimmedLine === '```' && i + 1 < lines.length && lines[i + 1].trim() === '```') {
-      i++; // Skip the closing ```
-      continue;
+    if (trimmedLine === '```') {
+      // Check if this is an empty code block
+      let isEmptyBlock = false;
+      if (i + 1 < lines.length) {
+        let nextIdx = i + 1;
+        // Skip empty lines after opening ```
+        while (nextIdx < lines.length && lines[nextIdx].trim() === '') {
+          nextIdx++;
+        }
+        // Check if we hit closing ``` without content
+        if (nextIdx < lines.length && lines[nextIdx].trim() === '```') {
+          isEmptyBlock = true;
+          i = nextIdx; // Skip to closing ```
+        }
+      }
+      if (isEmptyBlock) {
+        continue;
+      }
     }
 
     filteredLines.push(line);
@@ -245,15 +297,25 @@ export function filterRedundantTypeAliases(content: string): string {
  */
 export function filterUrlsFromMarkdown(markdown: string): string {
   // Convert markdown links: [text](url) -> text
-  let filtered = markdown.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+  // Handle URLs with parentheses by matching balanced parentheses
+  let filtered = markdown.replace(/\[([^\]]+)\]\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g, '$1');
 
-  // Remove bare URLs
-  filtered = filtered.replace(/(^|\s)(https?:\/\/[^\s<>\[\]()]+)(?=\s|[.,;:!?]|$)/gm, '$1');
-  filtered = filtered.replace(/(^|\s)(ftp:\/\/[^\s<>\[\]()]+)(?=\s|[.,;:!?]|$)/gm, '$1');
+  // Remove bare URLs - updated to handle parentheses in URLs
+  filtered = filtered.replace(
+    /(^|\s)(https?:\/\/[^\s<>\[\]]+(?:\([^\s<>\[\]]*\)[^\s<>\[\]]*)*)(?=\s|[.,;:!?]|$)/gm,
+    '$1'
+  );
+  filtered = filtered.replace(
+    /(^|\s)(ftp:\/\/[^\s<>\[\]]+(?:\([^\s<>\[\]]*\)[^\s<>\[\]]*)*)(?=\s|[.,;:!?]|$)/gm,
+    '$1'
+  );
 
   // Remove angle bracket URLs
   filtered = filtered.replace(/<https?:\/\/[^>]+>/g, '');
   filtered = filtered.replace(/<ftp:\/\/[^>]+>/g, '');
+
+  // Clean up any double spaces left behind
+  filtered = filtered.replace(/  +/g, ' ');
 
   return filtered;
 }
@@ -388,10 +450,10 @@ export function cleanupWhitespace(content: string): string {
   // Clean up multiple empty lines
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
 
-  // Remove trailing whitespace on each line
+  // Trim whitespace from each line (both leading and trailing)
   cleaned = cleaned
     .split('\n')
-    .map((line) => line.trimEnd())
+    .map((line) => line.trim())
     .join('\n');
 
   // Remove leading/trailing newlines
@@ -406,8 +468,6 @@ export function cleanupWhitespace(content: string): string {
 export function is404Page(content: string): boolean {
   if (!content) return false;
 
-  const lowercaseContent = content.toLowerCase();
-
   const notFoundIndicators = [
     "the page you're looking for can't be found",
     'page not found',
@@ -421,5 +481,13 @@ export function is404Page(content: string): boolean {
     'the page you requested was not found',
   ];
 
-  return notFoundIndicators.some((indicator) => lowercaseContent.includes(indicator));
+  // Check for exact phrases, not partial matches
+  // This prevents matching content like "Learn how to handle 404 errors"
+  return notFoundIndicators.some((indicator) => {
+    // Create word boundary regex to match complete phrases
+    const regex = new RegExp(`\\b${indicator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    return regex.test(content);
+  });
+
+  // Remove the duplicate return statement that was left behind
 }

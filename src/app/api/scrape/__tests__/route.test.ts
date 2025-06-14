@@ -110,11 +110,15 @@ describe('POST /api/scrape', () => {
   });
 
   it('should handle Firecrawl API errors', async () => {
+    // Use fake timers to speed up the test
+    vi.useFakeTimers();
+
     const mockResponse = {
       ok: false,
       status: 429,
       text: vi.fn().mockResolvedValue('Rate limit exceeded'),
     };
+    // Mock all retry attempts to fail with 429
     vi.mocked(global.fetch).mockResolvedValue(mockResponse as unknown as Response);
 
     const request = new NextRequest('http://localhost:3000/api/scrape', {
@@ -125,11 +129,88 @@ describe('POST /api/scrape', () => {
       }),
     });
 
-    const response = await POST(request);
+    // Start the POST request (don't await yet)
+    const responsePromise = POST(request);
+
+    // Fast-forward through all the retry delays
+    for (let i = 0; i < 5; i++) {
+      await vi.advanceTimersByTimeAsync(Math.min(1000 * Math.pow(2, i), 30000));
+    }
+
+    // Now wait for the response
+    const response = await responsePromise;
     const data = await response.json();
 
     expect(response.status).toBe(429);
     expect(data.error).toBe('Rate limit exceeded. Please try again in a few moments.');
+
+    // Verify it tried multiple times (once initial + 5 retries = 6 total)
+    expect(vi.mocked(global.fetch)).toHaveBeenCalledTimes(6);
+
+    // Restore real timers
+    vi.useRealTimers();
+  });
+
+  it('should retry on server errors and succeed when server recovers', async () => {
+    // Use fake timers to speed up the test
+    vi.useFakeTimers();
+
+    let callCount = 0;
+
+    // Mock first 2 calls to fail with 502, then succeed on 3rd attempt
+    vi.mocked(global.fetch).mockImplementation(async () => {
+      callCount++;
+      if (callCount <= 2) {
+        return {
+          ok: false,
+          status: 502,
+          text: vi
+            .fn()
+            .mockResolvedValue(
+              '<html><head> <title>502 Server Error</title> </head><body><h1>Error: Server Error</h1></body></html>'
+            ),
+        } as unknown as Response;
+      }
+
+      // Success on 3rd attempt
+      return {
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          success: true,
+          data: { markdown: '# Recovered Content\n\nThis is the content after server recovered.' },
+        }),
+      } as unknown as Response;
+    });
+
+    const request = new NextRequest('http://localhost:3000/api/scrape', {
+      method: 'POST',
+      body: JSON.stringify({
+        url: 'https://developer.apple.com/documentation/retry-test',
+        action: 'scrape',
+      }),
+    });
+
+    // Start the POST request (don't await yet)
+    const responsePromise = POST(request);
+
+    // Fast-forward through 2 retry delays (1s + 2s)
+    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(2000);
+
+    // Now wait for the response
+    const response = await responsePromise;
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(data.data.markdown).toContain('Recovered Content');
+    expect(data.retriesUsed).toBe(2); // 0-indexed, so 2 means 3rd attempt
+
+    // Verify it tried 3 times
+    expect(vi.mocked(global.fetch)).toHaveBeenCalledTimes(3);
+
+    // Restore real timers
+    vi.useRealTimers();
   });
 
   it('should handle empty markdown content', async () => {

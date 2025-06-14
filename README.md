@@ -1,8 +1,8 @@
-# LLM Codes
+# Web Documentation to Markdown Converter
 
 A powerful web application that converts technical documentation from 69+ major documentation sites into clean, AI-optimized Markdown format. Transform documentation from programming languages, frameworks, cloud platforms, databases, and more into LLM-friendly content. Built with Next.js 15, Tailwind CSS v4, and TypeScript.
 
-![LLM Codes](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=nextdotjs)
+![Web Documentation to Markdown Converter](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=nextdotjs)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=flat-square&logo=tailwind-css)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?style=flat-square&logo=typescript)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
@@ -30,34 +30,39 @@ Experience the tool instantly without any setup required.
 
 ### Prerequisites
 
-- Node.js 20+ 
+- Node.js 20+
 - npm or yarn
 - [Firecrawl API key](https://firecrawl.dev)
 
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/amantus-ai/llm-codes.git
 cd llm-codes
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Create a `.env.local` file:
+
 ```bash
 cp .env.local.example .env.local
 ```
 
 4. Add your Firecrawl API key to `.env.local`:
+
 ```env
 FIRECRAWL_API_KEY=your_api_key_here
 ```
 
 5. Run the development server:
+
 ```bash
 npm run dev
 ```
@@ -88,10 +93,12 @@ The easiest way to deploy is using Vercel:
 ## Usage
 
 1. **Enter URL**: Paste any documentation URL from one of the 69 supported sites
+
    - Click on "This document parser supports a list of selected websites" to see all supported sites
    - Sites are organized by category for easy browsing
 
 2. **Configure Options** (click "Show Options"):
+
    - **Crawl Depth**: How deep to follow links (0 = main page only, max 5)
    - **Max URLs**: Maximum number of pages to process (1-1000, default 200)
    - **Filter URLs**: Remove hyperlinks from content (recommended for LLMs)
@@ -100,7 +107,8 @@ The easiest way to deploy is using Vercel:
 
 3. **Process**: Click "Process Documentation" and grant notification permissions if prompted
 
-4. **Monitor Progress**: 
+4. **Monitor Progress**:
+
    - Real-time progress bar shows completion percentage
    - Activity log displays detailed processing information
    - Browser notifications alert you when complete
@@ -109,12 +117,12 @@ The easiest way to deploy is using Vercel:
 
 ## Configuration Options
 
-| Option | Description | Default | Range |
-|--------|-------------|---------|-------|
-| Crawl Depth | How many levels deep to follow links | 2 | 0-5 |
-| Max URLs | Maximum number of URLs to process | 200 | 1-1000 |
-| Batch Size | URLs processed concurrently | 20 | N/A |
-| Cache Duration | How long results are cached | 30 days | N/A |
+| Option         | Description                          | Default | Range  |
+| -------------- | ------------------------------------ | ------- | ------ |
+| Crawl Depth    | How many levels deep to follow links | 2       | 0-5    |
+| Max URLs       | Maximum number of URLs to process    | 200     | 1-1000 |
+| Batch Size     | URLs processed concurrently          | 20      | N/A    |
+| Cache Duration | How long results are cached          | 30 days | N/A    |
 
 ## API Reference
 
@@ -125,6 +133,7 @@ The app exposes a single API endpoint:
 Scrapes and converts documentation from any of the 69 supported sites to Markdown.
 
 **Request Body:**
+
 ```json
 {
   "url": "https://react.dev/learn",
@@ -133,6 +142,7 @@ Scrapes and converts documentation from any of the 69 supported sites to Markdow
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -212,7 +222,7 @@ npm run build
 
 ### Code Style
 
-This project uses TypeScript strict mode and follows React best practices. 
+This project uses TypeScript strict mode and follows React best practices.
 
 ## Contributing
 
@@ -235,6 +245,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ### API Rate Limits?
 
 The app includes a 1-month cache to minimize API calls. If you're hitting rate limits:
+
 - Reduce crawl depth
 - Lower maximum URLs
 - Wait for cached results
@@ -254,33 +265,43 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 LLM Codes supports 69 documentation sites across multiple categories:
 
 ### Programming Languages
+
 - Python, MDN Web Docs, TypeScript, Rust, Go, Java, Ruby, PHP, Swift, Kotlin
 
-### Web Frameworks  
+### Web Frameworks
+
 - React, Vue.js, Angular, Next.js, Nuxt, Svelte, Django, Flask, Express.js, Laravel
 
 ### Cloud Platforms
+
 - AWS, Google Cloud, Azure, DigitalOcean, Heroku, Vercel, Netlify
 
 ### Databases
+
 - PostgreSQL, MongoDB, MySQL, Redis, Elasticsearch, Couchbase, Cassandra
 
 ### DevOps & Infrastructure
+
 - Docker, Kubernetes, Terraform, Ansible, GitHub, GitLab
 
 ### AI/ML Libraries
+
 - PyTorch, TensorFlow, Hugging Face, scikit-learn, LangChain, pandas, NumPy
 
 ### CSS Frameworks
+
 - Tailwind CSS, Bootstrap, Material-UI, Chakra UI, Bulma
 
 ### Build Tools & Package Managers
+
 - npm, webpack, Vite, pip, Cargo, Maven
 
 ### Testing Frameworks
+
 - Jest, Cypress, Playwright, pytest, Mocha
 
 ### Mobile Development
+
 - React Native, Flutter, Android, Apple Developer
 
 ## Missing a Site?
@@ -296,6 +317,7 @@ If you need support for a documentation site that's not listed, please [open an 
 ## Support
 
 If you find this project helpful, please consider:
+
 - ⭐ Starring the repository
 - 🐛 Reporting issues
 - 💡 Suggesting new features

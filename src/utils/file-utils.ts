@@ -6,6 +6,7 @@ import {
   deduplicateMarkdown,
   is404Page,
 } from './content-processing';
+import { filterDocumentation } from './documentation-filter';
 
 interface ProcessingResult {
   url: string;
@@ -18,10 +19,18 @@ interface DownloadOptions {
   filterUrls: boolean;
   deduplicateContent: boolean;
   filterAvailability: boolean;
+  useComprehensiveFilter?: boolean;
 }
 
 export function downloadMarkdown(options: DownloadOptions): void {
-  const { url, results, filterUrls, deduplicateContent, filterAvailability } = options;
+  const {
+    url,
+    results,
+    filterUrls,
+    deduplicateContent,
+    filterAvailability,
+    useComprehensiveFilter = true,
+  } = options;
 
   // Generate header with attribution
   const now = new Date();
@@ -57,10 +66,28 @@ Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
     .filter((r) => r.content && r.content.trim().length > 0 && !is404Page(r.content)) // Only include results with actual content and exclude 404 pages
     .map((r) => {
       let content = r.content;
-      content = removeCommonPhrases(content); // Remove common phrases first
-      content = filterUrlsFromMarkdown(content, filterUrls);
-      content = filterAvailabilityStrings(content, filterAvailability);
-      content = deduplicateMarkdown(content, deduplicateContent);
+
+      if (useComprehensiveFilter) {
+        // Use the new comprehensive filter
+        content = filterDocumentation(content, {
+          filterUrls,
+          filterAvailability,
+          filterNavigation: true,
+          filterLegalBoilerplate: true,
+          filterEmptyContent: true,
+          filterRedundantTypeAliases: true,
+          filterExcessivePlatformNotices: true,
+          filterFormattingArtifacts: true,
+          deduplicateContent,
+        });
+      } else {
+        // Use the legacy filtering approach
+        content = removeCommonPhrases(content);
+        content = filterUrlsFromMarkdown(content, filterUrls);
+        content = filterAvailabilityStrings(content, filterAvailability);
+        content = deduplicateMarkdown(content, deduplicateContent);
+      }
+
       return { url: r.url, content };
     })
     .filter((r) => r.content && r.content.trim().length > 0); // Filter again after processing
