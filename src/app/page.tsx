@@ -46,6 +46,19 @@ export default function Home() {
     }
   }, []);
 
+  // Check for URL parameter on mount
+  useEffect(() => {
+    // Get the full query string after the ?
+    const queryString = window.location.search.substring(1);
+    
+    if (queryString) {
+      // Check if it looks like a URL (starts with http)
+      if (queryString.startsWith('http://') || queryString.startsWith('https://')) {
+        setUrl(decodeURIComponent(queryString));
+      }
+    }
+  }, []);
+
   // Auto-scroll logs to bottom when new messages arrive (if user isn't scrolling)
   useEffect(() => {
     if (logContainerRef.current && !userScrollingRef.current) {
