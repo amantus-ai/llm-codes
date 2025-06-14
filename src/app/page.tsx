@@ -404,7 +404,7 @@ export default function Home() {
     const newUrls = new Set<string>();
 
     // Process URLs in batches for parallel fetching
-    const BATCH_SIZE = 20; // Increased batch size since we're using batch API
+    const BATCH_SIZE = 25; // Increased batch size since we're using batch API
     const urlsToProcess = urls.filter(
       (url) => !processedUrls.has(url) && processedUrls.size < maxUrlsToProcess
     );

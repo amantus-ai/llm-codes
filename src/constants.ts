@@ -439,7 +439,7 @@ export const ALLOWED_DOMAINS = {
 
 // Processing configuration
 export const PROCESSING_CONFIG = {
-  BATCH_SIZE: 20 as number, // Maximum URLs per batch API call
+  BATCH_SIZE: 25 as number, // Maximum URLs per batch API call
   BATCH_DELAY: 100 as number, // Minimal delay between batches (only for large crawls)
   CACHE_DURATION: (30 * 24 * 60 * 60 * 1000) as number, // 1 month in ms
   FIRECRAWL_WAIT_TIME: 5000 as number, // Wait time for Firecrawl API in ms

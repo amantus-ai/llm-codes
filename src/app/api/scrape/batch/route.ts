@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isValidDocumentationUrl } from '@/utils/url-utils';
 import { PROCESSING_CONFIG } from '@/constants';
+import { cacheService } from '@/lib/cache/redis-cache';
 
 const FIRECRAWL_API_URL = 'https://api.firecrawl.dev/v1';
-
-// Shared cache with single URL endpoint
-const cache = new Map<string, { content: string; timestamp: number }>();
 
 interface BatchRequest {
   urls: string[];
@@ -23,13 +21,12 @@ interface BatchResult {
 
 async function scrapeSingleUrl(url: string, apiKey: string): Promise<BatchResult> {
   // Check cache first
-  const cacheKey = `scrape_${url}`;
-  const cached = cache.get(cacheKey);
-  if (cached && Date.now() - cached.timestamp < PROCESSING_CONFIG.CACHE_DURATION) {
+  const cached = await cacheService.get(url);
+  if (cached) {
     return {
       url,
       success: true,
-      data: { markdown: cached.content },
+      data: { markdown: cached },
       cached: true,
     };
   }
@@ -96,10 +93,7 @@ async function scrapeSingleUrl(url: string, apiKey: string): Promise<BatchResult
 
           // Only cache valid content (at least 200 chars)
           if (contentLength >= 200) {
-            cache.set(cacheKey, {
-              content: markdown,
-              timestamp: Date.now(),
-            });
+            await cacheService.set(url, markdown);
           }
 
           return {
@@ -175,7 +169,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Limit batch size to prevent timeouts
-    const MAX_BATCH_SIZE = 20;
+    const MAX_BATCH_SIZE = 25;
     if (urls.length > MAX_BATCH_SIZE) {
       return NextResponse.json(
         { error: `Batch size exceeds maximum of ${MAX_BATCH_SIZE} URLs` },
@@ -196,8 +190,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Process URLs concurrently
-    const results = await Promise.all(urls.map((url) => scrapeSingleUrl(url, FIRECRAWL_API_KEY)));
+    // Check cache for all URLs first
+    const cacheResults = await cacheService.mget(urls);
+    const results: BatchResult[] = [];
+    const urlsToFetch: string[] = [];
+
+    // Process cached results
+    cacheResults.forEach((cachedContent, url) => {
+      if (cachedContent) {
+        results.push({
+          url,
+          success: true,
+          data: { markdown: cachedContent },
+          cached: true,
+        });
+      } else {
+        urlsToFetch.push(url);
+      }
+    });
+
+    // Fetch uncached URLs
+    if (urlsToFetch.length > 0) {
+      const fetchResults = await Promise.all(
+        urlsToFetch.map((url) => scrapeSingleUrl(url, FIRECRAWL_API_KEY))
+      );
+      results.push(...fetchResults);
+    }
 
     // Return results
     return NextResponse.json({
@@ -215,4 +233,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-

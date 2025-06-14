@@ -78,6 +78,7 @@ describe('POST /api/scrape', () => {
   });
 
   it('should validate all allowed domains', async () => {
+    vi.useRealTimers(); // Use real timers for this test
     const validUrls = [
       'https://developer.apple.com/documentation/swiftui',
       'https://swiftpackageindex.com/vapor/vapor',
@@ -214,6 +215,7 @@ describe('POST /api/scrape', () => {
   });
 
   it('should handle empty markdown content', async () => {
+    vi.useRealTimers(); // Use real timers for this test
     // Clear cache first to ensure fresh request
     const mockResponse = {
       ok: true,

@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isValidDocumentationUrl } from '@/utils/url-utils';
 import { PROCESSING_CONFIG } from '@/constants';
+import { cacheService } from '@/lib/cache/redis-cache';
 
 const FIRECRAWL_API_URL = 'https://api.firecrawl.dev/v1';
-
-// Cache implementation using Edge Runtime KV storage would go here
-// For now, we'll use in-memory cache (resets on deployment)
-const cache = new Map<string, { content: string; timestamp: number }>();
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,20 +28,17 @@ export async function POST(request: NextRequest) {
 
     if (action === 'scrape') {
       // Check cache
-      const cacheKey = `scrape_${url}`;
-      const cached = cache.get(cacheKey);
-      if (cached && Date.now() - cached.timestamp < PROCESSING_CONFIG.CACHE_DURATION) {
+      const cached = await cacheService.get(url);
+      if (cached) {
         // Validate cached content isn't truncated
-        if (cached.content.length < 200 && cached.content.trim().startsWith('[Skip Navigation]')) {
+        if (cached.length < 200 && cached.trim().startsWith('[Skip Navigation]')) {
           // Remove invalid cached entry
-          cache.delete(cacheKey);
-          console.warn(
-            `Removed truncated cached content for ${url} (${cached.content.length} chars)`
-          );
+          await cacheService.delete(url);
+          console.warn(`Removed truncated cached content for ${url} (${cached.length} chars)`);
         } else {
           return NextResponse.json({
             success: true,
-            data: { markdown: cached.content },
+            data: { markdown: cached },
             cached: true,
           });
         }
@@ -137,10 +131,7 @@ export async function POST(request: NextRequest) {
 
               // Only cache valid content (at least 200 chars)
               if (contentLength >= 200) {
-                cache.set(cacheKey, {
-                  content: markdown,
-                  timestamp: Date.now(),
-                });
+                await cacheService.set(url, markdown);
               } else {
                 console.warn(`Content for ${url} is short (${contentLength} chars) but proceeding`);
               }

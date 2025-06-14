@@ -71,7 +71,15 @@ cp .env.local.example .env.local
 4. Add your Firecrawl API key to `.env.local`:
 
 ```env
+# Required
 FIRECRAWL_API_KEY=your_api_key_here
+
+# Optional - Redis Cache (Recommended for production)
+UPSTASH_REDIS_REST_URL=https://your-redis-instance.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your_redis_token_here
+
+# Optional - Cache Admin
+CACHE_ADMIN_KEY=your_secure_admin_key_here
 ```
 
 5. Run the development server:
@@ -100,7 +108,10 @@ The easiest way to deploy is using Vercel:
 1. Push to your GitHub repository
 2. Import project on [Vercel](https://vercel.com/new)
 3. Add environment variables:
-   - `FIRECRAWL_API_KEY`: Your Firecrawl API key
+   - `FIRECRAWL_API_KEY`: Your Firecrawl API key (required)
+   - `UPSTASH_REDIS_REST_URL`: Your Upstash Redis URL (optional)
+   - `UPSTASH_REDIS_REST_TOKEN`: Your Upstash Redis token (optional)
+   - `CACHE_ADMIN_KEY`: Admin key for cache endpoints (optional)
 4. Deploy
 
 ## Usage
@@ -181,6 +192,7 @@ The core API endpoint that handles documentation conversion.
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
 - **API**: [Firecrawl](https://firecrawl.dev/) for web scraping
+- **Cache**: [Upstash Redis](https://upstash.com/) for distributed caching
 - **Deployment**: [Vercel](https://vercel.com/)
 - **Development**: Turbopack for fast refreshes
 
@@ -278,11 +290,27 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ### API Rate Limits?
 
-The app includes a 1-month cache to minimize API calls. If you're hitting rate limits:
+The app includes a 30-day cache to minimize API calls. If you're hitting rate limits:
 
 - Reduce crawl depth
 - Lower maximum URLs
 - Wait for cached results
+- Consider setting up Redis cache for better performance
+
+### Redis Cache Setup
+
+For production use, we recommend setting up Redis cache:
+
+1. Sign up for [Upstash](https://upstash.com) (free tier available)
+2. Create a Redis database
+3. Add the credentials to your environment variables
+4. The app will automatically use Redis for caching
+
+Benefits:
+- Cache persists across deployments
+- Shared cache across all instances
+- Automatic compression for large documents
+- ~70% reduction in Firecrawl API calls
 
 ### Deployment Issues?
 

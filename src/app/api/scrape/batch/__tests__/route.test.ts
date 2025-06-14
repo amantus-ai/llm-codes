@@ -137,4 +137,3 @@ describe('/api/scrape/batch', () => {
     expect(data.results[1].success).toBe(false);
   });
 });
-
