@@ -299,56 +299,82 @@ export default function Home() {
     const results: ProcessingResult[] = [];
     const newUrls = new Set<string>();
 
-    for (const url of urls) {
-      if (processedUrls.has(url) || processedUrls.size >= maxUrlsToProcess) continue;
+    // Process URLs in batches for parallel fetching
+    const BATCH_SIZE = 10; // Process 10 URLs concurrently
+    const urlsToProcess = urls.filter(
+      (url) => !processedUrls.has(url) && processedUrls.size < maxUrlsToProcess
+    );
 
-      processedUrls.add(url);
+    // Process in batches
+    for (let i = 0; i < urlsToProcess.length; i += BATCH_SIZE) {
+      if (processedUrls.size >= maxUrlsToProcess) break;
 
-      try {
-        log(`🔄 Processing URL at depth ${currentDepth}: ${url}`);
-        const content = await scrapeUrl(url);
-        results.push({ url, content });
+      const batch = urlsToProcess.slice(i, i + BATCH_SIZE);
+      const remainingCapacity = maxUrlsToProcess - processedUrls.size;
+      const batchToProcess = batch.slice(0, remainingCapacity);
 
-        // Extract links for next depth level
-        if (currentDepth < maxDepth && content) {
-          const links = extractLinks(content, baseUrl || urls[0]);
-          links.forEach((link) => {
-            if (!processedUrls.has(link)) {
-              newUrls.add(link);
+      // Mark URLs as processed before fetching to avoid duplicates
+      batchToProcess.forEach((url) => processedUrls.add(url));
+
+      // Log batch processing
+      log(`🚀 Processing batch of ${batchToProcess.length} URLs at depth ${currentDepth}...`);
+
+      // Process batch in parallel
+      const batchPromises = batchToProcess.map(async (url) => {
+        try {
+          log(`🔄 Fetching: ${url}`);
+          const content = await scrapeUrl(url);
+
+          // Extract links for next depth level
+          if (currentDepth < maxDepth && content) {
+            const links = extractLinks(content, baseUrl || urls[0]);
+            links.forEach((link) => {
+              if (!processedUrls.has(link)) {
+                newUrls.add(link);
+              }
+            });
+            if (links.length > 0) {
+              log(`🔗 Found ${links.length} links to follow from ${url}`);
+            } else if (currentDepth < maxDepth) {
+              log(`⚠️ No links found to follow from ${url}`);
             }
-          });
-          if (links.length > 0) {
-            log(`🔗 Found ${links.length} links to follow from ${url}`);
-          } else if (currentDepth < maxDepth) {
-            log(`⚠️ No links found to follow from ${url}`);
           }
+
+          return { url, content };
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+          // Provide specific guidance based on error type
+          if (errorMessage.includes('Invalid URL')) {
+            log(`❌ Invalid URL format: ${url}`);
+          } else if (errorMessage.includes('Firecrawl API error')) {
+            log(`❌ API error for ${url}: ${errorMessage}`);
+            log(`💡 Tip: This might be a temporary issue. Try again in a few moments.`);
+          } else if (errorMessage.includes('No content returned')) {
+            log(
+              `❌ No content found for ${url}: The page might be empty or require authentication`
+            );
+          }
+
+          // Return with empty content
+          return { url, content: '' };
         }
+      });
 
-        // Update progress
-        const progressPercent = Math.round(
-          Math.min(90, (processedUrls.size / maxUrlsToProcess) * 90)
-        );
-        setProgress(progressPercent);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      // Wait for batch to complete
+      const batchResults = await Promise.all(batchPromises);
+      results.push(...batchResults);
 
-        // Provide specific guidance based on error type
-        if (errorMessage.includes('Invalid URL')) {
-          log(`❌ Invalid URL format: ${url}`);
-        } else if (errorMessage.includes('Firecrawl API error')) {
-          log(`❌ API error for ${url}: ${errorMessage}`);
-          log(`💡 Tip: This might be a temporary issue. Try again in a few moments.`);
-        } else if (errorMessage.includes('No content returned')) {
-          log(`❌ No content found for ${url}: The page might be empty or require authentication`);
-        }
+      // Update progress after each batch
+      const progressPercent = Math.round(
+        Math.min(90, (processedUrls.size / maxUrlsToProcess) * 90)
+      );
+      setProgress(progressPercent);
 
-        // Still record the URL with empty content so user knows it was attempted
-        results.push({ url, content: '' });
-      }
-
-      if (processedUrls.size >= maxUrlsToProcess) {
-        log(`Reached maximum URL limit (${maxUrlsToProcess})`);
-        break;
+      // Small delay between batches to avoid overwhelming the API
+      if (i + BATCH_SIZE < urlsToProcess.length && processedUrls.size < maxUrlsToProcess) {
+        log(`⏳ Waiting before next batch...`);
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
     }
 
