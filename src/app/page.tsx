@@ -1277,7 +1277,16 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
               Peter Steinberger (@steipete)
             </a>
             .<br />
-            If you want to thank me, give me a shoutout and follow my newsletter.
+            For more cool stuff, check out{' '}
+            <a
+              href="https://steipete.me"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:text-primary/90 underline"
+            >
+              my blog
+            </a>{' '}
+            and subscribe.
           </p>
 
           {/* Newsletter Form */}
@@ -1310,17 +1319,6 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
             </form>
             <p className="text-xs text-muted-foreground mt-3">
               2× per month, pure signal, zero fluff.
-              <br />
-              For more cool stuff, check out{' '}
-              <a
-                href="https://steipete.me"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:text-primary/90 underline"
-              >
-                my blog
-              </a>{' '}
-              and subscribe.
             </p>
           </div>
         </div>
