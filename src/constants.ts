@@ -187,6 +187,12 @@ export const ALLOWED_DOMAINS = {
     example: 'https://docs.netlify.com',
     category: 'Cloud Platforms',
   },
+  SALESFORCE: {
+    pattern: 'https://help.salesforce.com',
+    name: 'Salesforce',
+    example: 'https://help.salesforce.com',
+    category: 'Cloud Platforms',
+  },
 
   // Databases
   POSTGRESQL: {
@@ -337,12 +343,6 @@ export const ALLOWED_DOMAINS = {
     pattern: 'https://chakra-ui.com/docs',
     name: 'Chakra UI',
     example: 'https://chakra-ui.com/docs',
-    category: 'CSS Frameworks',
-  },
-  BULMA: {
-    pattern: 'https://bulma.io/documentation',
-    name: 'Bulma',
-    example: 'https://bulma.io/documentation',
     category: 'CSS Frameworks',
   },
 

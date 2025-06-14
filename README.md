@@ -336,7 +336,7 @@ LLM Codes supports 69 documentation sites across multiple categories:
 
 ### Cloud Platforms
 
-- AWS, Google Cloud, Azure, DigitalOcean, Heroku, Vercel, Netlify
+- AWS, Google Cloud, Azure, DigitalOcean, Heroku, Vercel, Netlify, Salesforce
 
 ### Databases
 
@@ -352,7 +352,7 @@ LLM Codes supports 69 documentation sites across multiple categories:
 
 ### CSS Frameworks
 
-- Tailwind CSS, Bootstrap, Material-UI, Chakra UI, Bulma
+- Tailwind CSS, Bootstrap, Material-UI, Chakra UI
 
 ### Build Tools & Package Managers
 
