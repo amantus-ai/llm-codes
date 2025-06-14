@@ -62,11 +62,35 @@ export async function POST(request: NextRequest) {
       });
 
       if (!response.ok) {
-        const error = await response.text();
-        return NextResponse.json(
-          { error: `Firecrawl API error: ${error}` },
-          { status: response.status }
-        );
+        let errorMessage = `Firecrawl API error (${response.status})`;
+
+        try {
+          const errorText = await response.text();
+          if (errorText) {
+            try {
+              const errorData = JSON.parse(errorText);
+              errorMessage = errorData.error || errorData.message || errorText;
+            } catch {
+              // If not JSON, use the raw text
+              errorMessage = `Firecrawl API error: ${errorText}`;
+            }
+          }
+        } catch {
+          // If reading response fails, stick with default message
+        }
+
+        // Add helpful context based on status code
+        if (response.status === 429) {
+          errorMessage = 'Rate limit exceeded. Please try again in a few moments.';
+        } else if (response.status === 403) {
+          errorMessage = 'Access forbidden. The API key might be invalid.';
+        } else if (response.status === 500) {
+          errorMessage = 'Firecrawl server error. Please try again later.';
+        } else if (response.status === 404) {
+          errorMessage = 'Page not found. Please check the URL.';
+        }
+
+        return NextResponse.json({ error: errorMessage }, { status: response.status });
       }
 
       const data = await response.json();

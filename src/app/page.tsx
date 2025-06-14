@@ -226,6 +226,8 @@ export default function Home() {
 
   const scrapeUrl = async (urlToScrape: string): Promise<string> => {
     try {
+      log(`Fetching content from ${urlToScrape}...`);
+
       const response = await fetch('/api/scrape', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -233,31 +235,53 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to scrape URL');
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If JSON parsing fails, use the default error message
+        }
+        log(`❌ Failed to fetch ${urlToScrape}: ${errorMessage}`);
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
 
       // Check if we have the expected response structure
       if (!data.success) {
-        throw new Error(data.error || 'Scraping failed');
+        const errorMsg = data.error || 'Scraping failed - unknown error';
+        log(`❌ Scraping failed for ${urlToScrape}: ${errorMsg}`);
+        throw new Error(errorMsg);
       }
 
       if (data.cached) {
-        log(`Using cached content for ${urlToScrape}`);
+        log(`📦 Using cached content for ${urlToScrape}`);
       }
 
       const markdown = data.data?.markdown || '';
       if (!markdown) {
-        log(`Warning: Empty content returned for ${urlToScrape}`);
+        log(`⚠️ Warning: Empty content returned for ${urlToScrape}`);
       } else {
-        log(`Scraped ${markdown.length} characters from ${urlToScrape}`);
+        log(
+          `✅ Successfully scraped ${markdown.length.toLocaleString()} characters from ${urlToScrape}`
+        );
       }
 
       return markdown;
     } catch (error) {
-      log(`Error scraping ${urlToScrape}: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      // Check for common error patterns
+      if (errorMessage.includes('Failed to fetch')) {
+        log(`❌ Network error for ${urlToScrape}: Unable to connect to server`);
+      } else if (errorMessage.includes('timeout')) {
+        log(`❌ Timeout error for ${urlToScrape}: Page took too long to load`);
+      } else if (!errorMessage.includes('❌')) {
+        // Only log if we haven't already logged a specific error
+        log(`❌ Error scraping ${urlToScrape}: ${errorMessage}`);
+      }
+
       throw error;
     }
   };
@@ -281,7 +305,7 @@ export default function Home() {
       processedUrls.add(url);
 
       try {
-        log(`Processing (depth ${currentDepth}): ${url}`);
+        log(`🔄 Processing URL at depth ${currentDepth}: ${url}`);
         const content = await scrapeUrl(url);
         results.push({ url, content });
 
@@ -294,7 +318,9 @@ export default function Home() {
             }
           });
           if (links.length > 0) {
-            log(`Found ${links.length} links to follow from ${url}`);
+            log(`🔗 Found ${links.length} links to follow from ${url}`);
+          } else if (currentDepth < maxDepth) {
+            log(`⚠️ No links found to follow from ${url}`);
           }
         }
 
@@ -304,7 +330,18 @@ export default function Home() {
         );
         setProgress(progressPercent);
       } catch (error) {
-        log(`Failed to process ${url}: ${error}`);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+        // Provide specific guidance based on error type
+        if (errorMessage.includes('Invalid URL')) {
+          log(`❌ Invalid URL format: ${url}`);
+        } else if (errorMessage.includes('Firecrawl API error')) {
+          log(`❌ API error for ${url}: ${errorMessage}`);
+          log(`💡 Tip: This might be a temporary issue. Try again in a few moments.`);
+        } else if (errorMessage.includes('No content returned')) {
+          log(`❌ No content found for ${url}: The page might be empty or require authentication`);
+        }
+
         // Still record the URL with empty content so user knows it was attempted
         results.push({ url, content: '' });
       }
@@ -336,15 +373,43 @@ export default function Home() {
   };
 
   const processUrl = async () => {
+    // Validate URL
+    if (!url) {
+      setError('Please enter a URL');
+      return;
+    }
+
+    const trimmedUrl = url.trim();
+
+    // Check for common URL mistakes
+    if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+      setError('URL must start with https:// or http://');
+      return;
+    }
+
     const isValidUrl =
-      url &&
-      (url.startsWith('https://developer.apple.com') ||
-        url.startsWith('https://swiftpackageindex.com/') ||
-        /^https:\/\/[^\/]+\.github\.io\//.test(url));
+      trimmedUrl.startsWith('https://developer.apple.com') ||
+      trimmedUrl.startsWith('https://swiftpackageindex.com/') ||
+      /^https:\/\/[^\/]+\.github\.io\//.test(trimmedUrl);
 
     if (!isValidUrl) {
       setError('URL must be from developer.apple.com, swiftpackageindex.com, or *.github.io');
+
+      // Provide helpful suggestions
+      if (trimmedUrl.includes('apple.com') && !trimmedUrl.includes('/documentation/')) {
+        setError(
+          'For Apple documentation, use URLs starting with https://developer.apple.com/documentation/'
+        );
+      } else if (trimmedUrl.includes('github.com')) {
+        setError('For GitHub documentation, use GitHub Pages URLs (*.github.io), not github.com');
+      }
+
       return;
+    }
+
+    // Update URL with trimmed version
+    if (trimmedUrl !== url) {
+      setUrl(trimmedUrl);
     }
 
     setError('');
@@ -358,12 +423,24 @@ export default function Home() {
     await requestNotificationPermission();
 
     try {
-      log(`Starting documentation processing (depth: ${depth}, max URLs: ${maxUrls})...`);
+      log(`🚀 Starting documentation processing...`);
+      log(`📊 Configuration: Depth ${depth}, Max URLs: ${maxUrls}`);
+      log(`🔗 Starting URL: ${trimmedUrl}`);
 
-      const processedResults = await processUrlsWithDepth([url], 0, depth, maxUrls, new Set(), url);
+      const processedResults = await processUrlsWithDepth(
+        [trimmedUrl],
+        0,
+        depth,
+        maxUrls,
+        new Set(),
+        trimmedUrl
+      );
       setResults(processedResults);
 
       // Calculate stats
+      const successfulResults = processedResults.filter((r) => r.content);
+      const failedResults = processedResults.filter((r) => !r.content);
+
       const content = processedResults.map((r) => `# ${r.url}\n\n${r.content}\n\n---\n\n`).join('');
       const lines = content.split('\n').length;
       const sizeKB = new Blob([content]).size / 1024;
@@ -375,21 +452,60 @@ export default function Home() {
       });
 
       setProgress(100);
-      log(`Processing complete! Processed ${processedResults.length} URLs.`);
+
+      // Provide summary
+      log(`✅ Processing complete!`);
+      log(
+        `📈 Summary: ${successfulResults.length} successful, ${failedResults.length} failed, ${processedResults.length} total URLs`
+      );
+
+      if (failedResults.length > 0) {
+        log(`⚠️ Failed URLs:`);
+        failedResults.forEach((r) => log(`  - ${r.url}`));
+      }
+
+      if (successfulResults.length === 0) {
+        log(`❌ No content was successfully scraped. Please check:`);
+        log(`  - Is the URL accessible?`);
+        log(`  - Does the site require authentication?`);
+        log(`  - Is the content loaded dynamically?`);
+        setError('No content could be extracted from any URL');
+      }
 
       // Collapse activity log when processing is complete
       setShowLogs(false);
 
       // Show notification
-      showNotification(
-        '✅ Documentation Ready!',
-        `Successfully processed ${processedResults.length} URLs. Your Markdown file is ready to download.`
-      );
+      if (successfulResults.length > 0) {
+        showNotification(
+          '✅ Documentation Ready!',
+          `Successfully processed ${successfulResults.length} URLs. Your Markdown file is ready to download.`
+        );
+      } else {
+        showNotification(
+          '❌ No Content Found',
+          'Unable to extract content from any URLs. Check the activity log for details.'
+        );
+      }
     } catch (error) {
-      setError(`Processing failed: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      log(`❌ Processing failed: ${errorMessage}`);
+
+      // Provide helpful error messages
+      if (errorMessage.includes('network') || errorMessage.includes('Failed to fetch')) {
+        log(`💡 Tip: Check your internet connection and try again`);
+        setError('Network error: Unable to connect to the server');
+      } else if (errorMessage.includes('timeout')) {
+        log(`💡 Tip: The website might be slow. Try reducing the number of URLs or depth`);
+        setError('Timeout: The website took too long to respond');
+      } else {
+        setError(`Processing failed: ${errorMessage}`);
+      }
+
       showNotification(
         '❌ Processing Failed',
-        'An error occurred while processing the documentation.'
+        'An error occurred. Check the activity log for details.'
       );
     } finally {
       setIsProcessing(false);
