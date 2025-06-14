@@ -6,7 +6,7 @@ import { Analytics } from '@vercel/analytics/next';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Web Documentation to Markdown Converter | LLM.codes',
+  title: 'Web Documentation to llms.txt Generator | LLM.codes',
   description:
     'Convert technical documentation from 69+ major sites to clean, LLM-friendly Markdown format. Support for programming languages, frameworks, cloud platforms, databases, and more. Free tool by @steipete.',
   keywords:
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: 'Web Documentation to Markdown Converter',
+    title: 'Web Documentation to llms.txt Generator',
     description:
       'Convert documentation from 69+ technical sites to clean, LLM-friendly Markdown. Support for programming languages, frameworks, cloud platforms, and more.',
     url: 'https://llm.codes',
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
         url: 'https://llm.codes/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Web Documentation to Markdown Converter - Transform technical documentation',
+        alt: 'Web Documentation to llms.txt Generator - Transform technical documentation',
       },
     ],
     locale: 'en_US',
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Web Documentation to Markdown Converter',
+    title: 'Web Documentation to llms.txt Generator',
     description:
       'Convert documentation from 69+ technical sites to clean, LLM-friendly Markdown. Free tool by @steipete.',
     creator: '@steipete',

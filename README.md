@@ -1,4 +1,4 @@
-# Web Documentation to Markdown Converter
+# Web Documentation to llms.txt Generator
 
 A powerful web application that converts technical documentation from 69+ major documentation sites into clean, AI-optimized Markdown format. Transform documentation from programming languages, frameworks, cloud platforms, databases, and more into LLM-friendly content. Built with Next.js 15, Tailwind CSS v4, and TypeScript.
 

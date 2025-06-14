@@ -1,5 +1,5 @@
 {
-  "name": "Web Documentation to Markdown Converter",
+  "name": "Web Documentation to llms.txt Generator",
   "short_name": "LLM.codes",
   "description": "Convert technical documentation from 69+ major sites to clean, LLM-friendly Markdown format",
   "start_url": "/",

@@ -783,13 +783,13 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
           <div className="flex items-center gap-3">
             <Image
               src="/logo.png"
-              alt="Documentation to Markdown Converter"
+              alt="Documentation to llms.txt Generator"
               width={40}
               height={40}
               className="rounded-xl shadow-sm"
             />
             <div>
-              <h1 className="text-xl font-semibold text-slate-900">Documentation to Markdown</h1>
+              <h1 className="text-xl font-semibold text-slate-900">Documentation to llms.txt Generator</h1>
               <p className="text-sm text-slate-600">
                 Transform developer documentation to clean, LLM-friendly Markdown
               </p>
