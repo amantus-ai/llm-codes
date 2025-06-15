@@ -39,6 +39,5 @@ export async function http2Fetch(url: string, options?: RequestInit): Promise<Re
  * Get connection statistics for monitoring
  */
 export function getConnectionStats() {
-  // @ts-expect-error - stats method exists on undici Agent
   return http2Agent.stats;
 }
