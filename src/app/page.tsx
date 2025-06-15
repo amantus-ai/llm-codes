@@ -1241,7 +1241,6 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
           {/* Progress */}
           {(isProcessing || results.length > 0) && (
             <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
-              <h3 className="text-sm font-medium text-foreground mb-4">Progress</h3>
               <div className="space-y-4">
                 <div>
                   <div className="flex justify-between text-sm text-muted-foreground mb-2">
