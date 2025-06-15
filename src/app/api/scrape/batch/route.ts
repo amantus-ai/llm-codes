@@ -56,13 +56,13 @@ async function scrapeSingleUrl(url: string, apiKey: string): Promise<BatchResult
           formats: ['markdown'],
           onlyMainContent: true,
           waitFor: PROCESSING_CONFIG.FIRECRAWL_WAIT_TIME,
-          timeout: 60000, // Increased from 30s to 60s
+          timeout: 120000, // Increased to 120s for slow documentation sites
           headers: {
             'User-Agent': 'Mozilla/5.0 (compatible; Documentation-Scraper/1.0)',
           },
         }),
-        // Add fetch-level timeout (90s to give Firecrawl time to complete)
-        signal: AbortSignal.timeout(90000),
+        // Add fetch-level timeout (150s to give Firecrawl time to complete)
+        signal: AbortSignal.timeout(150000),
       });
 
       if (response.ok) {
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Limit batch size to prevent timeouts
-    const MAX_BATCH_SIZE = 20;
+    const MAX_BATCH_SIZE = 10;
     if (urls.length > MAX_BATCH_SIZE) {
       return NextResponse.json(
         { error: `Batch size exceeds maximum of ${MAX_BATCH_SIZE} URLs` },
@@ -214,10 +214,28 @@ export async function POST(request: NextRequest) {
 
     // Fetch uncached URLs
     if (urlsToFetch.length > 0) {
-      const fetchResults = await Promise.all(
-        urlsToFetch.map((url) => scrapeSingleUrl(url, FIRECRAWL_API_KEY))
-      );
-      results.push(...fetchResults);
+      // Check if all URLs are from Apple docs (which often timeout in parallel)
+      const isAppleDocs = urlsToFetch.every(url => url.includes('developer.apple.com'));
+      
+      if (isAppleDocs && urlsToFetch.length > 5) {
+        // Sequential processing for Apple docs to avoid overwhelming their servers
+        const fetchResults = [];
+        for (const url of urlsToFetch) {
+          const result = await scrapeSingleUrl(url, FIRECRAWL_API_KEY);
+          fetchResults.push(result);
+          // Small delay between requests for Apple docs
+          if (urlsToFetch.indexOf(url) < urlsToFetch.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+        results.push(...fetchResults);
+      } else {
+        // Parallel processing for other domains
+        const fetchResults = await Promise.all(
+          urlsToFetch.map((url) => scrapeSingleUrl(url, FIRECRAWL_API_KEY))
+        );
+        results.push(...fetchResults);
+      }
     }
 
     // Return results
