@@ -16,7 +16,7 @@ export const ALLOWED_DOMAINS = {
   GITHUB_PAGES: {
     pattern: /^https:\/\/[^\/]+\.github\.io\//,
     name: 'GitHub Pages (*.github.io)',
-    example: 'https://pointfreeco.github.io/swift-composable-architecture/',
+    example: '*.github.io',
     category: 'General',
   },
 
