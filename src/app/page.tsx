@@ -589,7 +589,7 @@ export default function Home() {
       const successfulResults = processedResults.filter((r) => r.content);
       const failedResults = processedResults.filter((r) => !r.content);
 
-      // Calculate size before filtering
+      // Calculate size before filtering (for crawl mode, content is already filtered)
       const unfilteredContent = processedResults
         .map((r) => `# ${r.url}\n\n${r.content}\n\n---\n\n`)
         .join('');
@@ -599,17 +599,20 @@ export default function Home() {
       const filteredResultsData = processedResults.map((r) => {
         let content = r.content;
 
-        content = filterDocumentation(content, {
-          filterUrls,
-          filterAvailability,
-          filterNavigation: true,
-          filterLegalBoilerplate: true,
-          filterEmptyContent: true,
-          filterRedundantTypeAliases: true,
-          filterExcessivePlatformNotices: true,
-          filterFormattingArtifacts: true,
-          deduplicateContent,
-        });
+        // Skip filtering for crawl mode results as they're already filtered in useCrawl hook
+        if (!useCrawlMode) {
+          content = filterDocumentation(content, {
+            filterUrls,
+            filterAvailability,
+            filterNavigation: true,
+            filterLegalBoilerplate: true,
+            filterEmptyContent: true,
+            filterRedundantTypeAliases: true,
+            filterExcessivePlatformNotices: true,
+            filterFormattingArtifacts: true,
+            deduplicateContent,
+          });
+        }
 
         // Apply code blocks extraction if enabled
         if (codeBlocksOnly) {
@@ -630,10 +633,14 @@ export default function Home() {
       const lines = filteredContent.split('\n').length;
 
       // Log the size difference
-      log(`📏 Size before filtering: ${Math.round(unfilteredSizeKB)}K`);
-      log(
-        `📏 Size after filtering: ${Math.round(filteredSizeKB)}K (${Math.round((1 - filteredSizeKB / unfilteredSizeKB) * 100)}% reduction)`
-      );
+      if (useCrawlMode) {
+        log(`📏 Total size: ${Math.round(filteredSizeKB)}K (content pre-filtered during crawl)`);
+      } else {
+        log(`📏 Size before filtering: ${Math.round(unfilteredSizeKB)}K`);
+        log(
+          `📏 Size after filtering: ${Math.round(filteredSizeKB)}K (${Math.round((1 - filteredSizeKB / unfilteredSizeKB) * 100)}% reduction)`
+        );
+      }
 
       setStats({
         lines,

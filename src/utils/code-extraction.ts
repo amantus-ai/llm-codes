@@ -12,19 +12,22 @@ export interface CodeBlock {
 function isLikelyCodeBlockEnd(line: string): boolean {
   const trimmed = line.trim();
 
-  // Headers
-  if (/^#{1,6}\s/.test(trimmed)) return true;
+  // Empty line doesn't end a code block
+  if (!trimmed) return false;
+
+  // Headers - but only if the line isn't indented (to avoid matching code comments)
+  if (line.match(/^#{1,6}\s/) && !line.match(/^\s+#/)) return true;
 
   // Horizontal rules
   if (/^(-{3,}|_{3,}|\*{3,})$/.test(trimmed)) return true;
 
-  // Bullet points or numbered lists at start of line
-  if (/^(\*|-|\+|\d+\.)\s/.test(trimmed)) return true;
+  // Bullet points or numbered lists at start of line (not indented)
+  if (line.match(/^(\*|-|\+|\d+\.)\s/)) return true;
 
-  // Common documentation section starters
+  // Common documentation section starters (must be at start of line)
   if (
-    /^(##\s|###\s|####\s|#####\s|######\s|Parameters:|Returns:|Example:|Note:|Warning:|Tip:|Important:)/i.test(
-      trimmed
+    line.match(
+      /^(##\s|###\s|####\s|#####\s|######\s|Parameters:|Returns:|Example:|Note:|Warning:|Tip:|Important:)/i
     )
   )
     return true;
@@ -80,11 +83,11 @@ export function extractCodeBlocks(markdown: string): CodeBlock[] {
         // Add line to code block
         codeLines.push(currentLine);
         i++;
+      }
 
-        // If we reach the end without closing, mark as unclosed
-        if (i >= lines.length) {
-          isUnclosed = true;
-        }
+      // If we exited the loop without finding a closing marker, it's unclosed
+      if (i >= lines.length && !isUnclosed) {
+        isUnclosed = true;
       }
 
       // Only add non-empty code blocks

@@ -16,6 +16,12 @@ interface CacheStats {
   hits: number;
   misses: number;
   errors: number;
+  redisHits: number;
+  redisMisses: number;
+  localHits: number;
+  firecrawlFetches: number;
+  avgRedisLatency: number;
+  slowRedisOps: number;
 }
 
 interface CrawlJobMetadata {
@@ -48,10 +54,22 @@ interface CrawlResult {
 export class RedisCache {
   private redis: Redis | null = null;
   private localCache: Map<string, CacheEntry> = new Map();
-  private stats: CacheStats = { hits: 0, misses: 0, errors: 0 };
+  private stats: CacheStats = {
+    hits: 0,
+    misses: 0,
+    errors: 0,
+    redisHits: 0,
+    redisMisses: 0,
+    localHits: 0,
+    firecrawlFetches: 0,
+    avgRedisLatency: 0,
+    slowRedisOps: 0,
+  };
+  private redisLatencies: number[] = [];
   private readonly ttl: number;
   private readonly compressionThreshold: number;
   private readonly localCacheTTL: number = PROCESSING_CONFIG.LOCAL_CACHE_TTL;
+  private readonly SLOW_REDIS_THRESHOLD = 100; // ms
   public firecrawlCircuitBreaker: CircuitBreaker;
 
   constructor(
@@ -131,6 +149,27 @@ export class RedisCache {
   }
 
   /**
+   * Track Redis operation latency
+   */
+  private trackRedisLatency(duration: number): void {
+    this.redisLatencies.push(duration);
+    if (this.redisLatencies.length > 1000) {
+      this.redisLatencies.shift();
+    }
+
+    // Update average latency
+    const sum = this.redisLatencies.reduce((a, b) => a + b, 0);
+    this.stats.avgRedisLatency = Math.round(sum / this.redisLatencies.length);
+
+    if (duration > this.SLOW_REDIS_THRESHOLD) {
+      this.stats.slowRedisOps++;
+      console.warn(
+        `[SLOW REDIS] GET operation took ${duration}ms (threshold: ${this.SLOW_REDIS_THRESHOLD}ms)`
+      );
+    }
+  }
+
+  /**
    * Get a single value from cache
    */
   async get(url: string): Promise<string | null> {
@@ -140,13 +179,19 @@ export class RedisCache {
     const localEntry = this.localCache.get(key);
     if (localEntry && !this.isLocalCacheExpired(localEntry)) {
       this.stats.hits++;
+      this.stats.localHits++;
+      console.log(`[CACHE HIT - L1] ${url} (local memory)`);
       return localEntry.value;
     }
 
     // Check L2 cache (Redis)
     if (this.redis) {
       try {
+        const startTime = Date.now();
         const cached = await this.redis.get<{ data: string; compressed?: boolean }>(key);
+        const duration = Date.now() - startTime;
+        this.trackRedisLatency(duration);
+
         if (cached) {
           const value = this.decompressContent(cached.data, cached.compressed || false);
 
@@ -158,7 +203,12 @@ export class RedisCache {
           });
 
           this.stats.hits++;
+          this.stats.redisHits++;
+          console.log(`[CACHE HIT - L2] ${url} (Redis, ${duration}ms, ${value.length} chars)`);
           return value;
+        } else {
+          this.stats.redisMisses++;
+          console.log(`[CACHE MISS - L2] ${url} (Redis checked in ${duration}ms)`);
         }
       } catch (error) {
         console.error('Redis get error:', error);
@@ -167,6 +217,7 @@ export class RedisCache {
     }
 
     this.stats.misses++;
+    console.log(`[CACHE MISS] ${url} (will need Firecrawl)`);
     return null;
   }
 
@@ -188,7 +239,13 @@ export class RedisCache {
     // Set in L2 cache (Redis)
     if (this.redis) {
       try {
+        const startTime = Date.now();
         await this.redis.set(key, { data, compressed }, { ex: ttl });
+        const duration = Date.now() - startTime;
+        this.trackRedisLatency(duration);
+        console.log(
+          `[CACHE SET] ${url} (${value.length} chars, compressed: ${compressed}, Redis: ${duration}ms)`
+        );
       } catch (error) {
         console.error('Redis set error:', error);
         this.stats.errors++;
@@ -222,7 +279,12 @@ export class RedisCache {
     if (this.redis && missingUrls.length > 0) {
       try {
         const keys = missingUrls.map((url) => this.getCacheKey(url));
+        const startTime = Date.now();
         const values = await this.redis.mget<{ data: string; compressed?: boolean }[]>(...keys);
+        const duration = Date.now() - startTime;
+        this.trackRedisLatency(duration);
+
+        console.log(`[REDIS MGET] Checked ${keys.length} keys in ${duration}ms`);
 
         values.forEach((cached, index) => {
           const key = keys[index];
@@ -240,9 +302,11 @@ export class RedisCache {
             });
 
             this.stats.hits++;
+            this.stats.redisHits++;
           } else {
             results.set(url, null);
             this.stats.misses++;
+            this.stats.redisMisses++;
           }
         });
       } catch (error) {
@@ -329,22 +393,70 @@ export class RedisCache {
   }
 
   /**
+   * Increment Firecrawl fetch counter
+   */
+  incrementFirecrawlFetches(): void {
+    this.stats.firecrawlFetches++;
+  }
+
+  /**
    * Get cache statistics
    */
-  getStats(): CacheStats & { hitRate: number; localCacheSize: number } {
+  getStats(): CacheStats & {
+    hitRate: number;
+    localCacheSize: number;
+    redisHitRate: number;
+    summary: string;
+  } {
     const total = this.stats.hits + this.stats.misses;
-    return {
+    const redisTotal = this.stats.redisHits + this.stats.redisMisses;
+
+    const stats = {
       ...this.stats,
       hitRate: total > 0 ? this.stats.hits / total : 0,
+      redisHitRate: redisTotal > 0 ? this.stats.redisHits / redisTotal : 0,
       localCacheSize: this.localCache.size,
+      summary: '',
     };
+
+    stats.summary =
+      `Cache Performance Summary:
+` +
+      `- Total Requests: ${total}
+` +
+      `- Overall Hit Rate: ${(stats.hitRate * 100).toFixed(1)}%
+` +
+      `- L1 Cache (Local) Hits: ${this.stats.localHits}
+` +
+      `- L2 Cache (Redis) Hits: ${this.stats.redisHits}
+` +
+      `- Cache Misses: ${this.stats.misses}
+` +
+      `- Firecrawl Fetches: ${this.stats.firecrawlFetches}
+` +
+      `- Avg Redis Latency: ${this.stats.avgRedisLatency}ms
+` +
+      `- Slow Redis Ops (>${this.SLOW_REDIS_THRESHOLD}ms): ${this.stats.slowRedisOps}`;
+
+    return stats;
   }
 
   /**
    * Reset statistics
    */
   resetStats(): void {
-    this.stats = { hits: 0, misses: 0, errors: 0 };
+    this.stats = {
+      hits: 0,
+      misses: 0,
+      errors: 0,
+      redisHits: 0,
+      redisMisses: 0,
+      localHits: 0,
+      firecrawlFetches: 0,
+      avgRedisLatency: 0,
+      slowRedisOps: 0,
+    };
+    this.redisLatencies = [];
   }
 
   /**
@@ -365,13 +477,22 @@ export class RedisCache {
     const lockId = crypto.randomUUID();
 
     try {
+      const startTime = Date.now();
       // SET with NX (only if not exists) and EX (expiry)
       const result = await this.redis.set(lockKey, lockId, {
         nx: true,
         ex: Math.ceil(ttl / 1000),
       });
+      const duration = Date.now() - startTime;
+      this.trackRedisLatency(duration);
 
-      return result === 'OK' ? lockId : null;
+      if (result === 'OK') {
+        console.log(`[LOCK ACQUIRED] ${url} (${duration}ms)`);
+        return lockId;
+      } else {
+        console.log(`[LOCK FAILED] ${url} - already locked (${duration}ms)`);
+        return null;
+      }
     } catch (error) {
       console.error('Failed to acquire lock:', error);
       return crypto.randomUUID(); // Fallback to allow operation

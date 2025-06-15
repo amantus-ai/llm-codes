@@ -2,13 +2,14 @@ import { useState, useCallback, useRef } from 'react';
 import { filterDocumentation } from '@/utils/documentation-filter';
 
 interface StreamMessage {
-  type: 'url_start' | 'url_complete' | 'url_error' | 'progress' | 'done';
+  type: 'url_start' | 'url_complete' | 'url_error' | 'progress' | 'done' | 'stats';
   url?: string;
   content?: string;
   error?: string;
   progress?: number;
   total?: number;
   cached?: boolean;
+  stats?: string;
 }
 
 interface ProcessingResult {
@@ -22,6 +23,7 @@ interface UseStreamingScrapeOptions {
   onUrlError?: (url: string, error: string) => void;
   onProgress?: (progress: number, total: number) => void;
   onComplete?: (results: ProcessingResult[]) => void;
+  onStats?: (stats: string) => void;
   filterOptions?: {
     filterUrls: boolean;
     filterAvailability: boolean;
@@ -139,6 +141,16 @@ export function useStreamingScrape(options: UseStreamingScrapeOptions = {}) {
                         if (options.onProgress) {
                           options.onProgress(message.progress, message.total);
                         }
+                      }
+                      break;
+
+                    case 'stats':
+                      if (message.stats && options.onStats) {
+                        options.onStats(message.stats);
+                      }
+                      // Also log to console for debugging
+                      if (message.stats) {
+                        console.log('\n' + message.stats);
                       }
                       break;
 

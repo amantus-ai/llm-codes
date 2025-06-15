@@ -7,6 +7,8 @@ import { http2Fetch } from '@/lib/http2-client';
 const FIRECRAWL_API_URL = 'https://api.firecrawl.dev/v1';
 
 export async function POST(request: NextRequest) {
+  let action: string | undefined;
+
   try {
     const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
 
@@ -15,7 +17,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { url, action, codeBlocksOnly = false } = body;
+    const { url, codeBlocksOnly = false } = body;
+    action = body.action;
 
     if (!isValidDocumentationUrl(url)) {
       return NextResponse.json(
@@ -189,8 +192,13 @@ export async function POST(request: NextRequest) {
                   );
                 }
 
-                // Record success in circuit breaker
+                // Record success in circuit breaker and stats
                 await cacheService.firecrawlCircuitBreaker.recordSuccess();
+                cacheService.incrementFirecrawlFetches();
+
+                console.log(
+                  `[FIRECRAWL SUCCESS] ${url} - ${contentLength} chars after ${attempt} retries`
+                );
 
                 return NextResponse.json({
                   success: true,
@@ -312,6 +320,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
     console.error('API Error:', error);
+    // Log cache statistics even on error
+    console.log('\n' + cacheService.getStats().summary);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } finally {
+    // Always log cache statistics at the end of request
+    if (action === 'scrape') {
+      console.log('\n' + cacheService.getStats().summary);
+    }
   }
 }

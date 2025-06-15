@@ -8,13 +8,14 @@ import { WorkerPool, getUrlPriority } from '@/utils/worker-pool';
 import { scrapeWithProgressiveTimeout, createCustomConfig } from '@/utils/progressive-timeout';
 
 interface StreamMessage {
-  type: 'url_start' | 'url_complete' | 'url_error' | 'progress' | 'done';
+  type: 'url_start' | 'url_complete' | 'url_error' | 'progress' | 'done' | 'stats';
   url?: string;
   content?: string;
   error?: string;
   progress?: number;
   total?: number;
   cached?: boolean;
+  stats?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -187,6 +188,8 @@ export async function POST(request: NextRequest) {
                 }
 
                 await cacheService.firecrawlCircuitBreaker.recordSuccess();
+                cacheService.incrementFirecrawlFetches();
+                console.log(`[FIRECRAWL SUCCESS] ${url} - ${content.length} chars`);
                 return { url, content, cached: false };
               } else {
                 controller.enqueue(
@@ -221,6 +224,16 @@ export async function POST(request: NextRequest) {
             },
             onQueueEmpty: () => {
               // Queue is empty, we're done
+              // Send final statistics
+              const stats = cacheService.getStats();
+              controller.enqueue(
+                sendMessage({
+                  type: 'stats',
+                  stats: stats.summary,
+                })
+              );
+              console.log('\n' + stats.summary);
+
               controller.enqueue(sendMessage({ type: 'done' }));
               controller.close();
             },
@@ -249,6 +262,8 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Stream API Error:', error);
+    // Log cache statistics even on error
+    console.log('\n' + cacheService.getStats().summary);
     return new Response(
       encoder.encode(
         `data: ${JSON.stringify({ type: 'url_error', error: 'Internal server error' })}\n\n`
