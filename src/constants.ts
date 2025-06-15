@@ -331,7 +331,7 @@ export const ALLOWED_DOMAINS = {
     example: 'https://numpy.org/doc',
     category: 'AI/ML Libraries',
   },
-  Modular: {
+  MODULAR: {
     pattern: 'https://docs.modular.com',
     name: 'Modular',
     example: 'https://docs.modular.com',
