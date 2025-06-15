@@ -37,7 +37,7 @@ export class RedisCache {
 
     // Initialize circuit breaker with Redis instance
     this.firecrawlCircuitBreaker = new CircuitBreaker(this.redis, 'firecrawl', {
-      failureThreshold: 5,
+      failureThreshold: 50, // 10x more lenient - was 5
       successThreshold: 2,
       timeout: 60000, // 1 minute
       halfOpenRequests: 3,

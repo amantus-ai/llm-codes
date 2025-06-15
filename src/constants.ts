@@ -451,7 +451,7 @@ export const PROCESSING_CONFIG = {
   COMPRESSION_THRESHOLD: 5000 as number, // Compress content larger than 5KB
 
   // Firecrawl API configuration
-  FIRECRAWL_WAIT_TIME: 5000 as number, // Wait time for Firecrawl API in ms (5 seconds)
+  FIRECRAWL_WAIT_TIME: 30000 as number, // Wait time for Firecrawl API in ms (30 seconds)
   FIRECRAWL_TIMEOUT: 60000 as number, // Timeout for Firecrawl API calls (60s)
   FETCH_TIMEOUT: 90000 as number, // Timeout for fetch requests (90s)
 
