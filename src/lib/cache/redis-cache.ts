@@ -3,6 +3,7 @@ import { Redis } from '@upstash/redis';
 import { compress, decompress } from 'lz-string';
 import crypto from 'crypto';
 import { normalizeUrl } from '@/utils/url-utils';
+import { PROCESSING_CONFIG } from '@/constants';
 
 interface CacheEntry {
   value: string;
@@ -22,9 +23,12 @@ export class RedisCache {
   private stats: CacheStats = { hits: 0, misses: 0, errors: 0 };
   private readonly ttl: number;
   private readonly compressionThreshold: number;
-  private readonly localCacheTTL: number = 5 * 60 * 1000; // 5 minutes for L1 cache
+  private readonly localCacheTTL: number = PROCESSING_CONFIG.LOCAL_CACHE_TTL;
 
-  constructor(ttl: number = 30 * 24 * 60 * 60, compressionThreshold: number = 5000) {
+  constructor(
+    ttl: number = PROCESSING_CONFIG.CACHE_DURATION / 1000, // Convert ms to seconds
+    compressionThreshold: number = PROCESSING_CONFIG.COMPRESSION_THRESHOLD
+  ) {
     this.ttl = ttl;
     this.compressionThreshold = compressionThreshold;
     this.initializeRedis();

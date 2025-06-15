@@ -445,17 +445,28 @@ export const ALLOWED_DOMAINS = {
 
 // Processing configuration
 export const PROCESSING_CONFIG = {
+  // Cache configuration
   CACHE_DURATION: (30 * 24 * 60 * 60 * 1000) as number, // 1 month in ms
-  FIRECRAWL_WAIT_TIME: 3000 as number, // Wait time for Firecrawl API in ms
+  LOCAL_CACHE_TTL: (5 * 60 * 1000) as number, // 5 minutes for L1 cache
+  COMPRESSION_THRESHOLD: 5000 as number, // Compress content larger than 5KB
+
+  // Firecrawl API configuration
+  FIRECRAWL_WAIT_TIME: 5000 as number, // Wait time for Firecrawl API in ms (5 seconds)
+  FIRECRAWL_TIMEOUT: 60000 as number, // Timeout for Firecrawl API calls (60s)
+  FETCH_TIMEOUT: 90000 as number, // Timeout for fetch requests (90s)
+
+  // Crawling configuration
   DEFAULT_CRAWL_DEPTH: 2 as number,
   DEFAULT_MAX_URLS: 200 as number,
-  // Concurrency configuration
-  CONCURRENT_LIMIT: 5 as number, // Reduced from 15 to avoid Vercel timeouts
+  CONCURRENT_LIMIT: 10 as number, // Increased to 10 for better performance
+
   // Retry configuration
   MAX_RETRIES: 5 as number, // Maximum number of retry attempts
   INITIAL_RETRY_DELAY: 1000 as number, // Initial delay in ms (1 second)
-  MAX_RETRY_DELAY: 10000 as number, // Maximum delay in ms (10 seconds)
+  MAX_RETRY_DELAY: 30000 as number, // Maximum delay in ms (30 seconds)
   RETRY_STATUS_CODES: [429, 500, 502, 503, 504] as number[], // HTTP status codes that trigger retries
+
+  // Content validation
   MIN_CONTENT_LENGTH: 200 as number, // Minimum valid content length
 };
 

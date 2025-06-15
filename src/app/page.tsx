@@ -20,8 +20,8 @@ interface ProcessingResult {
 
 export default function Home() {
   const [url, setUrl] = useState('');
-  const [depth, setDepth] = useState(2);
-  const [maxUrls, setMaxUrls] = useState(200);
+  const [depth, setDepth] = useState(PROCESSING_CONFIG.DEFAULT_CRAWL_DEPTH);
+  const [maxUrls, setMaxUrls] = useState(PROCESSING_CONFIG.DEFAULT_MAX_URLS);
   const [filterUrls, setFilterUrls] = useState(true);
   const [deduplicateContent, setDeduplicateContent] = useState(true);
   const [filterAvailability, setFilterAvailability] = useState(true);

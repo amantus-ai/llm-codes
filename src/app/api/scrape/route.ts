@@ -73,13 +73,13 @@ export async function POST(request: NextRequest) {
               formats: ['markdown'],
               onlyMainContent: true,
               waitFor: PROCESSING_CONFIG.FIRECRAWL_WAIT_TIME,
-              timeout: 60000, // Increased from 30s to 60s
+              timeout: PROCESSING_CONFIG.FIRECRAWL_TIMEOUT,
               headers: {
                 'User-Agent': 'Mozilla/5.0 (compatible; Documentation-Scraper/1.0)',
               },
             }),
             // Add fetch-level timeout (90s to give Firecrawl time to complete)
-            signal: AbortSignal.timeout(90000),
+            signal: AbortSignal.timeout(PROCESSING_CONFIG.FETCH_TIMEOUT),
           });
 
           lastStatus = response.status;
