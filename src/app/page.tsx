@@ -355,63 +355,6 @@ export default function Home() {
     }
   };
 
-  const scrapeUrlsBatch = async (urls: string[]): Promise<Map<string, string>> => {
-    try {
-      log(`🚀 Batch fetching ${urls.length} URLs...`);
-
-      const response = await fetch('/api/scrape/batch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ urls, action: 'scrape' }),
-      });
-
-      if (!response.ok) {
-        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          // If JSON parsing fails, use the default error message
-        }
-        log(`❌ Batch fetch failed: ${errorMessage}`);
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json();
-      const resultMap = new Map<string, string>();
-
-      if (data.success && data.results) {
-        for (const result of data.results) {
-          if (result.success && result.data?.markdown) {
-            if (result.cached) {
-              log(`📦 Using cached content for ${result.url}`);
-            } else {
-              log(
-                `✅ Successfully scraped ${result.data.markdown.length.toLocaleString()} characters from ${result.url}`
-              );
-            }
-            resultMap.set(result.url, result.data.markdown);
-          } else {
-            log(`❌ Failed to scrape ${result.url}: ${result.error || 'Unknown error'}`);
-            resultMap.set(result.url, ''); // Set empty string for failed URLs
-          }
-        }
-
-        if (data.summary) {
-          log(
-            `📊 Batch complete: ${data.summary.successful}/${data.summary.total} successful, ${data.summary.cached} from cache`
-          );
-        }
-      }
-
-      return resultMap;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      log(`❌ Batch processing error: ${errorMessage}`);
-      throw error;
-    }
-  };
-
   const processUrlsWithDepth = async (
     urls: string[],
     currentDepth: number,
@@ -425,30 +368,27 @@ export default function Home() {
     const results: ProcessingResult[] = [];
     const newUrls = new Set<string>();
 
-    // Process URLs in batches for parallel fetching
-    const BATCH_SIZE = 20; // Maximum batch size supported by the batch API
+    // Process URLs individually with controlled concurrency
     const urlsToProcess = urls.filter(
       (url) => !processedUrls.has(url) && processedUrls.size < maxUrlsToProcess
     );
 
-    // Process in batches
-    for (let i = 0; i < urlsToProcess.length; i += BATCH_SIZE) {
+    // Process URLs with controlled concurrency (5 at a time)
+    const CONCURRENT_LIMIT = 5;
+    for (let i = 0; i < urlsToProcess.length; i += CONCURRENT_LIMIT) {
       if (processedUrls.size >= maxUrlsToProcess) break;
 
-      const batch = urlsToProcess.slice(i, i + BATCH_SIZE);
+      const batch = urlsToProcess.slice(i, i + CONCURRENT_LIMIT);
       const remainingCapacity = maxUrlsToProcess - processedUrls.size;
       const batchToProcess = batch.slice(0, remainingCapacity);
 
       // Mark URLs as processed before fetching to avoid duplicates
       batchToProcess.forEach((url) => processedUrls.add(url));
 
-      // Use batch API for better performance
-      try {
-        const batchResults = await scrapeUrlsBatch(batchToProcess);
-
-        // Process results
-        for (const url of batchToProcess) {
-          const content = batchResults.get(url) || '';
+      // Process URLs in parallel with limited concurrency
+      const batchPromises = batchToProcess.map(async (url) => {
+        try {
+          const content = await scrapeUrl(url);
 
           // Extract links for next depth level
           if (currentDepth < maxDepth && content) {
@@ -465,56 +405,30 @@ export default function Home() {
             }
           }
 
-          results.push({ url, content });
-        }
-      } catch {
-        // If batch fails, fall back to individual requests
-        log(`⚠️ Batch processing failed, falling back to individual requests`);
+          return { url, content };
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-        const batchPromises = batchToProcess.map(async (url) => {
-          try {
-            const content = await scrapeUrl(url);
-
-            // Extract links for next depth level
-            if (currentDepth < maxDepth && content) {
-              const links = extractLinks(content, baseUrl || urls[0]);
-              links.forEach((link) => {
-                if (!processedUrls.has(link)) {
-                  newUrls.add(link);
-                }
-              });
-              if (links.length > 0) {
-                log(`🔗 Found ${links.length} links to follow from ${url}`);
-              } else if (currentDepth < maxDepth) {
-                log(`⚠️ No links found to follow from ${url}`);
-              }
-            }
-
-            return { url, content };
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-            // Provide specific guidance based on error type
-            if (errorMessage.includes('Invalid URL')) {
-              log(`❌ Invalid URL format: ${url}`);
-            } else if (errorMessage.includes('Firecrawl API error')) {
-              log(`❌ API error for ${url}: ${errorMessage}`);
-              log(`💡 Tip: This might be a temporary issue. Try again in a few moments.`);
-            } else if (errorMessage.includes('No content returned')) {
-              log(
-                `❌ No content found for ${url}: The page might be empty or require authentication`
-              );
-            }
-
-            // Return with empty content
-            return { url, content: '' };
+          // Provide specific guidance based on error type
+          if (errorMessage.includes('Invalid URL')) {
+            log(`❌ Invalid URL format: ${url}`);
+          } else if (errorMessage.includes('Firecrawl API error')) {
+            log(`❌ API error for ${url}: ${errorMessage}`);
+            log(`💡 Tip: This might be a temporary issue. Try again in a few moments.`);
+          } else if (errorMessage.includes('No content returned')) {
+            log(
+              `❌ No content found for ${url}: The page might be empty or require authentication`
+            );
           }
-        });
 
-        // Wait for batch to complete
-        const fallbackResults = await Promise.all(batchPromises);
-        results.push(...fallbackResults);
-      }
+          // Return with empty content
+          return { url, content: '' };
+        }
+      });
+
+      // Wait for batch to complete
+      const batchResults = await Promise.all(batchPromises);
+      results.push(...batchResults);
 
       // Update progress after each batch
       const progressPercent = Math.round(
@@ -522,13 +436,9 @@ export default function Home() {
       );
       setProgress(progressPercent);
 
-      // Adaptive delay between batches based on batch size and depth
-      if (i + BATCH_SIZE < urlsToProcess.length && processedUrls.size < maxUrlsToProcess) {
-        // No delay needed with batch API - it handles rate limiting internally
-        // Only add a small delay if we're processing many URLs to be polite
-        if (urlsToProcess.length > 50) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
+      // Add a small delay between batches to avoid overwhelming the server
+      if (i + CONCURRENT_LIMIT < urlsToProcess.length && processedUrls.size < maxUrlsToProcess) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
     }
 

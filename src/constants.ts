@@ -445,8 +445,6 @@ export const ALLOWED_DOMAINS = {
 
 // Processing configuration
 export const PROCESSING_CONFIG = {
-  BATCH_SIZE: 10 as number, // Maximum URLs per batch API call (reduced from 20 to prevent timeouts)
-  BATCH_DELAY: 100 as number, // Minimal delay between batches (only for large crawls)
   CACHE_DURATION: (30 * 24 * 60 * 60 * 1000) as number, // 1 month in ms
   FIRECRAWL_WAIT_TIME: 5000 as number, // Wait time for Firecrawl API in ms
   DEFAULT_CRAWL_DEPTH: 2 as number,
@@ -456,9 +454,6 @@ export const PROCESSING_CONFIG = {
   INITIAL_RETRY_DELAY: 1000 as number, // Initial delay in ms (1 second)
   MAX_RETRY_DELAY: 30000 as number, // Maximum delay in ms (30 seconds)
   RETRY_STATUS_CODES: [429, 500, 502, 503, 504] as number[], // HTTP status codes that trigger retries
-  // Performance optimizations
-  USE_BATCH_API: true as boolean, // Use batch API for multiple URLs
-  ADAPTIVE_DELAYS: true as boolean, // Adjust delays based on response times
   MIN_CONTENT_LENGTH: 200 as number, // Minimum valid content length
 };
 
