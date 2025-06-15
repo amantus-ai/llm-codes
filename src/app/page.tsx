@@ -13,6 +13,7 @@ import {
 } from '@/utils/url-utils';
 import { filterDocumentation } from '@/utils/documentation-filter';
 import { extractOnlyCodeBlocks } from '@/utils/code-extraction';
+import { useCrawl } from '@/hooks/useCrawl';
 
 interface ProcessingResult {
   url: string;
@@ -28,6 +29,7 @@ export default function Home() {
   const [filterAvailability, setFilterAvailability] = useState(true);
   const [useComprehensiveFilter, setUseComprehensiveFilter] = useState(true);
   const [codeBlocksOnly, setCodeBlocksOnly] = useState(false);
+  const [useCrawlMode, setUseCrawlMode] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
@@ -41,6 +43,7 @@ export default function Home() {
   const [notificationPermission, setNotificationPermission] =
     useState<NotificationPermission>('default');
   const [isIOS, setIsIOS] = useState(false);
+  const [crawlCreditsUsed, setCrawlCreditsUsed] = useState(0);
 
   const logContainerRef = useRef<HTMLDivElement>(null);
   const userScrollingRef = useRef(false);
@@ -48,6 +51,47 @@ export default function Home() {
   const log = (message: string) => {
     setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
   };
+
+  // Setup crawl hook
+  const {
+    startCrawl,
+    cancel: cancelCrawl,
+    isProcessing: isCrawling,
+    results: crawlResults,
+    error: crawlError,
+    status: crawlStatus,
+  } = useCrawl({
+    onStatusChange: (status) => {
+      log(`📊 Crawl status: ${status}`);
+    },
+    onUrlComplete: (url, content, cached) => {
+      if (cached) {
+        log(`📦 Using cached content for ${url}`);
+      } else {
+        log(`✅ Successfully crawled ${content.length.toLocaleString()} characters from ${url}`);
+      }
+    },
+    onProgress: (current, total, credits) => {
+      setProgress(Math.round((current / total) * 100));
+      if (credits !== undefined) {
+        setCrawlCreditsUsed(credits);
+      }
+      log(`🔄 Progress: ${current}/${total} pages (${credits || 0} credits used)`);
+    },
+    onComplete: (results, credits) => {
+      log(`✅ Crawl complete! Processed ${results.length} pages using ${credits} credits`);
+    },
+    onError: (error) => {
+      log(`❌ Crawl error: ${error}`);
+    },
+    filterOptions: {
+      filterUrls,
+      filterAvailability,
+      deduplicateContent,
+      useComprehensiveFilter,
+      codeBlocksOnly,
+    },
+  });
 
   // Check for iOS and notification permission on mount
   useEffect(() => {
@@ -502,6 +546,7 @@ export default function Home() {
     setFilteredResults([]);
     setStats({ lines: 0, size: 0, urls: 0 });
     setShowLogs(true); // Show activity log when processing starts
+    setCrawlCreditsUsed(0);
 
     // Update the browser URL to include the documentation URL
     updateUrlWithDocumentation(trimmedUrl);
@@ -514,14 +559,33 @@ export default function Home() {
       log(`📊 Configuration: Depth ${depth}, Max URLs: ${maxUrls}`);
       log(`🔗 Starting URL: ${trimmedUrl}`);
 
-      const processedResults = await processUrlsWithDepth(
-        [trimmedUrl],
-        0,
-        depth,
-        maxUrls,
-        new Set(),
-        trimmedUrl
-      );
+      let processedResults: ProcessingResult[] = [];
+
+      if (useCrawlMode) {
+        log(`🕷️ Using crawl mode for faster processing...`);
+        await startCrawl(trimmedUrl, maxUrls, depth);
+
+        // Wait for crawl to complete
+        while (isCrawling && !crawlError) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+
+        if (crawlError) {
+          throw new Error(crawlError);
+        }
+
+        processedResults = crawlResults;
+      } else {
+        processedResults = await processUrlsWithDepth(
+          [trimmedUrl],
+          0,
+          depth,
+          maxUrls,
+          new Set(),
+          trimmedUrl
+        );
+      }
+
       setResults(processedResults);
 
       // Calculate stats
@@ -1189,6 +1253,21 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
                   <p className="text-xs text-muted-foreground ml-7 -mt-2">
                     Return only code examples from the documentation (handles unclosed blocks)
                   </p>
+                  <label className="flex items-center gap-3 cursor-pointer mt-4">
+                    <input
+                      type="checkbox"
+                      checked={useCrawlMode}
+                      onChange={(e) => setUseCrawlMode(e.target.checked)}
+                      className="w-4 h-4 text-primary bg-background border-input rounded focus:ring-primary focus:ring-2"
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      Use deep crawl mode (Beta)
+                    </span>
+                  </label>
+                  <p className="text-xs text-muted-foreground ml-7 -mt-2">
+                    Use Firecrawl&apos;s crawl API for faster processing of multiple pages with
+                    real-time progress
+                  </p>
                 </div>
               )}
             </div>
@@ -1196,8 +1275,8 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
 
           {/* Process Button */}
           <button
-            onClick={processUrl}
-            disabled={isProcessing}
+            onClick={isProcessing ? (useCrawlMode ? cancelCrawl : undefined) : processUrl}
+            disabled={isProcessing && !useCrawlMode}
             className="w-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground py-3.5 px-6 rounded-xl font-medium hover:from-primary/90 hover:to-primary/70 disabled:from-primary/50 disabled:to-primary/40 disabled:opacity-75 disabled:cursor-not-allowed transition-all duration-300 ease-out shadow-md shadow-primary/10 hover:shadow-2xl hover:shadow-primary/25 hover:-translate-y-0.5"
           >
             {isProcessing ? (
@@ -1217,7 +1296,9 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                Processing Documentation...
+                {useCrawlMode
+                  ? `${crawlStatus === 'crawling' ? 'Crawling' : 'Processing'} Documentation... (Click to cancel)`
+                  : 'Processing Documentation...'}
               </span>
             ) : (
               'Process Documentation'
@@ -1314,7 +1395,9 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
           {stats.urls > 0 && (
             <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl shadow-sm border border-primary/20 p-6">
               <h4 className="text-sm font-medium text-foreground mb-4">Statistics</h4>
-              <div className="grid grid-cols-3 gap-4">
+              <div
+                className={`grid ${useCrawlMode && crawlCreditsUsed > 0 ? 'grid-cols-4' : 'grid-cols-3'} gap-4`}
+              >
                 <div className="text-center">
                   <div className="text-2xl font-bold text-primary">{stats.urls}</div>
                   <div className="text-xs text-muted-foreground mt-1">URLs</div>
@@ -1329,6 +1412,12 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">Lines</div>
                 </div>
+                {useCrawlMode && crawlCreditsUsed > 0 && (
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">{crawlCreditsUsed}</div>
+                    <div className="text-xs text-muted-foreground mt-1">Credits</div>
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -24,7 +24,9 @@ describe('http2Fetch', () => {
       },
     };
 
-    vi.mocked(request).mockResolvedValue(mockResponse as any);
+    vi.mocked(request).mockResolvedValue(
+      mockResponse as unknown as Awaited<ReturnType<typeof request>>
+    );
 
     const response = await http2Fetch('https://example.com/api');
 
@@ -51,7 +53,9 @@ describe('http2Fetch', () => {
       },
     };
 
-    vi.mocked(request).mockResolvedValue(mockResponse as any);
+    vi.mocked(request).mockResolvedValue(
+      mockResponse as unknown as Awaited<ReturnType<typeof request>>
+    );
 
     const response = await http2Fetch('https://example.com/api', {
       method: 'POST',
@@ -84,7 +88,9 @@ describe('http2Fetch', () => {
       },
     };
 
-    vi.mocked(request).mockResolvedValue(mockResponse as any);
+    vi.mocked(request).mockResolvedValue(
+      mockResponse as unknown as Awaited<ReturnType<typeof request>>
+    );
 
     const response = await http2Fetch('https://example.com/api/missing');
 
@@ -103,7 +109,9 @@ describe('http2Fetch', () => {
       },
     };
 
-    vi.mocked(request).mockResolvedValue(mockResponse as any);
+    vi.mocked(request).mockResolvedValue(
+      mockResponse as unknown as Awaited<ReturnType<typeof request>>
+    );
 
     const response = await http2Fetch('https://example.com/api');
 
@@ -129,7 +137,9 @@ describe('http2Fetch', () => {
       },
     };
 
-    vi.mocked(request).mockResolvedValue(mockResponse as any);
+    vi.mocked(request).mockResolvedValue(
+      mockResponse as unknown as Awaited<ReturnType<typeof request>>
+    );
 
     await http2Fetch('https://example.com/api', {
       signal: controller.signal,
@@ -166,7 +176,7 @@ describe('http2Fetch', () => {
           text: vi.fn().mockResolvedValue(''),
           json: vi.fn().mockResolvedValue({}),
         },
-      } as any);
+      } as unknown as Awaited<ReturnType<typeof request>>);
 
       const response = await http2Fetch('https://example.com/api');
 
@@ -185,12 +195,12 @@ describe('http2Fetch', () => {
 
     vi.mocked(request).mockResolvedValue({
       statusCode: 200,
-      headers: responseHeaders,
+      headers: responseHeaders as unknown as Record<string, string>,
       body: {
         text: vi.fn().mockResolvedValue('{}'),
         json: vi.fn().mockResolvedValue({}),
       },
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof request>>);
 
     const response = await http2Fetch('https://example.com/api');
 
@@ -209,7 +219,9 @@ describe('http2Fetch', () => {
       },
     };
 
-    vi.mocked(request).mockResolvedValue(mockResponse as any);
+    vi.mocked(request).mockResolvedValue(
+      mockResponse as unknown as Awaited<ReturnType<typeof request>>
+    );
 
     const controller = new AbortController();
 

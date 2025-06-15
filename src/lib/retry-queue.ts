@@ -7,7 +7,7 @@ interface RetryTask {
   url: string;
   attempt: number;
   lastError?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export class RetryQueue {

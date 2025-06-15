@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CircuitBreaker } from '../circuit-breaker';
+import type { Redis } from '@upstash/redis';
 
 // Mock Redis
 const mockRedis = {
@@ -14,7 +15,7 @@ describe('CircuitBreaker', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    circuitBreaker = new CircuitBreaker(mockRedis as any, 'test-service');
+    circuitBreaker = new CircuitBreaker(mockRedis as unknown as Redis, 'test-service');
   });
 
   describe('canRequest', () => {

@@ -22,15 +22,25 @@ vi.mock('@/lib/http2-client', () => ({
   http2Fetch: vi.fn(),
 }));
 
+// Mock progressive timeout
+vi.mock('@/utils/progressive-timeout', () => ({
+  scrapeWithProgressiveTimeout: vi.fn(),
+  createCustomConfig: vi.fn().mockReturnValue({
+    initialTimeout: 10000,
+    maxTimeout: 60000,
+    timeoutIncrement: 10000,
+    waitTime: 5000,
+    maxRetries: 3,
+  }),
+}));
+
 describe('POST /api/scrape/stream', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     process.env.FIRECRAWL_API_KEY = 'test-api-key';
-  });
 
-  it('should stream results for valid URLs', async () => {
+    // Default http2Fetch mock for Firecrawl API
     const { http2Fetch } = await import('@/lib/http2-client');
-
     vi.mocked(http2Fetch).mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({
@@ -39,7 +49,24 @@ describe('POST /api/scrape/stream', () => {
           markdown: '# Test Content\n\nThis is test content.',
         },
       }),
-    } as any);
+    } as unknown as Response);
+  });
+
+  it('should stream results for valid URLs', async () => {
+    const { scrapeWithProgressiveTimeout } = await import('@/utils/progressive-timeout');
+
+    vi.mocked(scrapeWithProgressiveTimeout).mockResolvedValue({
+      data: {
+        success: true,
+        markdown: '# Test Content\n\nThis is test content.',
+        data: {
+          markdown: '# Test Content\n\nThis is test content.',
+        },
+      },
+      attemptCount: 1,
+      finalTimeout: 10000,
+      totalTime: 500,
+    });
 
     const request = new NextRequest('http://localhost:3000/api/scrape/stream', {
       method: 'POST',
@@ -74,17 +101,20 @@ describe('POST /api/scrape/stream', () => {
   });
 
   it('should handle multiple URLs with depth', async () => {
-    const { http2Fetch } = await import('@/lib/http2-client');
+    const { scrapeWithProgressiveTimeout } = await import('@/utils/progressive-timeout');
 
-    vi.mocked(http2Fetch).mockResolvedValue({
-      ok: true,
-      json: vi.fn().mockResolvedValue({
+    vi.mocked(scrapeWithProgressiveTimeout).mockResolvedValue({
+      data: {
         success: true,
+        markdown: '# Page Content\n\n[Link](https://example.com/page2)',
         data: {
           markdown: '# Page Content\n\n[Link](https://example.com/page2)',
         },
-      }),
-    } as any);
+      },
+      attemptCount: 1,
+      finalTimeout: 10000,
+      totalTime: 500,
+    });
 
     const request = new NextRequest('http://localhost:3000/api/scrape/stream', {
       method: 'POST',
@@ -116,9 +146,9 @@ describe('POST /api/scrape/stream', () => {
   });
 
   it('should handle errors gracefully', async () => {
-    const { http2Fetch } = await import('@/lib/http2-client');
+    const { scrapeWithProgressiveTimeout } = await import('@/utils/progressive-timeout');
 
-    vi.mocked(http2Fetch).mockRejectedValue(new Error('Network error'));
+    vi.mocked(scrapeWithProgressiveTimeout).mockRejectedValue(new Error('Network error'));
 
     const request = new NextRequest('http://localhost:3000/api/scrape/stream', {
       method: 'POST',

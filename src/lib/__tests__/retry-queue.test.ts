@@ -21,7 +21,7 @@ describe('RetryQueue', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    retryQueue = new RetryQueue(mockRedis as any, 'test');
+    retryQueue = new RetryQueue(mockRedis as unknown as Redis, 'test');
   });
 
   describe('enqueue', () => {

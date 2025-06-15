@@ -100,7 +100,7 @@ export function extractCodeBlocks(markdown: string): CodeBlock[] {
             codeLines.pop();
           }
         }
-        
+
         // For closed blocks, remove only completely empty trailing lines
         // This preserves lines that contain only whitespace
         if (!isUnclosed) {

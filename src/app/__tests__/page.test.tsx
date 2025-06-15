@@ -131,7 +131,7 @@ describe('Home Page', () => {
         success: true,
         data: { markdown: '# Test Content' },
       }),
-    } as any);
+    } as Response);
 
     render(<Home />);
 
@@ -206,7 +206,7 @@ describe('Home Page', () => {
     const originalCreateElement = document.createElement;
     document.createElement = vi.fn((tagName) => {
       if (tagName === 'a') {
-        return mockAnchor as any;
+        return mockAnchor as unknown as HTMLAnchorElement;
       }
       return originalCreateElement.call(document, tagName);
     });

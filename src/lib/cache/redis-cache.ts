@@ -18,6 +18,33 @@ interface CacheStats {
   errors: number;
 }
 
+interface CrawlJobMetadata {
+  id: string;
+  url: string;
+  limit?: number;
+  maxDepth?: number;
+  status: string;
+  startedAt: string;
+  completedAt?: string;
+  failedAt?: string;
+  totalPages: number;
+  completedPages: number;
+  failedPages?: number;
+  creditsUsed: number;
+  expiresAt?: string;
+  next?: string;
+  lastPageNumber?: number;
+}
+
+interface CrawlResult {
+  metadata?: {
+    sourceURL?: string;
+    [key: string]: unknown;
+  };
+  markdown?: string;
+  [key: string]: unknown;
+}
+
 export class RedisCache {
   private redis: Redis | null = null;
   private localCache: Map<string, CacheEntry> = new Map();
@@ -407,6 +434,119 @@ export class RedisCache {
     }
 
     return false; // Timeout reached
+  }
+
+  /**
+   * Store crawl job metadata
+   */
+  async setCrawlJob(jobId: string, data: CrawlJobMetadata, ttl: number = 86400): Promise<void> {
+    const key = `crawl:job:${jobId}`;
+
+    if (this.redis) {
+      try {
+        await this.redis.set(key, data, { ex: ttl });
+      } catch (error) {
+        console.error('Failed to store crawl job:', error);
+      }
+    }
+  }
+
+  /**
+   * Get crawl job metadata
+   */
+  async getCrawlJob(jobId: string): Promise<CrawlJobMetadata | null> {
+    const key = `crawl:job:${jobId}`;
+
+    if (this.redis) {
+      try {
+        return await this.redis.get(key);
+      } catch (error) {
+        console.error('Failed to get crawl job:', error);
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Update crawl job status
+   */
+  async updateCrawlJobStatus(jobId: string, status: Partial<CrawlJobMetadata>): Promise<void> {
+    const key = `crawl:job:${jobId}`;
+
+    if (this.redis) {
+      try {
+        const existing = await this.redis.get(key);
+        if (existing) {
+          await this.redis.set(key, { ...existing, ...status }, { ex: 86400 });
+        }
+      } catch (error) {
+        console.error('Failed to update crawl job status:', error);
+      }
+    }
+  }
+
+  /**
+   * Store crawl job results with pagination support
+   */
+  async setCrawlResults(
+    jobId: string,
+    pageNumber: number,
+    results: CrawlResult[],
+    ttl: number = 86400
+  ): Promise<void> {
+    const key = `crawl:results:${jobId}:page:${pageNumber}`;
+
+    if (this.redis) {
+      try {
+        await this.redis.set(key, results, { ex: ttl });
+      } catch (error) {
+        console.error('Failed to store crawl results:', error);
+      }
+    }
+  }
+
+  /**
+   * Get crawl job results for a specific page
+   */
+  async getCrawlResults(jobId: string, pageNumber: number): Promise<CrawlResult[] | null> {
+    const key = `crawl:results:${jobId}:page:${pageNumber}`;
+
+    if (this.redis) {
+      try {
+        return await this.redis.get(key);
+      } catch (error) {
+        console.error('Failed to get crawl results:', error);
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Get all crawl result pages for a job
+   */
+  async getAllCrawlResults(jobId: string): Promise<CrawlResult[]> {
+    if (!this.redis) return [];
+
+    const results: CrawlResult[] = [];
+
+    try {
+      // Note: Upstash Redis doesn't support SCAN, so we need to track page numbers separately
+      const job = await this.getCrawlJob(jobId);
+      if (job && job.totalPages) {
+        for (let i = 0; i < job.totalPages; i++) {
+          const pageResults = await this.getCrawlResults(jobId, i);
+          if (pageResults) {
+            results.push(...pageResults);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to get all crawl results:', error);
+    }
+
+    return results;
   }
 }
 
