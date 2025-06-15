@@ -143,6 +143,12 @@ export const ALLOWED_DOMAINS = {
     example: 'https://laravel.com/docs',
     category: 'Web Frameworks',
   },
+  VAPOR: {
+    pattern: 'https://docs.vapor.codes',
+    name: 'Vapor',
+    example: 'https://docs.vapor.codes',
+    category: 'Web Frameworks',
+  },
 
   // Cloud Platforms
   AWS: {
@@ -325,6 +331,12 @@ export const ALLOWED_DOMAINS = {
     example: 'https://numpy.org/doc',
     category: 'AI/ML Libraries',
   },
+  Modular: {
+    pattern: 'https://docs.modular.com',
+    name: 'Modular',
+    example: 'https://docs.modular.com',
+    category: 'AI/ML Libraries',
+  },
 
   // CSS Frameworks
   TAILWIND: {
@@ -419,6 +431,12 @@ export const ALLOWED_DOMAINS = {
     pattern: 'https://mochajs.org',
     name: 'Mocha',
     example: 'https://mochajs.org',
+    category: 'Testing Frameworks',
+  },
+  APPIUM: {
+    pattern: 'https://appium.io/docs/en/latest',
+    name: 'Appium',
+    example: 'https://appium.io/docs/en/latest/#explore-the-documentation',
     category: 'Testing Frameworks',
   },
 
