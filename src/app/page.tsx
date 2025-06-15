@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ALLOWED_DOMAINS } from '@/constants';
+import { ALLOWED_DOMAINS, PROCESSING_CONFIG } from '@/constants';
 import {
   extractUrlFromQueryString,
   getSupportedDomainsText,
@@ -373,8 +373,8 @@ export default function Home() {
       (url) => !processedUrls.has(url) && processedUrls.size < maxUrlsToProcess
     );
 
-    // Process URLs with controlled concurrency (15 at a time)
-    const CONCURRENT_LIMIT = 15;
+    // Process URLs with controlled concurrency to avoid timeouts
+    const CONCURRENT_LIMIT = PROCESSING_CONFIG.CONCURRENT_LIMIT;
     for (let i = 0; i < urlsToProcess.length; i += CONCURRENT_LIMIT) {
       if (processedUrls.size >= maxUrlsToProcess) break;
 

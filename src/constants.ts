@@ -449,6 +449,8 @@ export const PROCESSING_CONFIG = {
   FIRECRAWL_WAIT_TIME: 3000 as number, // Wait time for Firecrawl API in ms
   DEFAULT_CRAWL_DEPTH: 2 as number,
   DEFAULT_MAX_URLS: 200 as number,
+  // Concurrency configuration
+  CONCURRENT_LIMIT: 5 as number, // Reduced from 15 to avoid Vercel timeouts
   // Retry configuration
   MAX_RETRIES: 5 as number, // Maximum number of retry attempts
   INITIAL_RETRY_DELAY: 1000 as number, // Initial delay in ms (1 second)
