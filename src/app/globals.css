@@ -311,12 +311,17 @@
   }
 }
 
-.activity-log-enter {
-  animation: slide-down 300ms ease-out forwards;
+.activity-log-container {
   overflow: hidden;
+  transition: max-height 300ms ease-out, opacity 300ms ease-out;
 }
 
-.activity-log-exit {
-  animation: slide-up 300ms ease-in forwards;
-  overflow: hidden;
+.activity-log-container.show {
+  max-height: 12rem;
+  opacity: 1;
+}
+
+.activity-log-container.hide {
+  max-height: 0;
+  opacity: 0;
 }

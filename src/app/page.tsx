@@ -38,7 +38,6 @@ export default function Home() {
   const [notificationPermission, setNotificationPermission] =
     useState<NotificationPermission>('default');
   const [isIOS, setIsIOS] = useState(false);
-  const [isLogsAnimating, setIsLogsAnimating] = useState(false);
 
   const logContainerRef = useRef<HTMLDivElement>(null);
   const userScrollingRef = useRef(false);
@@ -87,24 +86,6 @@ export default function Home() {
     const isAtBottom = scrollHeight - scrollTop - clientHeight < 10; // 10px threshold
 
     userScrollingRef.current = !isAtBottom;
-  };
-
-  const toggleLogs = () => {
-    if (showLogs) {
-      // Start exit animation
-      setIsLogsAnimating(true);
-      setTimeout(() => {
-        setShowLogs(false);
-        setIsLogsAnimating(false);
-      }, 300); // Match animation duration
-    } else {
-      // Start enter animation
-      setShowLogs(true);
-      setIsLogsAnimating(true);
-      setTimeout(() => {
-        setIsLogsAnimating(false);
-      }, 300); // Match animation duration
-    }
   };
 
   const requestNotificationPermission = async () => {
@@ -424,7 +405,7 @@ export default function Home() {
     const newUrls = new Set<string>();
 
     // Process URLs in batches for parallel fetching
-    const BATCH_SIZE = 25; // Increased batch size since we're using batch API
+    const BATCH_SIZE = 20; // Maximum batch size supported by the batch API
     const urlsToProcess = urls.filter(
       (url) => !processedUrls.has(url) && processedUrls.size < maxUrlsToProcess
     );
@@ -617,13 +598,54 @@ export default function Home() {
       const successfulResults = processedResults.filter((r) => r.content);
       const failedResults = processedResults.filter((r) => !r.content);
 
-      const content = processedResults.map((r) => `# ${r.url}\n\n${r.content}\n\n---\n\n`).join('');
-      const lines = content.split('\n').length;
-      const sizeKB = new Blob([content]).size / 1024;
+      // Calculate size before filtering
+      const unfilteredContent = processedResults
+        .map((r) => `# ${r.url}\n\n${r.content}\n\n---\n\n`)
+        .join('');
+      const unfilteredSizeKB = new Blob([unfilteredContent]).size / 1024;
+
+      // Apply the same filters as in download function
+      const filteredResults = processedResults.map((r) => {
+        let content = r.content;
+
+        if (useComprehensiveFilter) {
+          content = filterDocumentation(content, {
+            filterUrls,
+            filterAvailability,
+            filterNavigation: true,
+            filterLegalBoilerplate: true,
+            filterEmptyContent: true,
+            filterRedundantTypeAliases: true,
+            filterExcessivePlatformNotices: true,
+            filterFormattingArtifacts: true,
+            deduplicateContent,
+          });
+        } else {
+          content = removeCommonPhrases(content);
+          content = filterUrlsFromMarkdown(content);
+          content = filterAvailabilityStrings(content);
+          content = deduplicateMarkdown(content);
+        }
+
+        return { url: r.url, content };
+      });
+
+      // Calculate size after filtering
+      const filteredContent = filteredResults
+        .map((r) => `# ${r.url}\n\n${r.content}\n\n---\n\n`)
+        .join('');
+      const filteredSizeKB = new Blob([filteredContent]).size / 1024;
+      const lines = filteredContent.split('\n').length;
+
+      // Log the size difference
+      log(`📏 Size before filtering: ${Math.round(unfilteredSizeKB)}K`);
+      log(
+        `📏 Size after filtering: ${Math.round(filteredSizeKB)}K (${Math.round((1 - filteredSizeKB / unfilteredSizeKB) * 100)}% reduction)`
+      );
 
       setStats({
         lines,
-        size: sizeKB,
+        size: filteredSizeKB,
         urls: processedResults.length,
       });
 
@@ -1326,7 +1348,7 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
 
                 {/* Logs Toggle */}
                 <button
-                  onClick={toggleLogs}
+                  onClick={() => setShowLogs(!showLogs)}
                   className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-2"
                 >
                   <svg
@@ -1345,29 +1367,19 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                   {showLogs ? 'Hide' : 'Show'} activity log
                 </button>
 
-                {(showLogs || isLogsAnimating) && (
+                <div className={`activity-log-container ${showLogs ? 'show' : 'hide'}`}>
                   <div
-                    className={`${
-                      showLogs && !isLogsAnimating
-                        ? 'max-h-48'
-                        : showLogs && isLogsAnimating
-                          ? 'activity-log-enter'
-                          : 'activity-log-exit'
-                    }`}
+                    ref={logContainerRef}
+                    onScroll={handleLogScroll}
+                    className="bg-muted/50 rounded-lg p-3 h-full overflow-y-auto"
                   >
-                    <div
-                      ref={logContainerRef}
-                      onScroll={handleLogScroll}
-                      className="bg-muted/50 rounded-lg p-3 overflow-y-auto h-full"
-                    >
-                      <div className="space-y-1 font-mono text-xs text-muted-foreground">
-                        {logs.map((log, i) => (
-                          <div key={i}>{log}</div>
-                        ))}
-                      </div>
+                    <div className="space-y-1 font-mono text-xs text-muted-foreground">
+                      {logs.map((log, i) => (
+                        <div key={i}>{log}</div>
+                      ))}
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             </div>
           )}
