@@ -312,16 +312,18 @@
 }
 
 .activity-log-container {
-  overflow: hidden;
   transition: max-height 300ms ease-out, opacity 300ms ease-out;
 }
 
 .activity-log-container.show {
   max-height: 12rem;
+  height: 12rem; /* Fixed height for proper scrolling */
   opacity: 1;
 }
 
 .activity-log-container.hide {
   max-height: 0;
+  height: 0;
   opacity: 0;
+  overflow: hidden; /* Only hide overflow when collapsed */
 }

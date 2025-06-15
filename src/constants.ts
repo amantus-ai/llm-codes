@@ -163,6 +163,12 @@ export const ALLOWED_DOMAINS = {
     example: 'https://docs.microsoft.com/azure',
     category: 'Cloud Platforms',
   },
+  MICROSOFT_LEARN: {
+    pattern: 'https://learn.microsoft.com',
+    name: 'Microsoft Learn',
+    example: 'https://learn.microsoft.com/en-us/docs',
+    category: 'Cloud Platforms',
+  },
   DIGITALOCEAN: {
     pattern: 'https://docs.digitalocean.com',
     name: 'DigitalOcean',

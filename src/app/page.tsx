@@ -75,10 +75,30 @@ export default function Home() {
 
   // Auto-scroll logs to bottom when new messages arrive (if user isn't scrolling)
   useEffect(() => {
-    if (logContainerRef.current && !userScrollingRef.current) {
-      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    if (logContainerRef.current && !userScrollingRef.current && showLogs) {
+      // Small delay to ensure DOM has updated after animation
+      const timeoutId = setTimeout(() => {
+        if (logContainerRef.current) {
+          logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+        }
+      }, 50);
+      return () => clearTimeout(timeoutId);
     }
-  }, [logs]);
+  }, [logs, showLogs]);
+
+  // Reset scroll tracking when logs are toggled
+  useEffect(() => {
+    if (showLogs && logContainerRef.current) {
+      // When opening logs, scroll to bottom and reset tracking
+      const timeoutId = setTimeout(() => {
+        if (logContainerRef.current) {
+          logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+          userScrollingRef.current = false;
+        }
+      }, 350); // Wait for animation to complete
+      return () => clearTimeout(timeoutId);
+    }
+  }, [showLogs]);
 
   const handleLogScroll = () => {
     if (!logContainerRef.current) return;
@@ -574,6 +594,7 @@ export default function Home() {
     setResults([]);
     setFilteredResults([]);
     setStats({ lines: 0, size: 0, urls: 0 });
+    setShowLogs(true); // Show activity log when processing starts
 
     // Update the browser URL to include the documentation URL
     updateUrlWithDocumentation(trimmedUrl);
@@ -1350,11 +1371,13 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                   <div
                     ref={logContainerRef}
                     onScroll={handleLogScroll}
-                    className="bg-muted/50 rounded-lg p-3 h-full overflow-y-auto"
+                    className="bg-muted/50 rounded-lg p-3 h-full overflow-y-auto overflow-x-hidden"
                   >
                     <div className="space-y-1 font-mono text-xs text-muted-foreground">
                       {logs.map((log, i) => (
-                        <div key={i}>{log}</div>
+                        <div key={i} className="break-words">
+                          {log}
+                        </div>
                       ))}
                     </div>
                   </div>
