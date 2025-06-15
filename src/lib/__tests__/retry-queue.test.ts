@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RetryQueue } from '../retry-queue';
 import { PROCESSING_CONFIG } from '@/constants';
+import type { Redis } from '@upstash/redis';
 
 // Mock Redis
 const mockRedis = {

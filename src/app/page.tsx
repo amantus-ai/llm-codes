@@ -9,10 +9,8 @@ import {
   getSupportedDomainsText,
   isValidDocumentationUrl,
   updateUrlWithDocumentation,
-  normalizeUrl,
 } from '@/utils/url-utils';
 import { filterDocumentation } from '@/utils/documentation-filter';
-import { extractOnlyCodeBlocks } from '@/utils/code-extraction';
 import { useCrawl } from '@/hooks/useCrawl';
 
 interface ProcessingResult {
@@ -27,9 +25,6 @@ export default function Home() {
   const [filterUrls, setFilterUrls] = useState(true);
   const [deduplicateContent, setDeduplicateContent] = useState(true);
   const [filterAvailability, setFilterAvailability] = useState(true);
-  const [useComprehensiveFilter, setUseComprehensiveFilter] = useState(true);
-  const [codeBlocksOnly, setCodeBlocksOnly] = useState(false);
-  const [useCrawlMode, setUseCrawlMode] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
@@ -88,8 +83,7 @@ export default function Home() {
       filterUrls,
       filterAvailability,
       deduplicateContent,
-      useComprehensiveFilter,
-      codeBlocksOnly,
+      useComprehensiveFilter: true,
     },
   });
 
@@ -190,318 +184,10 @@ export default function Home() {
     }
   };
 
-  const extractLinks = (content: string, baseUrl: string): string[] => {
-    const links = new Set<string>();
+  // Removed extractLinks function - no longer needed with streaming API
+  // Removed legacy scrapeUrl function - now using streaming API
 
-    // Multiple regex patterns to catch different link formats
-    const patterns = [
-      /\[([^\]]+)\]\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g, // Markdown links with nested parentheses support
-      /href="([^"]+)"/g, // HTML links that might remain
-      /href='([^']+)'/g, // HTML links with single quotes
-      /https?:\/\/[^\s<>"{}|\\^\[\]`]+/g, // Plain URLs
-    ];
-
-    // Determine the base domain and path structure
-    const urlObj = new URL(baseUrl);
-    const baseDomain = urlObj.origin;
-    const basePath = urlObj.pathname;
-
-    // Extract all potential links
-    const potentialLinks: string[] = [];
-
-    patterns.forEach((pattern) => {
-      let match;
-      while ((match = pattern.exec(content)) !== null) {
-        // Get the URL from the appropriate capture group
-        const url = match[2] || match[1] || match[0];
-        if (
-          url &&
-          !url.startsWith('#') &&
-          !url.startsWith('mailto:') &&
-          !url.startsWith('javascript:')
-        ) {
-          potentialLinks.push(url);
-        }
-      }
-    });
-
-    // Process and filter links
-    potentialLinks.forEach((href) => {
-      let fullUrl = '';
-
-      try {
-        if (href.startsWith('http://') || href.startsWith('https://')) {
-          // Absolute URL
-          fullUrl = href;
-        } else if (href.startsWith('//')) {
-          // Protocol-relative URL
-          fullUrl = 'https:' + href;
-        } else if (href.startsWith('/')) {
-          // Absolute path
-          fullUrl = `${baseDomain}${href}`;
-        } else {
-          // Relative path - improved handling
-          const baseDir = basePath.endsWith('/')
-            ? basePath
-            : basePath.substring(0, basePath.lastIndexOf('/') + 1);
-          fullUrl = `${baseDomain}${baseDir}${href}`;
-        }
-
-        // Normalize URL
-        const normalizedUrl = new URL(fullUrl);
-        fullUrl = normalizedUrl.href;
-
-        // Apply domain-specific filtering
-        if (baseDomain === 'https://developer.apple.com') {
-          // For Apple, maintain strict section filtering
-          if (fullUrl.includes('/documentation/')) {
-            const linkPath = normalizedUrl.pathname.toLowerCase();
-            const basePathLower = basePath.toLowerCase();
-            const basePathParts = basePathLower.split('/').filter((p) => p);
-            const linkPathParts = linkPath.split('/').filter((p) => p);
-
-            if (basePathParts.length >= 2 && linkPathParts.length >= 2) {
-              if (linkPathParts[0] === basePathParts[0] && linkPathParts[1] === basePathParts[1]) {
-                links.add(normalizeUrl(fullUrl));
-              }
-            }
-          }
-        } else {
-          // For non-Apple sites, be more permissive
-          // Include if it's on the same domain and shares some path similarity
-          if (normalizedUrl.origin === baseDomain) {
-            // For Swift Package Index, allow exploring the package documentation
-            if (baseDomain.includes('swiftpackageindex.com')) {
-              // Allow any path under the same package
-              const basePackageMatch = basePath.match(/\/([^\/]+\/[^\/]+)/);
-              const linkPackageMatch = normalizedUrl.pathname.match(/\/([^\/]+\/[^\/]+)/);
-
-              if (
-                basePackageMatch &&
-                linkPackageMatch &&
-                basePackageMatch[1] === linkPackageMatch[1]
-              ) {
-                links.add(normalizeUrl(fullUrl));
-              } else if (normalizedUrl.pathname.startsWith(basePath)) {
-                links.add(normalizeUrl(fullUrl));
-              }
-            } else if (baseDomain.includes('vercel.com') && basePath.startsWith('/docs')) {
-              // For Vercel docs, allow any path under /docs
-              if (normalizedUrl.pathname.startsWith('/docs')) {
-                links.add(normalizeUrl(fullUrl));
-              }
-            } else {
-              // For GitHub Pages and other sites, check if they're documentation sites
-              const pathParts = basePath.split('/').filter((p) => p);
-              const linkParts = normalizedUrl.pathname.split('/').filter((p) => p);
-
-              // If the base path contains 'docs' or 'documentation', allow broader exploration
-              if (
-                pathParts.length > 0 &&
-                (pathParts[0] === 'docs' || pathParts[0] === 'documentation')
-              ) {
-                // Allow any path that starts with the same docs root
-                if (linkParts.length > 0 && linkParts[0] === pathParts[0]) {
-                  links.add(normalizeUrl(fullUrl));
-                }
-              } else {
-                // For other sites, allow same directory and subdirectories
-                const baseDir = basePath.endsWith('/')
-                  ? basePath
-                  : basePath.substring(0, basePath.lastIndexOf('/') + 1);
-                if (normalizedUrl.pathname.startsWith(baseDir)) {
-                  links.add(normalizeUrl(fullUrl));
-                }
-              }
-            }
-          }
-        }
-      } catch {
-        // Invalid URL, skip it
-      }
-    });
-
-    return Array.from(links);
-  };
-
-  const scrapeUrl = async (urlToScrape: string): Promise<string> => {
-    try {
-      log(`Fetching content from ${urlToScrape}...`);
-
-      const response = await fetch('/api/scrape', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: urlToScrape, action: 'scrape', codeBlocksOnly }),
-      });
-
-      if (!response.ok) {
-        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          // If JSON parsing fails, use the default error message
-        }
-        log(`❌ Failed to fetch ${urlToScrape}: ${errorMessage}`);
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json();
-
-      // Check if we have the expected response structure
-      if (!data.success) {
-        const errorMsg = data.error || 'Scraping failed - unknown error';
-        log(`❌ Scraping failed for ${urlToScrape}: ${errorMsg}`);
-
-        // Add helpful context for specific errors
-        if (data.suggestion) {
-          log(`💡 ${data.suggestion}`);
-        }
-        if (data.attempts && data.attempts > 1) {
-          log(`🔄 Attempted ${data.attempts} times`);
-        }
-
-        throw new Error(errorMsg);
-      }
-
-      if (data.cached) {
-        log(`📦 Using cached content for ${urlToScrape}`);
-      }
-
-      const markdown = data.data?.markdown || '';
-      const contentLength = data.contentLength || markdown.length;
-
-      if (!markdown) {
-        log(`⚠️ Warning: Empty content returned for ${urlToScrape}`);
-      } else if (contentLength < 200) {
-        // Warn about suspiciously short content
-        log(`⚠️ Warning: Only ${contentLength} characters scraped from ${urlToScrape}`);
-        log(`💡 This might be truncated content. The scraper will retry if needed.`);
-      } else {
-        log(
-          `✅ Successfully scraped ${markdown.length.toLocaleString()} characters from ${urlToScrape}`
-        );
-      }
-
-      return markdown;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      // Check for common error patterns
-      if (errorMessage.includes('Failed to fetch')) {
-        log(`❌ Network error for ${urlToScrape}: Unable to connect to server`);
-      } else if (errorMessage.includes('timeout')) {
-        log(`❌ Timeout error for ${urlToScrape}: Page took too long to load`);
-      } else if (!errorMessage.includes('❌')) {
-        // Only log if we haven't already logged a specific error
-        log(`❌ Error scraping ${urlToScrape}: ${errorMessage}`);
-      }
-
-      throw error;
-    }
-  };
-
-  const processUrlsWithDepth = async (
-    urls: string[],
-    currentDepth: number,
-    maxDepth: number,
-    maxUrlsToProcess: number,
-    processedUrls: Set<string> = new Set(),
-    baseUrl: string = ''
-  ): Promise<ProcessingResult[]> => {
-    if (currentDepth > maxDepth) return [];
-
-    const results: ProcessingResult[] = [];
-    const newUrls = new Set<string>();
-
-    // Process URLs individually with controlled concurrency
-    const urlsToProcess = urls.filter(
-      (url) => !processedUrls.has(url) && processedUrls.size < maxUrlsToProcess
-    );
-
-    // Process URLs with controlled concurrency to avoid timeouts
-    const CONCURRENT_LIMIT = PROCESSING_CONFIG.CONCURRENT_LIMIT;
-    for (let i = 0; i < urlsToProcess.length; i += CONCURRENT_LIMIT) {
-      if (processedUrls.size >= maxUrlsToProcess) break;
-
-      const batch = urlsToProcess.slice(i, i + CONCURRENT_LIMIT);
-      const remainingCapacity = maxUrlsToProcess - processedUrls.size;
-      const batchToProcess = batch.slice(0, remainingCapacity);
-
-      // Mark URLs as processed before fetching to avoid duplicates
-      batchToProcess.forEach((url) => processedUrls.add(url));
-
-      // Process URLs in parallel with limited concurrency
-      const batchPromises = batchToProcess.map(async (url) => {
-        try {
-          const content = await scrapeUrl(url);
-
-          // Extract links for next depth level
-          if (currentDepth < maxDepth && content) {
-            const links = extractLinks(content, baseUrl || urls[0]);
-            links.forEach((link) => {
-              if (!processedUrls.has(link)) {
-                newUrls.add(link);
-              }
-            });
-            if (links.length > 0) {
-              log(`🔗 Found ${links.length} links to follow from ${url}`);
-            } else if (currentDepth < maxDepth) {
-              log(`⚠️ No links found to follow from ${url}`);
-            }
-          }
-
-          return { url, content };
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-          // Provide specific guidance based on error type
-          if (errorMessage.includes('Invalid URL')) {
-            log(`❌ Invalid URL format: ${url}`);
-          } else if (errorMessage.includes('Firecrawl API error')) {
-            log(`❌ API error for ${url}: ${errorMessage}`);
-            log(`💡 Tip: This might be a temporary issue. Try again in a few moments.`);
-          } else if (errorMessage.includes('No content returned')) {
-            log(
-              `❌ No content found for ${url}: The page might be empty or require authentication`
-            );
-          }
-
-          // Return with empty content
-          return { url, content: '' };
-        }
-      });
-
-      // Wait for batch to complete
-      const batchResults = await Promise.all(batchPromises);
-      results.push(...batchResults);
-
-      // Update progress after each batch
-      const progressPercent = Math.round(
-        Math.min(90, (processedUrls.size / maxUrlsToProcess) * 90)
-      );
-      setProgress(progressPercent);
-    }
-
-    // Process next depth level
-    if (currentDepth < maxDepth && newUrls.size > 0 && processedUrls.size < maxUrlsToProcess) {
-      // Only pass as many URLs as we have room for
-      const remainingCapacity = maxUrlsToProcess - processedUrls.size;
-      const urlsToProcess = Array.from(newUrls).slice(0, remainingCapacity);
-
-      const nextResults = await processUrlsWithDepth(
-        urlsToProcess,
-        currentDepth + 1,
-        maxDepth,
-        maxUrlsToProcess,
-        processedUrls,
-        baseUrl || urls[0]
-      );
-      results.push(...nextResults);
-    }
-
-    return results;
-  };
+  // Removed legacy processUrlsWithDepth function - now using streaming API
 
   const processUrl = async () => {
     // Validate URL
@@ -561,30 +247,19 @@ export default function Home() {
 
       let processedResults: ProcessingResult[] = [];
 
-      if (useCrawlMode) {
-        log(`🕷️ Using crawl mode for faster processing...`);
-        await startCrawl(trimmedUrl, maxUrls, depth);
+      log(`🕷️ Using crawl mode for faster processing...`);
+      await startCrawl(trimmedUrl, maxUrls);
 
-        // Wait for crawl to complete
-        while (isCrawling && !crawlError) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
-
-        if (crawlError) {
-          throw new Error(crawlError);
-        }
-
-        processedResults = crawlResults;
-      } else {
-        processedResults = await processUrlsWithDepth(
-          [trimmedUrl],
-          0,
-          depth,
-          maxUrls,
-          new Set(),
-          trimmedUrl
-        );
+      // Wait for crawl to complete
+      while (isCrawling && !crawlError) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
+
+      if (crawlError) {
+        throw new Error(crawlError);
+      }
+
+      processedResults = crawlResults;
 
       setResults(processedResults);
 
@@ -602,29 +277,17 @@ export default function Home() {
       const filteredResultsData = processedResults.map((r) => {
         let content = r.content;
 
-        if (useComprehensiveFilter) {
-          content = filterDocumentation(content, {
-            filterUrls,
-            filterAvailability,
-            filterNavigation: true,
-            filterLegalBoilerplate: true,
-            filterEmptyContent: true,
-            filterRedundantTypeAliases: true,
-            filterExcessivePlatformNotices: true,
-            filterFormattingArtifacts: true,
-            deduplicateContent,
-          });
-        } else {
-          content = removeCommonPhrases(content);
-          content = filterUrlsFromMarkdown(content);
-          content = filterAvailabilityStrings(content);
-          content = deduplicateMarkdown(content);
-        }
-
-        // Apply code blocks extraction if enabled
-        if (codeBlocksOnly) {
-          content = extractOnlyCodeBlocks(content);
-        }
+        content = filterDocumentation(content, {
+          filterUrls,
+          filterAvailability,
+          filterNavigation: true,
+          filterLegalBoilerplate: true,
+          filterEmptyContent: true,
+          filterRedundantTypeAliases: true,
+          filterExcessivePlatformNotices: true,
+          filterFormattingArtifacts: true,
+          deduplicateContent,
+        });
 
         return { url: r.url, content };
       });
@@ -712,166 +375,7 @@ export default function Home() {
     }
   };
 
-  const filterUrlsFromMarkdown = (markdown: string): string => {
-    if (!filterUrls) return markdown;
-
-    // Convert markdown links: [text](url) -> text
-    // This keeps the link text but removes the URL
-    let filtered = markdown.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
-
-    // Remove bare URLs that stand alone (not part of markdown syntax)
-    // Only remove URLs that are preceded by whitespace or start of line
-    // and followed by whitespace, punctuation, or end of line
-    filtered = filtered.replace(/(^|\s)(https?:\/\/[^\s<>\[\]()]+)(?=\s|[.,;:!?]|$)/gm, '$1');
-    filtered = filtered.replace(/(^|\s)(ftp:\/\/[^\s<>\[\]()]+)(?=\s|[.,;:!?]|$)/gm, '$1');
-
-    // Remove angle bracket URLs: <http://example.com> -> (empty)
-    // These are meant to be hidden anyway
-    filtered = filtered.replace(/<https?:\/\/[^>]+>/g, '');
-    filtered = filtered.replace(/<ftp:\/\/[^>]+>/g, '');
-
-    // Clean up any double spaces left behind
-    filtered = filtered.replace(/  +/g, ' ');
-
-    return filtered;
-  };
-
-  const removeCommonPhrases = (markdown: string): string => {
-    // Remove "Skip Navigation" links like [Skip Navigation](url)
-    let cleaned = markdown.replace(/\[Skip Navigation\]\([^)]+\)/gi, '');
-
-    // Also remove standalone "Skip Navigation" text
-    cleaned = cleaned.replace(/Skip Navigation/gi, '');
-
-    // Remove multi-line API Reference links like:
-    // API Reference\\
-    // Enumerations
-    // or
-    // [API Reference\\
-    // Macros](url)
-    cleaned = cleaned.replace(/\[?API Reference\s*\\\\\s*\n\s*[^\]]+\]?\([^)]+\)/g, '');
-    cleaned = cleaned.replace(/API Reference\s*\\\\\s*\n\s*[^\n]+/g, '');
-
-    // Remove standalone "API Reference"
-    cleaned = cleaned.replace(/^API Reference$/gm, '');
-
-    // Remove "Current page is" followed by any text
-    cleaned = cleaned.replace(/Current page is\s+[^\n]+/gi, '');
-
-    // Clean up multiple consecutive empty lines
-    cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
-
-    // Remove lines that are now empty after cleaning
-    const lines = cleaned.split('\n');
-    const filteredLines = lines.filter((line, index) => {
-      const trimmed = line.trim();
-      // Keep empty lines for paragraph breaks, but remove lines that only had removed content
-      return trimmed.length > 0 || (index > 0 && lines[index - 1].trim().length > 0);
-    });
-
-    return filteredLines.join('\n').replace(/\n{3,}/g, '\n\n');
-  };
-
-  const filterAvailabilityStrings = (markdown: string): string => {
-    if (!filterAvailability) return markdown;
-
-    // Pattern to match availability strings like:
-    // iOS 14.0+iPadOS 14.0+Mac Catalyst 14.0+tvOS 14.0+visionOS 1.0+watchOS 7.0+
-    // iOS 2.0+Beta iPadOS 2.0+Beta macOS 10.15+ etc.
-    const availabilityPattern =
-      /(iOS|iPadOS|macOS|Mac Catalyst|tvOS|visionOS|watchOS)[\s]*[\d.]+\+(?:Beta)?(?:\s*(?:iOS|iPadOS|macOS|Mac Catalyst|tvOS|visionOS|watchOS)[\s]*[\d.]+\+(?:Beta)?)*/g;
-
-    // Remove standalone availability strings
-    let filtered = markdown.replace(availabilityPattern, '');
-
-    // Also remove lines that only contain availability info (after removing the strings)
-    const lines = filtered.split('\n');
-    const filteredLines = lines.filter((line) => {
-      const trimmed = line.trim();
-      // Keep the line if it has content after removing availability strings
-      return trimmed.length > 0 || line === '';
-    });
-
-    // Clean up multiple consecutive empty lines
-    filtered = filteredLines.join('\n').replace(/\n{3,}/g, '\n\n');
-
-    return filtered;
-  };
-
-  const deduplicateMarkdown = (markdown: string): string => {
-    if (!deduplicateContent) return markdown;
-
-    // Split content into lines
-    const lines = markdown.split('\n');
-    const seenContent = new Set<string>();
-    const deduplicatedLines: string[] = [];
-
-    // Track paragraphs for de-duplication
-    let currentParagraph = '';
-
-    for (const line of lines) {
-      const trimmedLine = line.trim();
-
-      // Handle empty lines (paragraph breaks)
-      if (trimmedLine === '') {
-        if (currentParagraph && !seenContent.has(currentParagraph.trim())) {
-          seenContent.add(currentParagraph.trim());
-          deduplicatedLines.push(currentParagraph);
-        }
-        if (currentParagraph) {
-          deduplicatedLines.push('');
-        }
-        currentParagraph = '';
-        continue;
-      }
-
-      // Handle headers - always keep but track their content
-      if (trimmedLine.match(/^#{1,6}\s/)) {
-        // Flush current paragraph
-        if (currentParagraph && !seenContent.has(currentParagraph.trim())) {
-          seenContent.add(currentParagraph.trim());
-          deduplicatedLines.push(currentParagraph);
-          deduplicatedLines.push('');
-        }
-        currentParagraph = '';
-
-        // Check if we've seen this exact header before
-        if (!seenContent.has(trimmedLine)) {
-          seenContent.add(trimmedLine);
-          deduplicatedLines.push(line);
-        }
-        continue;
-      }
-
-      // Handle list items
-      if (trimmedLine.match(/^[-*+]\s/) || trimmedLine.match(/^\d+\.\s/)) {
-        // For list items, check if we've seen this exact item
-        if (!seenContent.has(trimmedLine)) {
-          seenContent.add(trimmedLine);
-          if (currentParagraph) {
-            deduplicatedLines.push(currentParagraph);
-            currentParagraph = '';
-          }
-          deduplicatedLines.push(line);
-        }
-        continue;
-      }
-
-      // Build paragraphs
-      currentParagraph += (currentParagraph ? '\n' : '') + line;
-    }
-
-    // Don't forget the last paragraph
-    if (currentParagraph && !seenContent.has(currentParagraph.trim())) {
-      deduplicatedLines.push(currentParagraph);
-    }
-
-    // Clean up multiple consecutive empty lines
-    let result = deduplicatedLines.join('\n');
-    result = result.replace(/\n{3,}/g, '\n\n');
-
-    return result;
-  };
+  // Removed legacy filtering functions - now using comprehensive filter
 
   const downloadMarkdown = () => {
     // Generate header with attribution
@@ -893,8 +397,6 @@ Total pages processed: ${results.length}
 URLs filtered: ${filterUrls ? 'Yes' : 'No'}
 Content de-duplicated: ${deduplicateContent ? 'Yes' : 'No'}
 Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
-Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
-Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
 -->
 
 `;
@@ -1124,7 +626,7 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="depth" className="block text-sm text-muted-foreground mb-2">
-                  Crawl Depth
+                  Crawl Depth <span className="text-xs">(ignored in crawl mode)</span>
                 </label>
                 <div className="relative">
                   <input
@@ -1134,7 +636,8 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
                     max="5"
                     value={depth}
                     onChange={(e) => setDepth(parseInt(e.target.value))}
-                    className="w-full px-4 py-2.5 border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    disabled={true}
+                    className="w-full px-4 py-2.5 border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <div className="absolute right-12 top-1/2 -translate-y-1/2 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded pointer-events-none">
                     levels
@@ -1226,48 +729,6 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
                   <p className="text-xs text-muted-foreground ml-7 -mt-2">
                     Remove platform availability info (iOS 14.0+, macOS 10.15+, etc.)
                   </p>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={useComprehensiveFilter}
-                      onChange={(e) => setUseComprehensiveFilter(e.target.checked)}
-                      className="w-4 h-4 text-primary bg-background border-input rounded focus:ring-primary focus:ring-2"
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      Comprehensive documentation filter
-                    </span>
-                  </label>
-                  <p className="text-xs text-muted-foreground ml-7 -mt-2">
-                    Apply advanced filtering to remove navigation, legal text, empty sections, and
-                    other documentation noise
-                  </p>
-                  <label className="flex items-center gap-3 cursor-pointer mt-4">
-                    <input
-                      type="checkbox"
-                      checked={codeBlocksOnly}
-                      onChange={(e) => setCodeBlocksOnly(e.target.checked)}
-                      className="w-4 h-4 text-primary bg-background border-input rounded focus:ring-primary focus:ring-2"
-                    />
-                    <span className="text-sm text-muted-foreground">Extract code blocks only</span>
-                  </label>
-                  <p className="text-xs text-muted-foreground ml-7 -mt-2">
-                    Return only code examples from the documentation (handles unclosed blocks)
-                  </p>
-                  <label className="flex items-center gap-3 cursor-pointer mt-4">
-                    <input
-                      type="checkbox"
-                      checked={useCrawlMode}
-                      onChange={(e) => setUseCrawlMode(e.target.checked)}
-                      className="w-4 h-4 text-primary bg-background border-input rounded focus:ring-primary focus:ring-2"
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      Use deep crawl mode (Beta)
-                    </span>
-                  </label>
-                  <p className="text-xs text-muted-foreground ml-7 -mt-2">
-                    Use Firecrawl&apos;s crawl API for faster processing of multiple pages with
-                    real-time progress
-                  </p>
                 </div>
               )}
             </div>
@@ -1275,8 +736,8 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
 
           {/* Process Button */}
           <button
-            onClick={isProcessing ? (useCrawlMode ? cancelCrawl : undefined) : processUrl}
-            disabled={isProcessing && !useCrawlMode}
+            onClick={isProcessing ? cancelCrawl : processUrl}
+            disabled={false}
             className="w-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground py-3.5 px-6 rounded-xl font-medium hover:from-primary/90 hover:to-primary/70 disabled:from-primary/50 disabled:to-primary/40 disabled:opacity-75 disabled:cursor-not-allowed transition-all duration-300 ease-out shadow-md shadow-primary/10 hover:shadow-2xl hover:shadow-primary/25 hover:-translate-y-0.5"
           >
             {isProcessing ? (
@@ -1296,9 +757,7 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                {useCrawlMode
-                  ? `${crawlStatus === 'crawling' ? 'Crawling' : 'Processing'} Documentation... (Click to cancel)`
-                  : 'Processing Documentation...'}
+                {`${crawlStatus === 'crawling' ? 'Crawling' : 'Processing'} Documentation... (Click to cancel)`}
               </span>
             ) : (
               'Process Documentation'
@@ -1395,9 +854,7 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
           {stats.urls > 0 && (
             <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl shadow-sm border border-primary/20 p-6">
               <h4 className="text-sm font-medium text-foreground mb-4">Statistics</h4>
-              <div
-                className={`grid ${useCrawlMode && crawlCreditsUsed > 0 ? 'grid-cols-4' : 'grid-cols-3'} gap-4`}
-              >
+              <div className={`grid ${crawlCreditsUsed > 0 ? 'grid-cols-4' : 'grid-cols-3'} gap-4`}>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-primary">{stats.urls}</div>
                   <div className="text-xs text-muted-foreground mt-1">URLs</div>
@@ -1412,7 +869,7 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">Lines</div>
                 </div>
-                {useCrawlMode && crawlCreditsUsed > 0 && (
+                {crawlCreditsUsed > 0 && (
                   <div className="text-center">
                     <div className="text-2xl font-bold text-primary">{crawlCreditsUsed}</div>
                     <div className="text-xs text-muted-foreground mt-1">Credits</div>

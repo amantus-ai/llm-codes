@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
 import { filterDocumentation } from '@/utils/documentation-filter';
-import { extractOnlyCodeBlocks } from '@/utils/code-extraction';
 
 interface CrawlStatusMessage {
   type: 'status' | 'progress' | 'url_complete' | 'error' | 'complete';
@@ -30,7 +29,6 @@ interface UseCrawlOptions {
     filterAvailability: boolean;
     deduplicateContent: boolean;
     useComprehensiveFilter: boolean;
-    codeBlocksOnly: boolean;
   };
 }
 
@@ -46,7 +44,7 @@ export function useCrawl(options: UseCrawlOptions = {}) {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const startCrawl = useCallback(
-    async (url: string, limit: number = 10, maxDepth: number = 2) => {
+    async (url: string, limit: number = 10) => {
       setIsProcessing(true);
       setError(null);
       setProgress(0);
@@ -59,7 +57,7 @@ export function useCrawl(options: UseCrawlOptions = {}) {
         const startResponse = await fetch('/api/crawl/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url, limit, maxDepth }),
+          body: JSON.stringify({ url, limit }),
         });
 
         if (!startResponse.ok) {
@@ -168,11 +166,6 @@ export function useCrawl(options: UseCrawlOptions = {}) {
                             filterFormattingArtifacts: true,
                             deduplicateContent: options.filterOptions.deduplicateContent,
                           });
-                        }
-
-                        // Extract only code blocks if requested
-                        if (options.filterOptions?.codeBlocksOnly) {
-                          filteredContent = extractOnlyCodeBlocks(filteredContent);
                         }
 
                         const result = { url: message.url, content: filteredContent };

@@ -48,7 +48,6 @@ describe('POST /api/crawl/start', () => {
       body: JSON.stringify({
         url: 'https://docs.example.com',
         limit: 10,
-        maxDepth: 2,
       }),
     });
 
@@ -61,7 +60,6 @@ describe('POST /api/crawl/start', () => {
       jobId: 'test-job-123',
       url: 'https://docs.example.com',
       limit: 10,
-      maxDepth: 2,
     });
     expect(cacheService.setCrawlJob).toHaveBeenCalledWith(
       'test-job-123',
@@ -118,6 +116,8 @@ describe('POST /api/crawl/start', () => {
     const { http2Fetch } = await import('@/lib/http2-client');
     const { cacheService } = await import('@/lib/cache/redis-cache');
 
+    // Reset circuit breaker to allow request
+    (cacheService.firecrawlCircuitBreaker.canRequest as Mock).mockResolvedValue(true);
     (isValidDocumentationUrl as Mock).mockReturnValue(true);
     (http2Fetch as Mock).mockResolvedValue({
       ok: false,

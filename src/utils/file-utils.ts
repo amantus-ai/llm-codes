@@ -1,11 +1,5 @@
 import { generateFilename } from './url-utils';
-import {
-  removeCommonPhrases,
-  filterUrlsFromMarkdown,
-  filterAvailabilityStrings,
-  deduplicateMarkdown,
-  is404Page,
-} from './content-processing';
+import { is404Page } from './content-processing';
 import { filterDocumentation } from './documentation-filter';
 
 interface ProcessingResult {
@@ -19,18 +13,10 @@ interface DownloadOptions {
   filterUrls: boolean;
   deduplicateContent: boolean;
   filterAvailability: boolean;
-  useComprehensiveFilter?: boolean;
 }
 
 export function downloadMarkdown(options: DownloadOptions): void {
-  const {
-    url,
-    results,
-    filterUrls,
-    deduplicateContent,
-    filterAvailability,
-    useComprehensiveFilter = true,
-  } = options;
+  const { url, results, filterUrls, deduplicateContent, filterAvailability } = options;
 
   // Generate header with attribution
   const now = new Date();
@@ -67,26 +53,18 @@ Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
     .map((r) => {
       let content = r.content;
 
-      if (useComprehensiveFilter) {
-        // Use the new comprehensive filter
-        content = filterDocumentation(content, {
-          filterUrls,
-          filterAvailability,
-          filterNavigation: true,
-          filterLegalBoilerplate: true,
-          filterEmptyContent: true,
-          filterRedundantTypeAliases: true,
-          filterExcessivePlatformNotices: true,
-          filterFormattingArtifacts: true,
-          deduplicateContent,
-        });
-      } else {
-        // Use the legacy filtering approach
-        content = removeCommonPhrases(content);
-        content = filterUrlsFromMarkdown(content, filterUrls);
-        content = filterAvailabilityStrings(content, filterAvailability);
-        content = deduplicateMarkdown(content, deduplicateContent);
-      }
+      // Use the comprehensive filter
+      content = filterDocumentation(content, {
+        filterUrls,
+        filterAvailability,
+        filterNavigation: true,
+        filterLegalBoilerplate: true,
+        filterEmptyContent: true,
+        filterRedundantTypeAliases: true,
+        filterExcessivePlatformNotices: true,
+        filterFormattingArtifacts: true,
+        deduplicateContent,
+      });
 
       return { url: r.url, content };
     })

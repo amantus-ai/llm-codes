@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { url, limit = 10, maxDepth = 2 } = body;
+    const { url, limit = 10 } = body;
 
     if (!isValidDocumentationUrl(url)) {
       return NextResponse.json(
@@ -52,11 +52,9 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           url,
           limit,
-          maxDepth,
-          formats: ['markdown'],
-          onlyMainContent: true,
-          // Include scrapeOptions for consistency with single scrape
           scrapeOptions: {
+            formats: ['markdown'],
+            onlyMainContent: true,
             waitFor: PROCESSING_CONFIG.FIRECRAWL_WAIT_TIME,
             timeout: PROCESSING_CONFIG.FIRECRAWL_TIMEOUT,
             headers: {
@@ -76,7 +74,6 @@ export async function POST(request: NextRequest) {
             id: data.id,
             url,
             limit,
-            maxDepth,
             status: 'crawling',
             startedAt: new Date().toISOString(),
             totalPages: 0,
@@ -95,7 +92,6 @@ export async function POST(request: NextRequest) {
             jobId: data.id,
             url,
             limit,
-            maxDepth,
           });
         }
 
@@ -108,6 +104,7 @@ export async function POST(request: NextRequest) {
 
       // Handle error response
       let errorMessage = `Firecrawl API error (${response.status})`;
+      let errorDetails = null;
 
       try {
         const errorText = await response.text();
@@ -115,6 +112,11 @@ export async function POST(request: NextRequest) {
           try {
             const errorData = JSON.parse(errorText);
             errorMessage = errorData.error || errorData.message || errorText;
+            // Include detailed error information if available
+            if (errorData.details) {
+              errorDetails = errorData.details;
+              console.error(`Firecrawl API detailed error for ${url}:`, errorData.details);
+            }
           } catch {
             errorMessage = `Firecrawl API error: ${errorText}`;
           }
@@ -137,7 +139,11 @@ export async function POST(request: NextRequest) {
         await cacheService.firecrawlCircuitBreaker.recordFailure();
       }
 
-      return NextResponse.json({ error: errorMessage }, { status: response.status });
+      const errorResponse: { error: string; details?: unknown } = { error: errorMessage };
+      if (errorDetails) {
+        errorResponse.details = errorDetails;
+      }
+      return NextResponse.json(errorResponse, { status: response.status });
     } catch (error) {
       // Network or other error
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';

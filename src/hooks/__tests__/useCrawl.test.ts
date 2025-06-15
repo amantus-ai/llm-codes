@@ -47,7 +47,7 @@ describe('useCrawl', () => {
       })
     );
 
-    await result.current.startCrawl('https://invalid.com', 10, 2);
+    await result.current.startCrawl('https://invalid.com', 10);
 
     await waitFor(() => {
       expect(result.current.error).toBe('Invalid URL');
@@ -104,7 +104,7 @@ describe('useCrawl', () => {
       .mockResolvedValueOnce(mockStartResponse)
       .mockResolvedValueOnce(mockStatusResponse);
 
-    await result.current.startCrawl('https://example.com', 10, 2);
+    await result.current.startCrawl('https://example.com', 10);
 
     await waitFor(() => {
       expect(onProgress).toHaveBeenCalledWith(5, 10, 5);

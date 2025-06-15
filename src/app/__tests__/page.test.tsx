@@ -3,10 +3,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Home from '../page';
 
 // Mock modules
-vi.mock('../api/scrape/route', () => ({
-  POST: vi.fn(),
-}));
-
 vi.mock('@/hooks/useStreamingScrape', () => ({
   useStreamingScrape: () => ({
     processUrls: vi.fn(),
@@ -16,6 +12,37 @@ vi.mock('@/hooks/useStreamingScrape', () => ({
     progress: 0,
     error: null,
   }),
+}));
+
+vi.mock('@/hooks/useCrawl', () => ({
+  useCrawl: () => ({
+    startCrawl: vi.fn(),
+    cancel: vi.fn(),
+    getResults: vi.fn(),
+    isProcessing: false,
+    results: [],
+    progress: 0,
+    error: null,
+    status: 'idle',
+    jobId: null,
+    creditsUsed: 0,
+  }),
+}));
+
+// Mock Next.js Image component
+interface ImageProps {
+  src: string;
+  alt: string;
+  width?: number;
+  height?: number;
+  className?: string;
+}
+
+vi.mock('next/image', () => ({
+  default: ({ src, alt, width, height, className }: ImageProps) => {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt={alt} width={width} height={height} className={className} />;
+  },
 }));
 
 // Mock fetch
@@ -131,7 +158,7 @@ describe('Home Page', () => {
         success: true,
         data: { markdown: '# Test Content' },
       }),
-    } as Response);
+    } as unknown as Response);
 
     render(<Home />);
 
