@@ -9,6 +9,7 @@ import {
   getSupportedDomainsText,
   isValidDocumentationUrl,
   updateUrlWithDocumentation,
+  normalizeUrl,
 } from '@/utils/url-utils';
 import { filterDocumentation } from '@/utils/documentation-filter';
 
@@ -213,7 +214,7 @@ export default function Home() {
 
             if (basePathParts.length >= 2 && linkPathParts.length >= 2) {
               if (linkPathParts[0] === basePathParts[0] && linkPathParts[1] === basePathParts[1]) {
-                links.add(fullUrl);
+                links.add(normalizeUrl(fullUrl));
               }
             }
           }
@@ -232,14 +233,14 @@ export default function Home() {
                 linkPackageMatch &&
                 basePackageMatch[1] === linkPackageMatch[1]
               ) {
-                links.add(fullUrl);
+                links.add(normalizeUrl(fullUrl));
               } else if (normalizedUrl.pathname.startsWith(basePath)) {
-                links.add(fullUrl);
+                links.add(normalizeUrl(fullUrl));
               }
             } else if (baseDomain.includes('vercel.com') && basePath.startsWith('/docs')) {
               // For Vercel docs, allow any path under /docs
               if (normalizedUrl.pathname.startsWith('/docs')) {
-                links.add(fullUrl);
+                links.add(normalizeUrl(fullUrl));
               }
             } else {
               // For GitHub Pages and other sites, check if they're documentation sites
@@ -253,7 +254,7 @@ export default function Home() {
               ) {
                 // Allow any path that starts with the same docs root
                 if (linkParts.length > 0 && linkParts[0] === pathParts[0]) {
-                  links.add(fullUrl);
+                  links.add(normalizeUrl(fullUrl));
                 }
               } else {
                 // For other sites, allow same directory and subdirectories
@@ -261,7 +262,7 @@ export default function Home() {
                   ? basePath
                   : basePath.substring(0, basePath.lastIndexOf('/') + 1);
                 if (normalizedUrl.pathname.startsWith(baseDir)) {
-                  links.add(fullUrl);
+                  links.add(normalizeUrl(fullUrl));
                 }
               }
             }
@@ -1292,6 +1293,15 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                 className="text-primary hover:text-primary/90 underline mt-1 inline-block"
               >
                 Learn how llm.codes transforms documentation for AI agents →
+              </a>
+              <br />
+              <a
+                href="https://github.com/steipete/agent-rules/tree/main/docs"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:text-primary/90 underline mt-1 inline-block"
+              >
+                For more ready-to-use document sets, see steipete/agent-rules on GitHub →
               </a>
             </p>
           )}
