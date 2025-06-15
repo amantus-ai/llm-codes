@@ -446,13 +446,13 @@ export const ALLOWED_DOMAINS = {
 // Processing configuration
 export const PROCESSING_CONFIG = {
   CACHE_DURATION: (30 * 24 * 60 * 60 * 1000) as number, // 1 month in ms
-  FIRECRAWL_WAIT_TIME: 5000 as number, // Wait time for Firecrawl API in ms
+  FIRECRAWL_WAIT_TIME: 3000 as number, // Wait time for Firecrawl API in ms
   DEFAULT_CRAWL_DEPTH: 2 as number,
   DEFAULT_MAX_URLS: 200 as number,
   // Retry configuration
   MAX_RETRIES: 5 as number, // Maximum number of retry attempts
   INITIAL_RETRY_DELAY: 1000 as number, // Initial delay in ms (1 second)
-  MAX_RETRY_DELAY: 30000 as number, // Maximum delay in ms (30 seconds)
+  MAX_RETRY_DELAY: 10000 as number, // Maximum delay in ms (10 seconds)
   RETRY_STATUS_CODES: [429, 500, 502, 503, 504] as number[], // HTTP status codes that trigger retries
   MIN_CONTENT_LENGTH: 200 as number, // Minimum valid content length
 };

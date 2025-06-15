@@ -373,8 +373,8 @@ export default function Home() {
       (url) => !processedUrls.has(url) && processedUrls.size < maxUrlsToProcess
     );
 
-    // Process URLs with controlled concurrency (5 at a time)
-    const CONCURRENT_LIMIT = 5;
+    // Process URLs with controlled concurrency (15 at a time)
+    const CONCURRENT_LIMIT = 15;
     for (let i = 0; i < urlsToProcess.length; i += CONCURRENT_LIMIT) {
       if (processedUrls.size >= maxUrlsToProcess) break;
 
