@@ -287,3 +287,36 @@
 .animate-pulse-ring {
   animation: pulse-ring 2s infinite;
 }
+
+/* Activity log animations */
+@keyframes slide-down {
+  from {
+    max-height: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 12rem; /* 48 in Tailwind = 12rem */
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    max-height: 12rem;
+    opacity: 1;
+  }
+  to {
+    max-height: 0;
+    opacity: 0;
+  }
+}
+
+.activity-log-enter {
+  animation: slide-down 300ms ease-out forwards;
+  overflow: hidden;
+}
+
+.activity-log-exit {
+  animation: slide-up 300ms ease-in forwards;
+  overflow: hidden;
+}
