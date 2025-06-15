@@ -435,11 +435,6 @@ export default function Home() {
         Math.min(90, (processedUrls.size / maxUrlsToProcess) * 90)
       );
       setProgress(progressPercent);
-
-      // Add a small delay between batches to avoid overwhelming the server
-      if (i + CONCURRENT_LIMIT < urlsToProcess.length && processedUrls.size < maxUrlsToProcess) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
     }
 
     // Process next depth level
