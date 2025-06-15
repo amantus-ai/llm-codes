@@ -47,7 +47,7 @@ describe('url-utils', () => {
 
   describe('getSupportedDomainsText', () => {
     it('should return formatted domain count', () => {
-      expect(getSupportedDomainsText()).toBe('69 supported documentation sites');
+      expect(getSupportedDomainsText()).toBe('70 supported documentation sites');
     });
   });
 

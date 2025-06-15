@@ -2,6 +2,7 @@
 import { Redis } from '@upstash/redis';
 import { compress, decompress } from 'lz-string';
 import crypto from 'crypto';
+import { normalizeUrl } from '@/utils/url-utils';
 
 interface CacheEntry {
   value: string;
@@ -48,20 +49,14 @@ export class RedisCache {
 
   /**
    * Generate a cache key from a URL
+   * Normalizes the URL first to ensure consistent caching
    */
   private getCacheKey(url: string): string {
-    const hash = crypto.createHash('sha256').update(url).digest('hex').substring(0, 16);
-    return `page:${hash}:v2`;
-  }
-
-  /**
-   * Generate a cache key for batch operations
-   */
-  private getBatchCacheKey(urls: string[]): string {
-    const sortedUrls = [...urls].sort();
-    const combined = sortedUrls.join('|');
-    const hash = crypto.createHash('sha256').update(combined).digest('hex').substring(0, 16);
-    return `batch:${hash}:v2`;
+    // Normalize URL to improve cache hit rate
+    const normalized = normalizeUrl(url);
+    // Use 32 characters (128 bits) for better collision resistance
+    const hash = crypto.createHash('sha256').update(normalized).digest('hex').substring(0, 32);
+    return `page:${hash}:v3`; // Bump version to v3 to invalidate old cache entries
   }
 
   /**
