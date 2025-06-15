@@ -30,6 +30,7 @@ export default function Home() {
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
   const [results, setResults] = useState<ProcessingResult[]>([]);
+  const [filteredResults, setFilteredResults] = useState<ProcessingResult[]>([]);
   const [error, setError] = useState('');
   const [stats, setStats] = useState({ lines: 0, size: 0, urls: 0 });
   const [showLogs, setShowLogs] = useState(false);
@@ -571,6 +572,7 @@ export default function Home() {
     setProgress(0);
     setLogs([]);
     setResults([]);
+    setFilteredResults([]);
     setStats({ lines: 0, size: 0, urls: 0 });
 
     // Update the browser URL to include the documentation URL
@@ -605,7 +607,7 @@ export default function Home() {
       const unfilteredSizeKB = new Blob([unfilteredContent]).size / 1024;
 
       // Apply the same filters as in download function
-      const filteredResults = processedResults.map((r) => {
+      const filteredResultsData = processedResults.map((r) => {
         let content = r.content;
 
         if (useComprehensiveFilter) {
@@ -630,8 +632,11 @@ export default function Home() {
         return { url: r.url, content };
       });
 
+      // Store filtered results for download
+      setFilteredResults(filteredResultsData);
+
       // Calculate size after filtering
-      const filteredContent = filteredResults
+      const filteredContent = filteredResultsData
         .map((r) => `# ${r.url}\n\n${r.content}\n\n---\n\n`)
         .join('');
       const filteredSizeKB = new Blob([filteredContent]).size / 1024;
@@ -896,35 +901,9 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
 
 `;
 
-    const processedResults = results.map((r) => {
-      let content = r.content;
-
-      if (useComprehensiveFilter) {
-        // Use the comprehensive documentation filter
-        content = filterDocumentation(content, {
-          filterUrls,
-          filterAvailability,
-          filterNavigation: true,
-          filterLegalBoilerplate: true,
-          filterEmptyContent: true,
-          filterRedundantTypeAliases: true,
-          filterExcessivePlatformNotices: true,
-          filterFormattingArtifacts: true,
-          deduplicateContent,
-        });
-      } else {
-        // Use the original simple filters
-        content = removeCommonPhrases(content); // Remove common phrases first
-        content = filterUrlsFromMarkdown(content);
-        content = filterAvailabilityStrings(content);
-        content = deduplicateMarkdown(content);
-      }
-
-      return { url: r.url, content };
-    });
-
+    // Use pre-filtered results
     const content =
-      header + processedResults.map((r) => `# ${r.url}\n\n${r.content}\n\n---\n\n`).join('');
+      header + filteredResults.map((r) => `# ${r.url}\n\n${r.content}\n\n---\n\n`).join('');
     const blob = new Blob([content], { type: 'text/markdown' });
     const downloadUrl = URL.createObjectURL(blob);
 
