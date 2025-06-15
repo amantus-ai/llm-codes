@@ -144,7 +144,7 @@ export const ALLOWED_DOMAINS = {
     category: 'Web Frameworks',
   },
   VAPOR: {
-    pattern: 'https://docs.vapor.codes',
+    pattern: /^https:\/\/docs\.vapor\.codes\//,
     name: 'Vapor',
     example: 'https://docs.vapor.codes',
     category: 'Web Frameworks',
