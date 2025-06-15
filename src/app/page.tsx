@@ -12,6 +12,7 @@ import {
   normalizeUrl,
 } from '@/utils/url-utils';
 import { filterDocumentation } from '@/utils/documentation-filter';
+import { extractOnlyCodeBlocks } from '@/utils/code-extraction';
 
 interface ProcessingResult {
   url: string;
@@ -26,6 +27,7 @@ export default function Home() {
   const [deduplicateContent, setDeduplicateContent] = useState(true);
   const [filterAvailability, setFilterAvailability] = useState(true);
   const [useComprehensiveFilter, setUseComprehensiveFilter] = useState(true);
+  const [codeBlocksOnly, setCodeBlocksOnly] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
@@ -285,7 +287,7 @@ export default function Home() {
       const response = await fetch('/api/scrape', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: urlToScrape, action: 'scrape' }),
+        body: JSON.stringify({ url: urlToScrape, action: 'scrape', codeBlocksOnly }),
       });
 
       if (!response.ok) {
@@ -553,6 +555,11 @@ export default function Home() {
           content = filterUrlsFromMarkdown(content);
           content = filterAvailabilityStrings(content);
           content = deduplicateMarkdown(content);
+        }
+
+        // Apply code blocks extraction if enabled
+        if (codeBlocksOnly) {
+          content = extractOnlyCodeBlocks(content);
         }
 
         return { url: r.url, content };
@@ -823,6 +830,7 @@ URLs filtered: ${filterUrls ? 'Yes' : 'No'}
 Content de-duplicated: ${deduplicateContent ? 'Yes' : 'No'}
 Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
 Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
+Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
 -->
 
 `;
@@ -1168,6 +1176,18 @@ Comprehensive filtering: ${useComprehensiveFilter ? 'Yes' : 'No'}
                   <p className="text-xs text-muted-foreground ml-7 -mt-2">
                     Apply advanced filtering to remove navigation, legal text, empty sections, and
                     other documentation noise
+                  </p>
+                  <label className="flex items-center gap-3 cursor-pointer mt-4">
+                    <input
+                      type="checkbox"
+                      checked={codeBlocksOnly}
+                      onChange={(e) => setCodeBlocksOnly(e.target.checked)}
+                      className="w-4 h-4 text-primary bg-background border-input rounded focus:ring-primary focus:ring-2"
+                    />
+                    <span className="text-sm text-muted-foreground">Extract code blocks only</span>
+                  </label>
+                  <p className="text-xs text-muted-foreground ml-7 -mt-2">
+                    Return only code examples from the documentation (handles unclosed blocks)
                   </p>
                 </div>
               )}

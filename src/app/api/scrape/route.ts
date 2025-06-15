@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { url, action } = body;
+    const { url, action, codeBlocksOnly = false } = body;
 
     if (!isValidDocumentationUrl(url)) {
       return NextResponse.json(
@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
             success: true,
             data: { markdown: cached },
             cached: true,
+            codeBlocksOnly, // Pass through the parameter
           });
         }
       }
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
 
       if (!lockId) {
         // Another process is already scraping this URL
-        console.log(`URL ${url} is already being processed, waiting for completion...`);
+        console.warn(`URL ${url} is already being processed, waiting for completion...`);
 
         // Wait for the lock to be released
         const lockReleased = await cacheService.waitForLock(url);
@@ -64,6 +65,7 @@ export async function POST(request: NextRequest) {
               data: { markdown: cachedAfterWait },
               cached: true,
               waitedForLock: true,
+              codeBlocksOnly, // Pass through the parameter
             });
           }
         }
@@ -196,6 +198,7 @@ export async function POST(request: NextRequest) {
                   cached: false,
                   retriesUsed: attempt,
                   contentLength, // Include length in response for debugging
+                  codeBlocksOnly, // Pass through the parameter
                 });
               }
 
