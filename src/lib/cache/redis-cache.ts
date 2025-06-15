@@ -4,6 +4,7 @@ import { compress, decompress } from 'lz-string';
 import crypto from 'crypto';
 import { normalizeUrl } from '@/utils/url-utils';
 import { PROCESSING_CONFIG } from '@/constants';
+import { CircuitBreaker } from '@/lib/circuit-breaker';
 
 interface CacheEntry {
   value: string;
@@ -24,6 +25,7 @@ export class RedisCache {
   private readonly ttl: number;
   private readonly compressionThreshold: number;
   private readonly localCacheTTL: number = PROCESSING_CONFIG.LOCAL_CACHE_TTL;
+  public firecrawlCircuitBreaker: CircuitBreaker;
 
   constructor(
     ttl: number = PROCESSING_CONFIG.CACHE_DURATION / 1000, // Convert ms to seconds
@@ -32,6 +34,14 @@ export class RedisCache {
     this.ttl = ttl;
     this.compressionThreshold = compressionThreshold;
     this.initializeRedis();
+
+    // Initialize circuit breaker with Redis instance
+    this.firecrawlCircuitBreaker = new CircuitBreaker(this.redis, 'firecrawl', {
+      failureThreshold: 5,
+      successThreshold: 2,
+      timeout: 60000, // 1 minute
+      halfOpenRequests: 3,
+    });
   }
 
   private initializeRedis() {
@@ -315,6 +325,88 @@ export class RedisCache {
    */
   isRedisAvailable(): boolean {
     return this.redis !== null;
+  }
+
+  /**
+   * Acquire a distributed lock for a URL
+   * Returns lock ID if successful, null if lock already held
+   */
+  async acquireLock(url: string, ttl: number = 60000): Promise<string | null> {
+    if (!this.redis) return crypto.randomUUID(); // Fallback to allow operation without Redis
+
+    const lockKey = `lock:${this.getCacheKey(url)}`;
+    const lockId = crypto.randomUUID();
+
+    try {
+      // SET with NX (only if not exists) and EX (expiry)
+      const result = await this.redis.set(lockKey, lockId, {
+        nx: true,
+        ex: Math.ceil(ttl / 1000),
+      });
+
+      return result === 'OK' ? lockId : null;
+    } catch (error) {
+      console.error('Failed to acquire lock:', error);
+      return crypto.randomUUID(); // Fallback to allow operation
+    }
+  }
+
+  /**
+   * Release a distributed lock
+   */
+  async releaseLock(url: string, lockId: string): Promise<boolean> {
+    if (!this.redis) return true; // No-op without Redis
+
+    const lockKey = `lock:${this.getCacheKey(url)}`;
+
+    try {
+      // Only delete if we own the lock (compare lockId)
+      const currentLockId = await this.redis.get<string>(lockKey);
+      if (currentLockId === lockId) {
+        await this.redis.del(lockKey);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to release lock:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if a URL is currently being processed
+   */
+  async isLocked(url: string): Promise<boolean> {
+    if (!this.redis) return false;
+
+    const lockKey = `lock:${this.getCacheKey(url)}`;
+
+    try {
+      const exists = await this.redis.exists(lockKey);
+      return exists === 1;
+    } catch (error) {
+      console.error('Failed to check lock:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Wait for a lock to be released (with timeout)
+   */
+  async waitForLock(url: string, timeout: number = 30000): Promise<boolean> {
+    if (!this.redis) return true;
+
+    const startTime = Date.now();
+    const checkInterval = 500; // Check every 500ms
+
+    while (Date.now() - startTime < timeout) {
+      const isLocked = await this.isLocked(url);
+      if (!isLocked) return true;
+
+      await new Promise((resolve) => setTimeout(resolve, checkInterval));
+    }
+
+    return false; // Timeout reached
   }
 }
 
