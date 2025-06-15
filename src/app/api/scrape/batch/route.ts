@@ -215,8 +215,8 @@ export async function POST(request: NextRequest) {
     // Fetch uncached URLs
     if (urlsToFetch.length > 0) {
       // Check if all URLs are from Apple docs (which often timeout in parallel)
-      const isAppleDocs = urlsToFetch.every(url => url.includes('developer.apple.com'));
-      
+      const isAppleDocs = urlsToFetch.every((url) => url.includes('developer.apple.com'));
+
       if (isAppleDocs && urlsToFetch.length > 5) {
         // Sequential processing for Apple docs to avoid overwhelming their servers
         const fetchResults = [];
@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
           fetchResults.push(result);
           // Small delay between requests for Apple docs
           if (urlsToFetch.indexOf(url) < urlsToFetch.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise((resolve) => setTimeout(resolve, 1000));
           }
         }
         results.push(...fetchResults);
