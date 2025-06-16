@@ -861,7 +861,7 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
               <p className="text-xs text-muted-foreground">
                 {getSupportedDomainsText()}.{' '}
                 <a
-                  href="https://github.com/steipete/llm-codes#supported-documentation-sites"
+                  href="https://github.com/amantus-ai/llm-codes#supported-documentation-sites"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline hover:text-foreground transition-colors"

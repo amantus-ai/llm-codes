@@ -177,7 +177,7 @@ A small number of popular documentation sites don't follow standard patterns and
 
 Most documentation sites are automatically supported! If your site follows standard documentation URL patterns (like having `/docs` in the path or `docs.` as a subdomain), it should work without any changes.
 
-If you find a documentation site that isn't supported, please [open an issue](https://github.com/steipete/llm-codes/issues) and we'll either adjust our patterns or add it as an exception.
+If you find a documentation site that isn't supported, please [open an issue](https://github.com/amantus-ai/llm-codes/issues) and we'll either adjust our patterns or add it as an exception.
 
 ## Configuration Options
 
