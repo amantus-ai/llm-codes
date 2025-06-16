@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
 
                 await cacheService.firecrawlCircuitBreaker.recordSuccess();
                 cacheService.incrementFirecrawlFetches();
-                console.log(`[FIRECRAWL SUCCESS] ${url} - ${content.length} chars`);
+                // Success recorded in circuit breaker
                 return { url, content, cached: false };
               } else {
                 controller.enqueue(
@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
                   stats: stats.summary,
                 })
               );
-              console.log('\n' + stats.summary);
+              // Stats already sent to client via SSE
 
               controller.enqueue(sendMessage({ type: 'done' }));
               controller.close();
@@ -262,8 +262,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Stream API Error:', error);
-    // Log cache statistics even on error
-    console.log('\n' + cacheService.getStats().summary);
+    // Cache statistics available via cacheService.getStats()
     return new Response(
       encoder.encode(
         `data: ${JSON.stringify({ type: 'url_error', error: 'Internal server error' })}\n\n`

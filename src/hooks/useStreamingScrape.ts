@@ -148,10 +148,7 @@ export function useStreamingScrape(options: UseStreamingScrapeOptions = {}) {
                       if (message.stats && options.onStats) {
                         options.onStats(message.stats);
                       }
-                      // Also log to console for debugging
-                      if (message.stats) {
-                        console.log('\n' + message.stats);
-                      }
+                      // Stats available via onStats callback
                       break;
 
                     case 'done':
