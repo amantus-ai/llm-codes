@@ -40,6 +40,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { urls, depth = 0, maxUrls = 10 } = body;
 
+    // Enforce hard limits
+    const enforcedDepth = Math.min(depth, PROCESSING_CONFIG.MAX_CRAWL_DEPTH);
+    const enforcedMaxUrls = Math.min(maxUrls, PROCESSING_CONFIG.MAX_ALLOWED_URLS);
+
     if (!urls || !Array.isArray(urls) || urls.length === 0) {
       return new Response(
         encoder.encode(
@@ -114,7 +118,7 @@ export async function POST(request: NextRequest) {
               sendMessage({
                 type: 'progress',
                 progress: processedUrls.size,
-                total: Math.min(totalUrlsFound, maxUrls),
+                total: Math.min(totalUrlsFound, enforcedMaxUrls),
               })
             );
 
@@ -133,12 +137,12 @@ export async function POST(request: NextRequest) {
                 results.push({ url, content: cached });
 
                 // Extract links if not at max depth
-                if (currentDepth < depth) {
+                if (currentDepth < enforcedDepth) {
                   const links = extractLinks(cached, url);
                   links.forEach((link: string) => {
                     if (
                       !processedUrls.has(link) &&
-                      processedUrls.size + workerPool.getStatus().queueLength < maxUrls
+                      processedUrls.size + workerPool.getStatus().queueLength < enforcedMaxUrls
                     ) {
                       totalUrlsFound++;
                       workerPool.add({ url: link, depth: currentDepth + 1 }, getUrlPriority(link));
@@ -174,12 +178,12 @@ export async function POST(request: NextRequest) {
                 results.push({ url, content });
 
                 // Extract links if not at max depth
-                if (currentDepth < depth) {
+                if (currentDepth < enforcedDepth) {
                   const links = extractLinks(content, url);
                   links.forEach((link: string) => {
                     if (
                       !processedUrls.has(link) &&
-                      processedUrls.size + workerPool.getStatus().queueLength < maxUrls
+                      processedUrls.size + workerPool.getStatus().queueLength < enforcedMaxUrls
                     ) {
                       totalUrlsFound++;
                       workerPool.add({ url: link, depth: currentDepth + 1 }, getUrlPriority(link));

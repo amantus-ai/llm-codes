@@ -1,22 +1,23 @@
-import { ALLOWED_DOMAINS } from '@/constants';
+import { DOCUMENTATION_PATTERNS, ALLOWED_EXCEPTIONS, SPECIAL_DOMAINS } from '@/constants';
 
 export function isValidDocumentationUrl(url: string): boolean {
   if (!url) return false;
 
-  // Check each allowed domain
-  return Object.values(ALLOWED_DOMAINS).some((domain) => {
-    if (typeof domain.pattern === 'string') {
-      return url.startsWith(domain.pattern);
-    } else if (typeof domain.pattern === 'object' && domain.pattern instanceof RegExp) {
-      return domain.pattern.test(url);
-    }
-    return false;
+  // First check against documentation patterns
+  const matchesPattern = DOCUMENTATION_PATTERNS.some((patternConfig) => {
+    return patternConfig.pattern.test(url);
+  });
+
+  if (matchesPattern) return true;
+
+  // Then check against explicit exceptions
+  return Object.values(ALLOWED_EXCEPTIONS).some((exception) => {
+    return url.startsWith(exception.pattern);
   });
 }
 
 export function getSupportedDomainsText(): string {
-  const domainCount = Object.keys(ALLOWED_DOMAINS).length;
-  return `${domainCount} supported documentation sites`;
+  return 'Most documentation pages are supported';
 }
 
 export function extractUrlFromQueryString(queryString: string): string | null {
@@ -64,19 +65,30 @@ export function generateFilename(url: string): string {
     const hostname = urlObj.hostname;
     const pathname = urlObj.pathname;
 
-    // Find the matching domain configuration
-    const matchedDomain = Object.values(ALLOWED_DOMAINS).find((domain) => {
-      if (typeof domain.pattern === 'string') {
-        return url.startsWith(domain.pattern);
-      } else if (typeof domain.pattern === 'object' && domain.pattern instanceof RegExp) {
-        return domain.pattern.test(url);
-      }
-      return false;
+    // Check special domains first (Apple, Swift Package Index)
+    const specialDomain = Object.values(SPECIAL_DOMAINS).find((domain) => {
+      return url.startsWith(domain.pattern);
     });
 
-    if (matchedDomain) {
-      // Use the domain name as a base for the filename
-      const baseName = matchedDomain.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    if (specialDomain) {
+      const baseName = specialDomain.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      const pathParts = pathname.split('/').filter((p) => p && p.length > 0);
+
+      if (pathParts.length > 0) {
+        const pathSuffix = pathParts.slice(0, 2).join('-');
+        return `${baseName}-${pathSuffix}-docs.md`;
+      }
+      return `${baseName}-docs.md`;
+    }
+
+    // Check if it's an exception with a specific name
+    const matchedException = Object.values(ALLOWED_EXCEPTIONS).find((exception) => {
+      return url.startsWith(exception.pattern);
+    });
+
+    if (matchedException) {
+      // Use the exception name as a base for the filename
+      const baseName = matchedException.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
       const pathParts = pathname.split('/').filter((p) => p && p.length > 0);
 
       if (pathParts.length > 0) {

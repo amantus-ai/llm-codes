@@ -17,6 +17,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { url, limit = 10 } = body;
 
+    // Enforce hard limit on max URLs
+    const enforcedLimit = Math.min(limit, PROCESSING_CONFIG.MAX_ALLOWED_URLS);
+
     if (!isValidDocumentationUrl(url)) {
       return NextResponse.json(
         {
@@ -51,7 +54,7 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           url,
-          limit,
+          limit: enforcedLimit,
           scrapeOptions: {
             formats: ['markdown'],
             onlyMainContent: true,

@@ -116,10 +116,10 @@ The easiest way to deploy is using Vercel:
 
 ## Usage
 
-1. **Enter URL**: Paste any documentation URL from one of the 69 supported sites
+1. **Enter URL**: Paste any documentation URL
 
-   - Click on "This document parser supports a list of selected websites" to see all supported sites
-   - Sites are organized by category for easy browsing
+   - Most documentation sites are automatically supported through pattern matching
+   - Click "Learn more" to see the supported URL patterns
 
 2. **Configure Options** (click "Show Options"):
 
@@ -138,6 +138,46 @@ The easiest way to deploy is using Vercel:
    - Browser notifications alert you when complete
 
 5. **Download**: View statistics and download your clean Markdown file
+
+## Supported Documentation Sites
+
+llm.codes uses intelligent pattern matching to support most documentation sites automatically. Rather than maintaining a list of thousands of individual sites, we use regex patterns to match common documentation URL structures.
+
+### Pattern-Based Matching
+
+We support documentation sites that match these patterns:
+
+1. **Documentation Subdomains** (`docs.*, developer.*, learn.*, etc.`)
+   - Examples: `docs.python.org`, `developer.apple.com`, `learn.microsoft.com`
+   - Pattern: Any subdomain like docs, developer, dev, learn, help, api, guide, wiki, or devcenter
+
+2. **Documentation Paths** (`/docs, /guide, /learn, etc.`)
+   - Examples: `angular.io/docs`, `redis.io/docs`, `react.dev/learn`
+   - Pattern: URLs ending with paths like /docs, /documentation, /api-docs, /guides, /learn, /help, /stable, or /latest
+
+3. **Programming Language Sites** (`*js.org, *lang.org, etc.`)
+   - Examples: `vuejs.org`, `kotlinlang.org`, `ruby-doc.org`
+   - Pattern: Domains ending with js, lang, py, or -doc followed by .org or .com
+
+4. **GitHub Pages** (`*.github.io`)
+   - Examples: Any GitHub Pages documentation site
+   - Pattern: All subdomains of github.io
+
+### Explicit Exceptions
+
+A small number of popular documentation sites don't follow standard patterns and are explicitly supported:
+
+- Swift Package Index (`swiftpackageindex.com`)
+- Flask (`flask.palletsprojects.com`)
+- Material-UI (`mui.com/material-ui`)
+- pip (`pip.pypa.io/en/stable`)
+- PHP (`www.php.net/docs.php`)
+
+### Adding New Sites
+
+Most documentation sites are automatically supported! If your site follows standard documentation URL patterns (like having `/docs` in the path or `docs.` as a subdomain), it should work without any changes.
+
+If you find a documentation site that isn't supported, please [open an issue](https://github.com/steipete/llm-codes/issues) and we'll either adjust our patterns or add it as an exception.
 
 ## Configuration Options
 
