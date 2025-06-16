@@ -37,6 +37,24 @@ describe('url-utils', () => {
       );
     });
 
+    it('should validate docs subdomain URLs (secret feature)', () => {
+      // Valid docs subdomain URLs
+      expect(isValidDocumentationUrl('https://docs.hummingbird.codes/')).toBe(true);
+      expect(isValidDocumentationUrl('https://docs.hummingbird.codes/guide')).toBe(true);
+      expect(isValidDocumentationUrl('https://docs.example.com/')).toBe(true);
+      expect(isValidDocumentationUrl('https://docs.example.com/api/reference')).toBe(true);
+      expect(isValidDocumentationUrl('https://docs.foo.bar.com/')).toBe(true);
+      expect(isValidDocumentationUrl('https://docs.test.example.org/docs')).toBe(true);
+
+      // Invalid patterns that should NOT match
+      expect(isValidDocumentationUrl('https://example.docs.com/')).toBe(false);
+      expect(isValidDocumentationUrl('https://docs.com/')).toBe(false);
+      expect(isValidDocumentationUrl('http://docs.example.com/')).toBe(false);
+      expect(isValidDocumentationUrl('https://subdocs.example.com/')).toBe(false);
+      expect(isValidDocumentationUrl('https://my-docs.example.com/')).toBe(false);
+      expect(isValidDocumentationUrl('https://docsexample.com/')).toBe(false);
+    });
+
     it('should reject invalid URLs', () => {
       expect(isValidDocumentationUrl('')).toBe(false);
       expect(isValidDocumentationUrl('https://github.com/user/repo')).toBe(false);
@@ -47,7 +65,7 @@ describe('url-utils', () => {
 
   describe('getSupportedDomainsText', () => {
     it('should return formatted domain count', () => {
-      expect(getSupportedDomainsText()).toBe('70 supported documentation sites');
+      expect(getSupportedDomainsText()).toBe('71 supported documentation sites');
     });
   });
 
@@ -140,6 +158,19 @@ describe('url-utils', () => {
     it('should handle other domains', () => {
       expect(generateFilename('https://example.com/docs/api')).toBe('example-com-docs-docs.md');
       expect(generateFilename('https://example.com/')).toBe('example-com-docs.md');
+    });
+
+    it('should generate filenames for docs subdomain URLs', () => {
+      expect(generateFilename('https://docs.hummingbird.codes/')).toBe(
+        'docs-subdomain--docs----docs.md'
+      );
+      expect(generateFilename('https://docs.hummingbird.codes/guide')).toBe(
+        'docs-subdomain--docs----guide-docs.md'
+      );
+      expect(generateFilename('https://docs.example.com/api/reference')).toBe(
+        'docs-subdomain--docs----api-reference-docs.md'
+      );
+      expect(generateFilename('https://docs.foo.bar.com/')).toBe('docs-subdomain--docs----docs.md');
     });
   });
 });

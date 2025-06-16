@@ -19,6 +19,12 @@ export const ALLOWED_DOMAINS = {
     example: '*.github.io',
     category: 'General',
   },
+  DOCS_SUBDOMAIN: {
+    pattern: /^https:\/\/docs\.[^\/]+\.[^\/]+\//,
+    name: 'Docs Subdomain (docs.*)',
+    example: 'docs.*.com',
+    category: 'General',
+  },
 
   // Programming Languages
   PYTHON: {
