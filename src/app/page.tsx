@@ -549,12 +549,14 @@ export default function Home() {
     // Request notification permission on first use
     await requestNotificationPermission();
 
+    // Track if an error occurred to ensure logs stay visible
+    let hasError = false;
+    let processedResults: ProcessingResult[] = [];
+
     try {
       log(`🚀 Starting documentation processing...`);
       log(`📊 Configuration: Depth ${depth}, Max URLs: ${maxUrls}`);
       log(`🔗 Starting URL: ${trimmedUrl}`);
-
-      let processedResults: ProcessingResult[] = [];
 
       if (useCrawlMode) {
         log(`🕷️ Using crawl mode for faster processing...`);
@@ -665,6 +667,7 @@ export default function Home() {
         log(`  - Does the site require authentication?`);
         log(`  - Is the content loaded dynamically?`);
         setError('No content could be extracted from any URL');
+        hasError = true;
         
         // Explicitly keep logs visible on error
         setShowLogs(true);
@@ -688,6 +691,7 @@ export default function Home() {
         );
       }
     } catch (error) {
+      hasError = true;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
       log(`❌ Processing failed: ${errorMessage}`);
@@ -714,7 +718,7 @@ export default function Home() {
       setIsProcessing(false);
       
       // Final check: if there's an error, ensure logs stay visible
-      if (error || results.length === 0 || !results.some(r => r.content)) {
+      if (hasError || processedResults.length === 0 || !processedResults.some(r => r.content)) {
         setShowLogs(true);
       }
     }
