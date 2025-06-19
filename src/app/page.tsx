@@ -704,7 +704,7 @@ export default function Home() {
         '❌ Processing Failed',
         'An error occurred. Check the activity log for details.'
       );
-      
+
       // Keep logs visible so user can see the error details
       setShowLogs(true);
     } finally {
