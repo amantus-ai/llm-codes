@@ -667,8 +667,10 @@ export default function Home() {
         setError('No content could be extracted from any URL');
       }
 
-      // Collapse activity log when processing is complete
-      setShowLogs(false);
+      // Collapse activity log when processing is complete - but keep it open on errors
+      if (successfulResults.length > 0) {
+        setShowLogs(false);
+      }
 
       // Show notification
       if (successfulResults.length > 0) {
@@ -702,6 +704,9 @@ export default function Home() {
         '❌ Processing Failed',
         'An error occurred. Check the activity log for details.'
       );
+      
+      // Keep logs visible so user can see the error details
+      setShowLogs(true);
     } finally {
       setIsProcessing(false);
     }
