@@ -665,10 +665,11 @@ export default function Home() {
         log(`  - Does the site require authentication?`);
         log(`  - Is the content loaded dynamically?`);
         setError('No content could be extracted from any URL');
-      }
-
-      // Collapse activity log when processing is complete - but keep it open on errors
-      if (successfulResults.length > 0) {
+        
+        // Explicitly keep logs visible on error
+        setShowLogs(true);
+      } else {
+        // Only collapse activity log when processing is complete AND successful
         setShowLogs(false);
       }
 
@@ -679,9 +680,11 @@ export default function Home() {
           `Successfully processed ${successfulResults.length} URLs. Your Markdown file is ready to download.`
         );
       } else {
+        // Ensure logs are visible before showing error notification
+        setShowLogs(true);
         showNotification(
           '❌ No Content Found',
-          'Unable to extract content from any URLs. Check the activity log for details.'
+          'Unable to extract content from any URLs. Check the activity log below for details.'
         );
       }
     } catch (error) {
@@ -709,6 +712,11 @@ export default function Home() {
       setShowLogs(true);
     } finally {
       setIsProcessing(false);
+      
+      // Final check: if there's an error, ensure logs stay visible
+      if (error || results.length === 0 || !results.some(r => r.content)) {
+        setShowLogs(true);
+      }
     }
   };
 
