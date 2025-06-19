@@ -60,6 +60,12 @@ export const ALLOWED_EXCEPTIONS = {
     example: 'https://www.php.net/docs.php',
     category: 'Programming Languages',
   },
+  TAURI: {
+    pattern: 'https://tauri.app/',
+    name: 'Tauri',
+    example: 'https://tauri.app/',
+    category: 'Desktop Frameworks',
+  },
 } as const;
 
 // Legacy support for specific domains that need special handling

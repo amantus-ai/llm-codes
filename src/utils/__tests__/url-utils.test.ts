@@ -160,6 +160,11 @@ describe('url-utils', () => {
       it('should validate PHP', () => {
         expect(isValidDocumentationUrl('https://www.php.net/docs.php')).toBe(true);
       });
+
+      it('should validate Tauri', () => {
+        expect(isValidDocumentationUrl('https://tauri.app/')).toBe(true);
+        expect(isValidDocumentationUrl('https://tauri.app/v1/guides/')).toBe(true);
+      });
     });
 
     describe('Edge Cases', () => {
