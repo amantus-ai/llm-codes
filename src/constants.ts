@@ -1,129 +1,40 @@
-// Domain configuration
-export const ALLOWED_DOMAINS = {
-  // Original domains
-  APPLE: {
-    pattern: 'https://developer.apple.com',
-    name: 'Apple Developer',
-    example: 'https://developer.apple.com/documentation',
-    category: 'Mobile Development',
+// Domain configuration with pattern-based matching
+export const DOCUMENTATION_PATTERNS = [
+  {
+    pattern:
+      /^https:\/\/(docs?|developer|dev|learn|help|api|guide|wiki|devcenter)\.[^\/]+\.[^\/]+\//,
+    name: 'Documentation Subdomains',
+    description: 'Matches documentation subdomains like docs.*, developer.*, learn.*, etc.',
+    examples: ['docs.python.org', 'developer.apple.com', 'learn.microsoft.com', 'docs.cypress.io'],
   },
+  {
+    pattern:
+      /^https:\/\/([^\/]+\.)?[^\/]+\/(docs?|documentation|api[-_]?docs?|guides?|learn|help|stable|latest)(\/|$)/,
+    name: 'Documentation Paths',
+    description: 'Matches URLs with documentation paths like /docs, /guide, /learn, etc.',
+    examples: ['angular.io/docs', 'redis.io/docs', 'www.elastic.co/guide', 'react.dev/learn'],
+  },
+  {
+    pattern: /^https:\/\/[^\/]+(js|lang|py|-doc)\.(org|com)(\/|$)/,
+    name: 'Programming Language Sites',
+    description: 'Matches programming language documentation sites',
+    examples: ['vuejs.org', 'kotlinlang.org', 'ruby-doc.org', 'expressjs.com'],
+  },
+  {
+    pattern: /^https:\/\/[^\/]+\.github\.io\//,
+    name: 'GitHub Pages',
+    description: 'Matches any GitHub Pages site (*.github.io)',
+    examples: ['username.github.io', 'project.github.io'],
+  },
+];
+
+// Explicit exceptions that don't match our patterns
+export const ALLOWED_EXCEPTIONS = {
   SWIFT_PACKAGE_INDEX: {
     pattern: 'https://swiftpackageindex.com/',
     name: 'Swift Package Index',
     example: 'https://swiftpackageindex.com',
     category: 'Programming Languages',
-  },
-  GITHUB_PAGES: {
-    pattern: /^https:\/\/[^\/]+\.github\.io\//,
-    name: 'GitHub Pages (*.github.io)',
-    example: '*.github.io',
-    category: 'General',
-  },
-
-  // Programming Languages
-  PYTHON: {
-    pattern: 'https://docs.python.org',
-    name: 'Python',
-    example: 'https://docs.python.org',
-    category: 'Programming Languages',
-  },
-  MDN: {
-    pattern: 'https://developer.mozilla.org',
-    name: 'MDN Web Docs',
-    example: 'https://developer.mozilla.org',
-    category: 'Programming Languages',
-  },
-  TYPESCRIPT: {
-    pattern: 'https://www.typescriptlang.org/docs',
-    name: 'TypeScript',
-    example: 'https://www.typescriptlang.org/docs',
-    category: 'Programming Languages',
-  },
-  RUST: {
-    pattern: 'https://doc.rust-lang.org',
-    name: 'Rust',
-    example: 'https://doc.rust-lang.org',
-    category: 'Programming Languages',
-  },
-  GOLANG: {
-    pattern: 'https://golang.org/doc',
-    name: 'Go',
-    example: 'https://golang.org/doc',
-    category: 'Programming Languages',
-  },
-  JAVA: {
-    pattern: 'https://docs.oracle.com/javase',
-    name: 'Java',
-    example: 'https://docs.oracle.com/javase',
-    category: 'Programming Languages',
-  },
-  RUBY: {
-    pattern: 'https://ruby-doc.org',
-    name: 'Ruby',
-    example: 'https://ruby-doc.org',
-    category: 'Programming Languages',
-  },
-  PHP: {
-    pattern: 'https://www.php.net/docs.php',
-    name: 'PHP',
-    example: 'https://www.php.net/docs.php',
-    category: 'Programming Languages',
-  },
-  SWIFT: {
-    pattern: 'https://docs.swift.org',
-    name: 'Swift',
-    example: 'https://docs.swift.org',
-    category: 'Programming Languages',
-  },
-  KOTLIN: {
-    pattern: 'https://kotlinlang.org/docs',
-    name: 'Kotlin',
-    example: 'https://kotlinlang.org/docs',
-    category: 'Programming Languages',
-  },
-
-  // Web Frameworks
-  REACT: {
-    pattern: 'https://react.dev',
-    name: 'React',
-    example: 'https://react.dev/learn',
-    category: 'Web Frameworks',
-  },
-  VUE: {
-    pattern: 'https://vuejs.org',
-    name: 'Vue.js',
-    example: 'https://vuejs.org/guide',
-    category: 'Web Frameworks',
-  },
-  ANGULAR: {
-    pattern: 'https://angular.io/docs',
-    name: 'Angular',
-    example: 'https://angular.io/docs',
-    category: 'Web Frameworks',
-  },
-  NEXTJS: {
-    pattern: 'https://nextjs.org/docs',
-    name: 'Next.js',
-    example: 'https://nextjs.org/docs',
-    category: 'Web Frameworks',
-  },
-  NUXT: {
-    pattern: 'https://nuxt.com/docs',
-    name: 'Nuxt',
-    example: 'https://nuxt.com/docs',
-    category: 'Web Frameworks',
-  },
-  SVELTE: {
-    pattern: 'https://svelte.dev/docs',
-    name: 'Svelte',
-    example: 'https://svelte.dev/docs',
-    category: 'Web Frameworks',
-  },
-  DJANGO: {
-    pattern: 'https://docs.djangoproject.com',
-    name: 'Django',
-    example: 'https://docs.djangoproject.com',
-    category: 'Web Frameworks',
   },
   FLASK: {
     pattern: 'https://flask.palletsprojects.com',
@@ -357,81 +268,23 @@ export const ALLOWED_DOMAINS = {
     example: 'https://mui.com/material-ui',
     category: 'CSS Frameworks',
   },
-  CHAKRA: {
-    pattern: 'https://chakra-ui.com/docs',
-    name: 'Chakra UI',
-    example: 'https://chakra-ui.com/docs',
-    category: 'CSS Frameworks',
-  },
-
-  // Build Tools & Package Managers
-  NPM: {
-    pattern: 'https://docs.npmjs.com',
-    name: 'npm',
-    example: 'https://docs.npmjs.com',
-    category: 'Build Tools & Package Managers',
-  },
-  WEBPACK: {
-    pattern: 'https://webpack.js.org/docs',
-    name: 'webpack',
-    example: 'https://webpack.js.org/docs',
-    category: 'Build Tools & Package Managers',
-  },
-  VITE: {
-    pattern: 'https://vitejs.dev/guide',
-    name: 'Vite',
-    example: 'https://vitejs.dev/guide',
-    category: 'Build Tools & Package Managers',
-  },
   PIP: {
     pattern: 'https://pip.pypa.io/en/stable',
     name: 'pip',
     example: 'https://pip.pypa.io/en/stable',
     category: 'Build Tools & Package Managers',
   },
-  CARGO: {
-    pattern: 'https://doc.rust-lang.org/cargo',
-    name: 'Cargo',
-    example: 'https://doc.rust-lang.org/cargo',
-    category: 'Build Tools & Package Managers',
+  PHP: {
+    pattern: 'https://www.php.net/docs.php',
+    name: 'PHP',
+    example: 'https://www.php.net/docs.php',
+    category: 'Programming Languages',
   },
-  MAVEN: {
-    pattern: 'https://maven.apache.org/guides',
-    name: 'Maven',
-    example: 'https://maven.apache.org/guides',
-    category: 'Build Tools & Package Managers',
-  },
-
-  // Testing Frameworks
-  JEST: {
-    pattern: 'https://jestjs.io/docs',
-    name: 'Jest',
-    example: 'https://jestjs.io/docs',
-    category: 'Testing Frameworks',
-  },
-  CYPRESS: {
-    pattern: 'https://docs.cypress.io',
-    name: 'Cypress',
-    example: 'https://docs.cypress.io',
-    category: 'Testing Frameworks',
-  },
-  PLAYWRIGHT: {
-    pattern: 'https://playwright.dev/docs',
-    name: 'Playwright',
-    example: 'https://playwright.dev/docs',
-    category: 'Testing Frameworks',
-  },
-  PYTEST: {
-    pattern: 'https://docs.pytest.org',
-    name: 'pytest',
-    example: 'https://docs.pytest.org',
-    category: 'Testing Frameworks',
-  },
-  MOCHA: {
-    pattern: 'https://mochajs.org',
-    name: 'Mocha',
-    example: 'https://mochajs.org',
-    category: 'Testing Frameworks',
+  TAURI: {
+    pattern: 'https://tauri.app/',
+    name: 'Tauri',
+    example: 'https://tauri.app/',
+    category: 'Desktop Frameworks',
   },
   APPIUM: {
     pattern: 'https://appium.io/docs/en/latest',
@@ -439,25 +292,17 @@ export const ALLOWED_DOMAINS = {
     example: 'https://appium.io/docs/en/latest/#explore-the-documentation',
     category: 'Testing Frameworks',
   },
+} as const;
 
-  // Mobile Development
-  REACT_NATIVE: {
-    pattern: 'https://reactnative.dev/docs',
-    name: 'React Native',
-    example: 'https://reactnative.dev/docs',
-    category: 'Mobile Development',
+// Legacy support for specific domains that need special handling
+export const SPECIAL_DOMAINS = {
+  APPLE: {
+    pattern: 'https://developer.apple.com',
+    name: 'Apple Developer',
   },
-  FLUTTER: {
-    pattern: 'https://flutter.dev/docs',
-    name: 'Flutter',
-    example: 'https://flutter.dev/docs',
-    category: 'Mobile Development',
-  },
-  ANDROID: {
-    pattern: 'https://developer.android.com/docs',
-    name: 'Android',
-    example: 'https://developer.android.com/docs',
-    category: 'Mobile Development',
+  SWIFT_PACKAGE_INDEX: {
+    pattern: 'https://swiftpackageindex.com/',
+    name: 'Swift Package Index',
   },
 } as const;
 
@@ -476,6 +321,8 @@ export const PROCESSING_CONFIG = {
   // Crawling configuration
   DEFAULT_CRAWL_DEPTH: 2 as number,
   DEFAULT_MAX_URLS: 200 as number,
+  MAX_CRAWL_DEPTH: 5 as number, // Hard limit for crawl depth
+  MAX_ALLOWED_URLS: 2000 as number, // Hard limit for max pages
   CONCURRENT_LIMIT: 10 as number, // Increased to 10 for better performance
 
   // Retry configuration

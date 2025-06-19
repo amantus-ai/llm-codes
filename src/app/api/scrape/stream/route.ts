@@ -40,6 +40,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { urls, depth = 0, maxUrls = 10 } = body;
 
+    // Enforce hard limits
+    const enforcedDepth = Math.min(depth, PROCESSING_CONFIG.MAX_CRAWL_DEPTH);
+    const enforcedMaxUrls = Math.min(maxUrls, PROCESSING_CONFIG.MAX_ALLOWED_URLS);
+
     if (!urls || !Array.isArray(urls) || urls.length === 0) {
       return new Response(
         encoder.encode(
@@ -114,7 +118,7 @@ export async function POST(request: NextRequest) {
               sendMessage({
                 type: 'progress',
                 progress: processedUrls.size,
-                total: Math.min(totalUrlsFound, maxUrls),
+                total: Math.min(totalUrlsFound, enforcedMaxUrls),
               })
             );
 
@@ -133,12 +137,12 @@ export async function POST(request: NextRequest) {
                 results.push({ url, content: cached });
 
                 // Extract links if not at max depth
-                if (currentDepth < depth) {
+                if (currentDepth < enforcedDepth) {
                   const links = extractLinks(cached, url);
                   links.forEach((link: string) => {
                     if (
                       !processedUrls.has(link) &&
-                      processedUrls.size + workerPool.getStatus().queueLength < maxUrls
+                      processedUrls.size + workerPool.getStatus().queueLength < enforcedMaxUrls
                     ) {
                       totalUrlsFound++;
                       workerPool.add({ url: link, depth: currentDepth + 1 }, getUrlPriority(link));
@@ -174,12 +178,12 @@ export async function POST(request: NextRequest) {
                 results.push({ url, content });
 
                 // Extract links if not at max depth
-                if (currentDepth < depth) {
+                if (currentDepth < enforcedDepth) {
                   const links = extractLinks(content, url);
                   links.forEach((link: string) => {
                     if (
                       !processedUrls.has(link) &&
-                      processedUrls.size + workerPool.getStatus().queueLength < maxUrls
+                      processedUrls.size + workerPool.getStatus().queueLength < enforcedMaxUrls
                     ) {
                       totalUrlsFound++;
                       workerPool.add({ url: link, depth: currentDepth + 1 }, getUrlPriority(link));
@@ -189,7 +193,7 @@ export async function POST(request: NextRequest) {
 
                 await cacheService.firecrawlCircuitBreaker.recordSuccess();
                 cacheService.incrementFirecrawlFetches();
-                console.log(`[FIRECRAWL SUCCESS] ${url} - ${content.length} chars`);
+                // Success recorded in circuit breaker
                 return { url, content, cached: false };
               } else {
                 controller.enqueue(
@@ -232,7 +236,7 @@ export async function POST(request: NextRequest) {
                   stats: stats.summary,
                 })
               );
-              console.log('\n' + stats.summary);
+              // Stats already sent to client via SSE
 
               controller.enqueue(sendMessage({ type: 'done' }));
               controller.close();
@@ -262,8 +266,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Stream API Error:', error);
-    // Log cache statistics even on error
-    console.log('\n' + cacheService.getStats().summary);
+    // Cache statistics available via cacheService.getStats()
     return new Response(
       encoder.encode(
         `data: ${JSON.stringify({ type: 'url_error', error: 'Internal server error' })}\n\n`

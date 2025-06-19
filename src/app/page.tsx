@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ALLOWED_DOMAINS, PROCESSING_CONFIG } from '@/constants';
+import { PROCESSING_CONFIG } from '@/constants';
 import {
   extractUrlFromQueryString,
   getSupportedDomainsText,
@@ -38,7 +37,6 @@ export default function Home() {
   const [stats, setStats] = useState({ lines: 0, size: 0, urls: 0 });
   const [showLogs, setShowLogs] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
-  const [showPopover, setShowPopover] = useState(false);
   const [notificationPermission, setNotificationPermission] =
     useState<NotificationPermission>('default');
   const [isIOS, setIsIOS] = useState(false);
@@ -667,10 +665,13 @@ export default function Home() {
         log(`  - Does the site require authentication?`);
         log(`  - Is the content loaded dynamically?`);
         setError('No content could be extracted from any URL');
+        
+        // Explicitly keep logs visible on error
+        setShowLogs(true);
+      } else {
+        // Only collapse activity log when processing is complete AND successful
+        setShowLogs(false);
       }
-
-      // Collapse activity log when processing is complete
-      setShowLogs(false);
 
       // Show notification
       if (successfulResults.length > 0) {
@@ -679,9 +680,11 @@ export default function Home() {
           `Successfully processed ${successfulResults.length} URLs. Your Markdown file is ready to download.`
         );
       } else {
+        // Ensure logs are visible before showing error notification
+        setShowLogs(true);
         showNotification(
           '❌ No Content Found',
-          'Unable to extract content from any URLs. Check the activity log for details.'
+          'Unable to extract content from any URLs. Check the activity log below for details.'
         );
       }
     } catch (error) {
@@ -704,8 +707,16 @@ export default function Home() {
         '❌ Processing Failed',
         'An error occurred. Check the activity log for details.'
       );
+
+      // Keep logs visible so user can see the error details
+      setShowLogs(true);
     } finally {
       setIsProcessing(false);
+      
+      // Final check: if there's an error, ensure logs stay visible
+      if (error || results.length === 0 || !results.some(r => r.content)) {
+        setShowLogs(true);
+      }
     }
   };
 
@@ -860,81 +871,17 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
               </div>
             )}
             <div className="mt-3">
-              <Popover open={showPopover} onOpenChange={setShowPopover}>
-                <PopoverTrigger asChild>
-                  <button className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer transition-colors">
-                    This document parser supports {getSupportedDomainsText()}
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="w-[36rem] max-h-[36rem] overflow-y-auto bg-popover rounded-xl shadow-xl border border-border"
-                  align="start"
+              <p className="text-xs text-muted-foreground">
+                {getSupportedDomainsText()}.{' '}
+                <a
+                  href="https://github.com/amantus-ai/llm-codes#supported-documentation-sites"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-foreground transition-colors"
                 >
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-semibold text-foreground">
-                      Supported Documentation Sites
-                    </h3>
-
-                    {/* Group domains by category */}
-                    {Object.entries(
-                      Object.values(ALLOWED_DOMAINS).reduce(
-                        (acc, domain) => {
-                          const category = domain.category || 'General';
-                          if (!acc[category]) acc[category] = [];
-                          acc[category].push(domain);
-                          return acc;
-                        },
-                        {} as Record<
-                          string,
-                          (typeof ALLOWED_DOMAINS)[keyof typeof ALLOWED_DOMAINS][]
-                        >
-                      )
-                    ).map(([category, domains]) => (
-                      <div key={category} className="space-y-2">
-                        <h4 className="text-xs font-medium text-foreground uppercase tracking-wider">
-                          {category}
-                        </h4>
-                        <ul className="space-y-1">
-                          {domains.map((domain) => (
-                            <li key={domain.name} className="text-xs">
-                              <button
-                                className="w-full text-left hover:bg-accent rounded px-2 py-1 transition-colors"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  setUrl(domain.example);
-                                  setError('');
-                                  setShowPopover(false);
-                                }}
-                              >
-                                <span className="text-foreground font-medium">{domain.name}</span>
-                                <span className="text-muted-foreground ml-2 text-[11px]">
-                                  {domain.example}
-                                </span>
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-
-                    {/* Add GitHub issue link */}
-                    <div className="pt-4 border-t border-border">
-                      <p className="text-xs text-muted-foreground">
-                        Missing a site?{' '}
-                        <a
-                          href="https://github.com/amantus-ai/llm-codes/issues"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:text-primary/90 underline"
-                        >
-                          Open an issue on GitHub
-                        </a>
-                      </p>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
+                  Learn more
+                </a>
+              </p>
             </div>
           </div>
 
@@ -969,9 +916,16 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
                     id="depth"
                     type="number"
                     min="0"
-                    max="5"
+                    max={PROCESSING_CONFIG.MAX_CRAWL_DEPTH}
                     value={depth}
-                    onChange={(e) => setDepth(parseInt(e.target.value))}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      if (value > PROCESSING_CONFIG.MAX_CRAWL_DEPTH) {
+                        setDepth(PROCESSING_CONFIG.MAX_CRAWL_DEPTH);
+                      } else {
+                        setDepth(value);
+                      }
+                    }}
                     disabled={useCrawlMode}
                     className="w-full px-4 py-2.5 border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                   />
@@ -990,9 +944,16 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
                     id="maxUrls"
                     type="number"
                     min="1"
-                    max="1000"
+                    max={PROCESSING_CONFIG.MAX_ALLOWED_URLS}
                     value={maxUrls}
-                    onChange={(e) => setMaxUrls(parseInt(e.target.value))}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      if (value > PROCESSING_CONFIG.MAX_ALLOWED_URLS) {
+                        setMaxUrls(PROCESSING_CONFIG.MAX_ALLOWED_URLS);
+                      } else {
+                        setMaxUrls(value);
+                      }
+                    }}
                     className="w-full px-4 py-2.5 border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
                   <div className="absolute right-12 top-1/2 -translate-y-1/2 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded pointer-events-none">

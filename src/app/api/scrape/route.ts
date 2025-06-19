@@ -196,9 +196,7 @@ export async function POST(request: NextRequest) {
                 await cacheService.firecrawlCircuitBreaker.recordSuccess();
                 cacheService.incrementFirecrawlFetches();
 
-                console.log(
-                  `[FIRECRAWL SUCCESS] ${url} - ${contentLength} chars after ${attempt} retries`
-                );
+                // Success logged via circuit breaker and stats
 
                 return NextResponse.json({
                   success: true,
@@ -320,13 +318,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
     console.error('API Error:', error);
-    // Log cache statistics even on error
-    console.log('\n' + cacheService.getStats().summary);
+    // Cache statistics logged even on error
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   } finally {
-    // Always log cache statistics at the end of request
+    // Cache statistics tracked at the end of request
     if (action === 'scrape') {
-      console.log('\n' + cacheService.getStats().summary);
+      // Stats available via cacheService.getStats()
     }
   }
 }
