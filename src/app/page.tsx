@@ -1124,7 +1124,7 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
           )}
 
           {/* Progress */}
-          {(isProcessing || results.length > 0) && (
+          {(isProcessing || results.length > 0 || error) && (
             <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
               <div className="space-y-4">
                 <div>
