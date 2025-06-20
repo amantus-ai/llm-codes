@@ -60,6 +60,11 @@ export async function GET(
         let consecutiveErrors = 0;
         const maxConsecutiveErrors = 5;
 
+        // Stall detection
+        let lastProgressUpdate = Date.now();
+        let lastCompletedCount = 0;
+        const maxStallTime = 60000; // 60 seconds without progress
+
         // Keep track of URLs we've already sent to avoid duplicates
         const sentUrls = new Set<string>();
 
@@ -81,6 +86,12 @@ export async function GET(
 
               // Reset error counter on successful response
               consecutiveErrors = 0;
+
+              // Check for progress
+              if (data.completed && data.completed > lastCompletedCount) {
+                lastProgressUpdate = Date.now();
+                lastCompletedCount = data.completed;
+              }
 
               // Update job metadata
               const updatedMetadata = {
@@ -160,10 +171,27 @@ export async function GET(
               }
 
               // Check if crawl is complete
+              // Consider crawl complete if:
+              // 1. Status is explicitly 'completed'
+              // 2. We're scraping, have no next page, and completed equals total
+              // 3. Crawl has stalled (no progress for maxStallTime)
+              const hasStalled = Date.now() - lastProgressUpdate > maxStallTime;
+              const isNearComplete =
+                data.completed && data.total && data.completed / data.total >= 0.95; // 95% complete
+
               if (
                 data.status === 'completed' ||
-                (data.status === 'scraping' && !data.next && data.completed === data.total)
+                (data.status === 'scraping' && !data.next && data.completed === data.total) ||
+                (hasStalled && isNearComplete && !data.next)
               ) {
+                // If stalled but near complete, log a warning
+                if (hasStalled && isNearComplete) {
+                  console.warn(
+                    `Crawl job ${jobId} appears stalled at ${data.completed}/${data.total} pages. ` +
+                      `Marking as complete due to timeout.`
+                  );
+                }
+
                 isComplete = true;
 
                 await cacheService.updateCrawlJobStatus(jobId, {

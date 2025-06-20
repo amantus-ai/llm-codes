@@ -43,11 +43,14 @@ describe('GET /api/crawl/[jobId]/status', () => {
   it('should start streaming and handle successful crawl status', async () => {
     // Mock job metadata
     vi.mocked(cacheService.getCrawlJob).mockResolvedValue({
-      jobId: mockJobId,
+      id: mockJobId,
       url: 'https://example.com',
       limit: 10,
-      startTime: new Date().toISOString(),
+      startedAt: new Date().toISOString(),
       status: 'scraping',
+      totalPages: 0,
+      completedPages: 0,
+      creditsUsed: 0,
     });
 
     // Mock successful Firecrawl API response
@@ -66,7 +69,7 @@ describe('GET /api/crawl/[jobId]/status', () => {
           },
         ],
       }),
-    } as Response);
+    } as any);
 
     vi.mocked(cacheService.updateCrawlJobStatus).mockResolvedValue();
     vi.mocked(cacheService.setCrawlResults).mockResolvedValue();
@@ -90,11 +93,14 @@ describe('GET /api/crawl/[jobId]/status', () => {
 
     // Mock job metadata
     vi.mocked(cacheService.getCrawlJob).mockResolvedValue({
-      jobId: mockJobId,
+      id: mockJobId,
       url: 'https://example.com',
       limit: 10,
-      startTime: new Date().toISOString(),
+      startedAt: new Date().toISOString(),
       status: 'scraping',
+      totalPages: 0,
+      completedPages: 0,
+      creditsUsed: 0,
     });
 
     // Mock 502 error response
@@ -102,7 +108,7 @@ describe('GET /api/crawl/[jobId]/status', () => {
       ok: false,
       status: 502,
       json: vi.fn(),
-    } as Response);
+    } as any);
 
     const response = await GET(mockRequest, { params: mockParams });
 
@@ -124,11 +130,14 @@ describe('GET /api/crawl/[jobId]/status', () => {
 
     // Mock job metadata
     vi.mocked(cacheService.getCrawlJob).mockResolvedValue({
-      jobId: mockJobId,
+      id: mockJobId,
       url: 'https://example.com',
       limit: 10,
-      startTime: new Date().toISOString(),
+      startedAt: new Date().toISOString(),
       status: 'scraping',
+      totalPages: 0,
+      completedPages: 0,
+      creditsUsed: 0,
     });
 
     // Mock network error
