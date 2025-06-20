@@ -57,6 +57,8 @@ export async function GET(
         const pollInterval = 2000; // Poll every 2 seconds
         const maxPollingTime = 600000; // 10 minutes max
         const startTime = Date.now();
+        let consecutiveErrors = 0;
+        const maxConsecutiveErrors = 5;
 
         // Keep track of URLs we've already sent to avoid duplicates
         const sentUrls = new Set<string>();
@@ -76,6 +78,9 @@ export async function GET(
 
             if (response.ok) {
               const data = await response.json();
+
+              // Reset error counter on successful response
+              consecutiveErrors = 0;
 
               // Update job metadata
               const updatedMetadata = {
@@ -197,31 +202,67 @@ export async function GET(
               // Handle error response
               console.error(`Failed to get crawl status for job ${jobId}: ${response.status}`);
 
-              controller.enqueue(
-                sendMessage({
-                  type: 'error',
-                  error: `Failed to get crawl status: ${response.status}`,
-                })
-              );
+              // For 502/503/504 errors, these are usually temporary gateway issues
+              // Don't send error to client, just log and retry
+              if ([502, 503, 504].includes(response.status)) {
+                consecutiveErrors++;
+
+                // If we have too many consecutive errors, stop trying
+                if (consecutiveErrors >= maxConsecutiveErrors) {
+                  controller.enqueue(
+                    sendMessage({
+                      type: 'error',
+                      error: `Too many consecutive gateway errors. The service may be temporarily unavailable.`,
+                    })
+                  );
+                  isComplete = true;
+                }
+              } else {
+                // For other errors, send to client
+                controller.enqueue(
+                  sendMessage({
+                    type: 'error',
+                    error: `Failed to get crawl status: ${response.status}`,
+                  })
+                );
+              }
 
               // Don't immediately fail, retry on next iteration
             }
           } catch (error) {
             console.error(`Error polling crawl status for job ${jobId}:`, error);
 
-            controller.enqueue(
-              sendMessage({
-                type: 'error',
-                error: error instanceof Error ? error.message : 'Unknown error',
-              })
-            );
+            // Network errors could be temporary
+            consecutiveErrors++;
+
+            // Only send error to client if it's not a temporary issue
+            if (consecutiveErrors >= maxConsecutiveErrors) {
+              controller.enqueue(
+                sendMessage({
+                  type: 'error',
+                  error: `Too many consecutive errors. ${error instanceof Error ? error.message : 'Unknown error'}`,
+                })
+              );
+              isComplete = true;
+            } else {
+              // Log retry attempt without using console.log
+              console.error(
+                `Network error occurred, will retry... (attempt ${consecutiveErrors}/${maxConsecutiveErrors})`
+              );
+            }
 
             // Don't immediately fail, retry on next iteration
           }
 
           // Wait before next poll
           if (!isComplete) {
-            await new Promise((resolve) => setTimeout(resolve, pollInterval));
+            // Use exponential backoff when we have consecutive errors
+            const delay =
+              consecutiveErrors > 0
+                ? Math.min(pollInterval * Math.pow(2, consecutiveErrors - 1), 30000) // Max 30s
+                : pollInterval;
+
+            await new Promise((resolve) => setTimeout(resolve, delay));
           }
         }
 
