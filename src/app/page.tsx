@@ -49,12 +49,16 @@ export default function Home() {
     setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
   };
 
+  // Use refs to store crawl completion promise handlers
+  const crawlCompleteRef = useRef<{
+    resolve: (results: ProcessingResult[]) => void;
+    reject: (error: Error) => void;
+  } | null>(null);
+
   // Setup crawl hook
   const {
     startCrawl,
     cancel: cancelCrawl,
-    isProcessing: isCrawling,
-    results: crawlResults,
     error: crawlError,
     status: crawlStatus,
   } = useCrawl({
@@ -77,9 +81,17 @@ export default function Home() {
     },
     onComplete: (results, credits) => {
       log(`✅ Crawl complete! Processed ${results.length} pages using ${credits} credits`);
+      // Resolve the promise with the results
+      if (crawlCompleteRef.current) {
+        crawlCompleteRef.current.resolve(results);
+      }
     },
     onError: (error) => {
       log(`❌ Crawl error: ${error}`);
+      // Reject the promise with the error
+      if (crawlCompleteRef.current) {
+        crawlCompleteRef.current.reject(new Error(error));
+      }
     },
     filterOptions: {
       filterUrls,
@@ -560,18 +572,23 @@ export default function Home() {
 
       if (useCrawlMode) {
         log(`🕷️ Using crawl mode for faster processing...`);
+
+        // Create a promise that will resolve when crawl completes
+        const crawlCompletePromise = new Promise<ProcessingResult[]>((resolve, reject) => {
+          crawlCompleteRef.current = { resolve, reject };
+        });
+
         await startCrawl(trimmedUrl, maxUrls);
 
-        // Wait for crawl to complete
-        while (isCrawling && !crawlError) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
+        // Wait for crawl to complete and get results
+        try {
+          processedResults = await crawlCompletePromise;
+        } catch (error) {
+          if (crawlError) {
+            throw new Error(crawlError);
+          }
+          throw error;
         }
-
-        if (crawlError) {
-          throw new Error(crawlError);
-        }
-
-        processedResults = crawlResults;
       } else {
         processedResults = await processUrlsWithDepth(
           [trimmedUrl],
@@ -668,7 +685,7 @@ export default function Home() {
         log(`  - Is the content loaded dynamically?`);
         setError('No content could be extracted from any URL');
         hasError = true;
-        
+
         // Explicitly keep logs visible on error
         setShowLogs(true);
       } else {
@@ -716,9 +733,9 @@ export default function Home() {
       setShowLogs(true);
     } finally {
       setIsProcessing(false);
-      
+
       // Final check: if there's an error, ensure logs stay visible
-      if (hasError || processedResults.length === 0 || !processedResults.some(r => r.content)) {
+      if (hasError || processedResults.length === 0 || !processedResults.some((r) => r.content)) {
         setShowLogs(true);
       }
     }

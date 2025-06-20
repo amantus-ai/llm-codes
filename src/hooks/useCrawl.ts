@@ -194,6 +194,8 @@ export function useCrawl(options: UseCrawlOptions = {}) {
                     case 'complete':
                       setProgress(100);
                       setStatus('completed');
+                      // Ensure results are set before calling onComplete
+                      setResults(collectedResults);
                       if (options.onComplete) {
                         options.onComplete(collectedResults, message.creditsUsed || 0);
                       }
