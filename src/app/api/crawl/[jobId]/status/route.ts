@@ -55,7 +55,7 @@ export async function GET(
         let isComplete = false;
         let lastPageNumber = 0;
         const pollInterval = 2000; // Poll every 2 seconds
-        const maxPollingTime = 600000; // 10 minutes max
+        const maxPollingTime = 480000; // 8 minutes max (matches hasExceededMaxTime)
         const startTime = Date.now();
         let consecutiveErrors = 0;
         const maxConsecutiveErrors = 5;
@@ -64,6 +64,8 @@ export async function GET(
         let lastProgressUpdate = Date.now();
         let lastCompletedCount = 0;
         const maxStallTime = 60000; // 60 seconds without progress
+        const absoluteMaxStallTime = 120000; // 2 minutes absolute max stall
+        const minProgressRate = 1 / 60000; // At least 1 page per minute
 
         // Keep track of URLs we've already sent to avoid duplicates
         const sentUrls = new Set<string>();
@@ -174,18 +176,49 @@ export async function GET(
               // Consider crawl complete if:
               // 1. Status is explicitly 'completed'
               // 2. We're scraping, have no next page, and completed equals total
-              // 3. Crawl has stalled (no progress for maxStallTime)
-              const hasStalled = Date.now() - lastProgressUpdate > maxStallTime;
-              const isNearComplete =
-                data.completed && data.total && data.completed / data.total >= 0.95; // 95% complete
+              // 3. Crawl has stalled with various conditions
+              const timeSinceLastProgress = Date.now() - lastProgressUpdate;
+              const hasStalled = timeSinceLastProgress > maxStallTime;
+              const hasAbsolutelyStalled = timeSinceLastProgress > absoluteMaxStallTime;
+              const completionRatio = data.completed && data.total ? data.completed / data.total : 0;
+              const isNearComplete = completionRatio >= 0.95; // 95% complete
+              const isMostlyComplete = completionRatio >= 0.80; // 80% complete
+              
+              // Calculate progress rate (pages per millisecond)
+              const progressRate = data.completed && timeSinceLastProgress > 0 
+                ? (data.completed - lastCompletedCount) / timeSinceLastProgress 
+                : 0;
+              const isMakingSlowProgress = progressRate < minProgressRate && data.completed > 10;
+
+              // Check if we've been running too long overall
+              const totalRunTime = Date.now() - startTime;
+              const hasExceededMaxTime = totalRunTime > 480000; // 8 minutes max for any crawl
 
               if (
                 data.status === 'completed' ||
                 (data.status === 'scraping' && !data.next && data.completed === data.total) ||
-                (hasStalled && isNearComplete && !data.next)
+                (hasStalled && isNearComplete && !data.next) ||
+                (hasStalled && isMostlyComplete && isMakingSlowProgress) ||
+                (hasAbsolutelyStalled && completionRatio >= 0.5) || // Stalled for 2min at 50%+
+                hasExceededMaxTime // Max time exceeded
               ) {
-                // If stalled but near complete, log a warning
-                if (hasStalled && isNearComplete) {
+                // Log different warning messages based on completion reason
+                if (hasExceededMaxTime) {
+                  console.warn(
+                    `Crawl job ${jobId} exceeded maximum runtime of 8 minutes. ` +
+                      `Completed ${data.completed}/${data.total} pages (${Math.round(completionRatio * 100)}%).`
+                  );
+                } else if (hasAbsolutelyStalled) {
+                  console.warn(
+                    `Crawl job ${jobId} has been stalled for over 2 minutes at ${data.completed}/${data.total} pages. ` +
+                      `Marking as complete.`
+                  );
+                } else if (hasStalled && isMakingSlowProgress) {
+                  console.warn(
+                    `Crawl job ${jobId} is making very slow progress (${(progressRate * 60000).toFixed(2)} pages/min). ` +
+                      `Completed ${data.completed}/${data.total} pages. Marking as complete.`
+                  );
+                } else if (hasStalled) {
                   console.warn(
                     `Crawl job ${jobId} appears stalled at ${data.completed}/${data.total} pages. ` +
                       `Marking as complete due to timeout.`
@@ -299,7 +332,7 @@ export async function GET(
           controller.enqueue(
             sendMessage({
               type: 'error',
-              error: 'Crawl job timed out after 10 minutes',
+              error: 'Crawl job timed out after 8 minutes',
             })
           );
         }
