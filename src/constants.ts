@@ -2,7 +2,7 @@
 export const DOCUMENTATION_PATTERNS = [
   {
     pattern:
-      /^https:\/\/(docs?|developer|dev|learn|help|api|guide|wiki|devcenter)\.[^\/]+\.[^\/]+\//,
+      /^https:\/\/(docs?|developers?|dev|learn|help|api|guide|wiki|devcenter)\.[^\/]+\.[^\/]+\//,
     name: 'Documentation Subdomains',
     description: 'Matches documentation subdomains like docs.*, developer.*, learn.*, etc.',
     examples: ['docs.python.org', 'developer.apple.com', 'learn.microsoft.com', 'docs.cypress.io'],
