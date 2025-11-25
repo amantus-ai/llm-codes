@@ -173,8 +173,7 @@ describe('file-utils', () => {
       });
 
       const anchorElement = mockCreateElement.mock.results[0].value;
-      expect(anchorElement.download).toContain('github-pages');
-      expect(anchorElement.download).toContain('docs.md');
+      expect(anchorElement.download).toContain('pointfreeco-github-io-swift-composable-architecture-docs.md');
     });
 
     it('should handle results with only empty content', () => {
