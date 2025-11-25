@@ -1,4 +1,4 @@
-# llm.codes - Transform Developer Documentation for AI Agents
+# llm.codes 📖 - Transform Developer Documentation for AI Agents
 
 A high-performance web service that converts JavaScript-heavy documentation sites into clean, LLM-optimized Markdown. Built specifically to solve the problem of AI agents being unable to parse modern documentation sites that rely heavily on client-side rendering.
 
