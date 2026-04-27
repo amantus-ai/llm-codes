@@ -1,6 +1,6 @@
-import { generateFilename } from './url-utils';
-import { is404Page } from './content-processing';
-import { filterDocumentation } from './documentation-filter';
+import { generateFilename } from "./url-utils";
+import { is404Page } from "./content-processing";
+import { filterDocumentation } from "./documentation-filter";
 
 interface ProcessingResult {
   url: string;
@@ -20,18 +20,18 @@ export function downloadMarkdown(options: DownloadOptions): void {
 
   // Generate header with attribution
   const now = new Date();
-  const dateStr = now.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+  const dateStr = now.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
-  const timeStr = now.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
+  const timeStr = now.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
   });
 
   const validPages = results.filter(
-    (r) => r.content && r.content.trim().length > 0 && !is404Page(r.content)
+    (r) => r.content && r.content.trim().length > 0 && !is404Page(r.content),
   );
   const notFoundPages = results.filter((r) => r.content && is404Page(r.content));
 
@@ -41,9 +41,9 @@ Source URL: ${url}
 Total pages processed: ${results.length}
 Pages with content: ${validPages.length}
 404 pages filtered: ${notFoundPages.length}
-URLs filtered: ${filterUrls ? 'Yes' : 'No'}
-Content de-duplicated: ${deduplicateContent ? 'Yes' : 'No'}
-Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
+URLs filtered: ${filterUrls ? "Yes" : "No"}
+Content de-duplicated: ${deduplicateContent ? "Yes" : "No"}
+Availability strings filtered: ${filterAvailability ? "Yes" : "No"}
 -->
 
 `;
@@ -71,15 +71,15 @@ Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
     .filter((r) => r.content && r.content.trim().length > 0); // Filter again after processing
 
   const content =
-    header + processedResults.map((r) => `# ${r.url}\n\n${r.content}\n\n---\n\n`).join('');
-  const blob = new Blob([content], { type: 'text/markdown' });
+    header + processedResults.map((r) => `# ${r.url}\n\n${r.content}\n\n---\n\n`).join("");
+  const blob = new Blob([content], { type: "text/markdown" });
   const downloadUrl = URL.createObjectURL(blob);
 
   // Generate filename from the original URL
   const filename = generateFilename(url);
 
   // Create and trigger download
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = downloadUrl;
   a.download = filename;
   document.body.appendChild(a);

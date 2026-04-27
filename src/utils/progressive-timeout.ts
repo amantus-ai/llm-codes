@@ -41,26 +41,26 @@ function isContentReady(content: string | null): boolean {
 
   // Check for common loading indicators
   const loadingIndicators = [
-    'loading...',
-    'please wait',
-    'initializing',
-    'fetching data',
+    "loading...",
+    "please wait",
+    "initializing",
+    "fetching data",
     '<div class="spinner"',
     '<div class="loader"',
-    'skeleton-loader',
+    "skeleton-loader",
   ];
 
   const contentLower = content.toLowerCase();
   const hasLoadingIndicator = loadingIndicators.some((indicator) =>
-    contentLower.includes(indicator)
+    contentLower.includes(indicator),
   );
 
   if (hasLoadingIndicator) return false;
 
   // Check for reasonable content structure
-  const hasHeaders = content.includes('#') || content.includes('<h1') || content.includes('<h2');
-  const hasParagraphs = content.includes('\n\n') || content.includes('<p>');
-  const hasCodeBlocks = content.includes('```') || content.includes('<code');
+  const hasHeaders = content.includes("#") || content.includes("<h1") || content.includes("<h2");
+  const hasParagraphs = content.includes("\n\n") || content.includes("<p>");
+  const hasCodeBlocks = content.includes("```") || content.includes("<code");
 
   // Consider content ready if it has some structure
   return hasHeaders || (hasParagraphs && content.length > 1000) || hasCodeBlocks;
@@ -74,15 +74,15 @@ function calculateWaitTime(url: string, baseWaitTime: number): number {
 
   // Increase wait time for known heavy documentation sites
   if (
-    urlLower.includes('react.dev') ||
-    urlLower.includes('angular.io') ||
-    urlLower.includes('vuejs.org')
+    urlLower.includes("react.dev") ||
+    urlLower.includes("angular.io") ||
+    urlLower.includes("vuejs.org")
   ) {
     return baseWaitTime * 2;
   }
 
   // Decrease wait time for simple sites
-  if (urlLower.includes('/api/') || urlLower.includes('/reference/') || urlLower.includes('.md')) {
+  if (urlLower.includes("/api/") || urlLower.includes("/reference/") || urlLower.includes(".md")) {
     return Math.max(2000, baseWaitTime * 0.5);
   }
 
@@ -92,7 +92,7 @@ function calculateWaitTime(url: string, baseWaitTime: number): number {
 /**
  * Scrape with progressive timeout strategy
  */
-interface ScrapeOptions {
+export interface ScrapeOptions {
   formats?: string[];
   waitFor?: number;
   timeout?: number;
@@ -103,7 +103,7 @@ interface ScrapeOptions {
 export async function scrapeWithProgressiveTimeout(
   scrapeFn: (url: string, options: ScrapeOptions) => Promise<FirecrawlScrapeResponse>,
   url: string,
-  config: ProgressiveTimeoutConfig = DEFAULT_PROGRESSIVE_CONFIG
+  config: ProgressiveTimeoutConfig = DEFAULT_PROGRESSIVE_CONFIG,
 ): Promise<ScrapeResult> {
   let currentTimeout = config.initialTimeout;
   let attemptCount = 0;
@@ -122,7 +122,7 @@ export async function scrapeWithProgressiveTimeout(
       const timeoutId = setTimeout(() => controller.abort(), currentTimeout);
 
       const scrapePromise = scrapeFn(url, {
-        formats: ['markdown'],
+        formats: ["markdown"],
         waitFor: waitTime,
         timeout: Math.floor(currentTimeout / 1000), // Firecrawl expects seconds
         removeBase64Images: true,
@@ -133,7 +133,7 @@ export async function scrapeWithProgressiveTimeout(
       const result = await Promise.race([
         scrapePromise,
         new Promise<never>((_, reject) => {
-          controller.signal.addEventListener('abort', () => {
+          controller.signal.addEventListener("abort", () => {
             reject(new Error(`Progressive timeout after ${currentTimeout}ms`));
           });
         }),
@@ -158,7 +158,7 @@ export async function scrapeWithProgressiveTimeout(
       lastError = error as Error;
 
       // If it's not a timeout error, throw immediately
-      if (!(error instanceof Error) || !error.message?.includes('timeout')) {
+      if (!(error instanceof Error) || !error.message?.includes("timeout")) {
         throw error;
       }
 
@@ -178,7 +178,7 @@ export function createCustomConfig(url: string): ProgressiveTimeoutConfig {
   const urlLower = url.toLowerCase();
 
   // Fast config for simple documentation
-  if (urlLower.includes('/api/') || urlLower.includes('.md')) {
+  if (urlLower.includes("/api/") || urlLower.includes(".md")) {
     return {
       initialTimeout: 5000,
       maxTimeout: 20000,
@@ -190,9 +190,9 @@ export function createCustomConfig(url: string): ProgressiveTimeoutConfig {
 
   // Slower config for complex SPAs
   if (
-    urlLower.includes('react.dev') ||
-    urlLower.includes('angular.io') ||
-    urlLower.includes('nextjs.org')
+    urlLower.includes("react.dev") ||
+    urlLower.includes("angular.io") ||
+    urlLower.includes("nextjs.org")
   ) {
     return {
       initialTimeout: 15000,
@@ -213,7 +213,7 @@ export function createCustomConfig(url: string): ProgressiveTimeoutConfig {
 export async function batchScrapeWithProgressiveTimeout(
   scrapeFn: (url: string, options: ScrapeOptions) => Promise<FirecrawlScrapeResponse>,
   urls: string[],
-  config?: ProgressiveTimeoutConfig
+  config?: ProgressiveTimeoutConfig,
 ): Promise<Map<string, ScrapeResult | Error>> {
   const results = new Map<string, ScrapeResult | Error>();
 
@@ -226,7 +226,7 @@ export async function batchScrapeWithProgressiveTimeout(
       } catch (error) {
         results.set(url, error as Error);
       }
-    })
+    }),
   );
 
   return results;

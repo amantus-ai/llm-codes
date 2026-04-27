@@ -1,31 +1,25 @@
-import { renderHook, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
-import { useCrawl } from '../useCrawl';
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
+import { useCrawl } from "../useCrawl";
 
 // Mock fetch
 global.fetch = vi.fn() as Mock;
 
 const describeFn = process.env.CI ? describe.skip : describe;
 
-describeFn('useCrawl', () => {
+describeFn("useCrawl", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (global.fetch as Mock).mockReset();
   });
 
-  it('should start crawl successfully', async () => {
-    const mockStartResponse = {
-      ok: true,
-      json: async () => ({ success: true, jobId: 'test-job-123', url: 'https://example.com' }),
-    };
-
-    (global.fetch as Mock).mockResolvedValueOnce(mockStartResponse);
-
+  it("should start crawl successfully", async () => {
     const { result } = renderHook(() =>
       useCrawl({
         onStatusChange: vi.fn(),
         onProgress: vi.fn(),
         onComplete: vi.fn(),
-      })
+      }),
     );
 
     expect(result.current.isProcessing).toBe(false);
@@ -33,11 +27,11 @@ describeFn('useCrawl', () => {
     expect(result.current.jobId).toBeNull();
   });
 
-  it('should handle crawl start errors', async () => {
+  it("should handle crawl start errors", async () => {
     const mockErrorResponse = {
       ok: false,
       status: 400,
-      json: async () => ({ error: 'Invalid URL' }),
+      json: async () => ({ error: "Invalid URL" }),
     };
 
     (global.fetch as Mock).mockResolvedValueOnce(mockErrorResponse);
@@ -46,19 +40,21 @@ describeFn('useCrawl', () => {
     const { result } = renderHook(() =>
       useCrawl({
         onError,
-      })
+      }),
     );
 
-    await result.current.startCrawl('https://invalid.com', 10);
+    await act(async () => {
+      await result.current.startCrawl("https://invalid.com", 10);
+    });
 
     await waitFor(() => {
-      expect(result.current.error).toBe('Invalid URL');
-      expect(onError).toHaveBeenCalledWith('Invalid URL');
+      expect(result.current.error).toBe("Invalid URL");
+      expect(onError).toHaveBeenCalledWith("Invalid URL");
       expect(result.current.isProcessing).toBe(false);
     });
   });
 
-  it('should handle status stream messages', async () => {
+  it("should handle status stream messages", async () => {
     const onProgress = vi.fn();
     const onUrlComplete = vi.fn();
     const onComplete = vi.fn();
@@ -68,13 +64,13 @@ describeFn('useCrawl', () => {
         onProgress,
         onUrlComplete,
         onComplete,
-      })
+      }),
     );
 
     // Simulate successful crawl with progress updates
     const mockStartResponse = {
       ok: true,
-      json: async () => ({ success: true, jobId: 'test-job-123' }),
+      json: async () => ({ success: true, jobId: "test-job-123" }),
     };
 
     // Mock the ReadableStream for status updates
@@ -82,16 +78,16 @@ describeFn('useCrawl', () => {
       start(controller) {
         controller.enqueue(
           new TextEncoder().encode(
-            'data: {"type":"progress","progress":5,"total":10,"creditsUsed":5}\n\n'
-          )
+            'data: {"type":"progress","progress":5,"total":10,"creditsUsed":5}\n\n',
+          ),
         );
         controller.enqueue(
           new TextEncoder().encode(
-            'data: {"type":"url_complete","url":"https://example.com/page1","content":"Test content","cached":false}\n\n'
-          )
+            'data: {"type":"url_complete","url":"https://example.com/page1","content":"Test content","cached":false}\n\n',
+          ),
         );
         controller.enqueue(
-          new TextEncoder().encode('data: {"type":"complete","creditsUsed":10}\n\n')
+          new TextEncoder().encode('data: {"type":"complete","creditsUsed":10}\n\n'),
         );
         controller.close();
       },
@@ -106,58 +102,79 @@ describeFn('useCrawl', () => {
       .mockResolvedValueOnce(mockStartResponse)
       .mockResolvedValueOnce(mockStatusResponse);
 
-    await result.current.startCrawl('https://example.com', 10);
+    await act(async () => {
+      await result.current.startCrawl("https://example.com", 10);
+    });
 
     await waitFor(() => {
       expect(onProgress).toHaveBeenCalledWith(5, 10, 5);
       expect(onUrlComplete).toHaveBeenCalledWith(
-        'https://example.com/page1',
-        'Test content',
-        false
+        "https://example.com/page1",
+        "Test content",
+        false,
       );
       expect(onComplete).toHaveBeenCalled();
       expect(result.current.creditsUsed).toBe(10);
     });
   });
 
-  it('should cancel crawl operation', () => {
+  it("should cancel crawl operation", () => {
     const { result } = renderHook(() => useCrawl());
 
-    result.current.cancel();
+    act(() => {
+      result.current.cancel();
+    });
 
     // Since the abort controller is internal, we just verify the function exists and can be called
     expect(result.current.cancel).toBeDefined();
   });
 
-  it('should get results from completed crawl', async () => {
+  it("should get results from completed crawl", async () => {
+    const mockStartResponse = {
+      ok: true,
+      json: async () => ({ success: true, jobId: "test-job-123" }),
+    };
+    const mockStatusResponse = {
+      ok: true,
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('data: {"type":"complete"}\n\n'));
+          controller.close();
+        },
+      }),
+    };
     const mockResultsResponse = {
       ok: true,
       json: async () => ({
         success: true,
-        jobId: 'test-job-123',
-        status: 'completed',
+        jobId: "test-job-123",
+        status: "completed",
         totalPages: 5,
         creditsUsed: 10,
-        markdown: '# Test Content',
+        markdown: "# Test Content",
       }),
     };
 
-    (global.fetch as Mock).mockResolvedValueOnce(mockResultsResponse);
+    (global.fetch as Mock)
+      .mockResolvedValueOnce(mockStartResponse)
+      .mockResolvedValueOnce(mockStatusResponse)
+      .mockResolvedValueOnce(mockResultsResponse);
 
     const { result } = renderHook(() => useCrawl());
 
-    // Manually set jobId since we're testing getResults in isolation
-    result.current.jobId = 'test-job-123';
+    await act(async () => {
+      await result.current.startCrawl("https://example.com", 10);
+    });
 
     const results = await result.current.getResults();
 
     expect(results).toEqual({
       success: true,
-      jobId: 'test-job-123',
-      status: 'completed',
+      jobId: "test-job-123",
+      status: "completed",
       totalPages: 5,
       creditsUsed: 10,
-      markdown: '# Test Content',
+      markdown: "# Test Content",
     });
   });
 });

@@ -10,24 +10,28 @@ Testing approach: Unit tests for utilities and components, integration tests for
 
 ## Test Types
 
-**Unit Tests** - Utility functions and pure logic in **src/utils/__tests__/** directory
+**Unit Tests** - Utility functions and pure logic in **src/utils/**tests**/** directory
+
 - URL validation and manipulation: **url-utils.test.ts** (145 lines)
 - Content filtering: **documentation-filter.test.ts** (300+ lines)
 - 404 detection: **404-detection.test.ts**
 - URL normalization: **url-normalization.test.ts**
 
 **Integration Tests** - API routes with mocked external dependencies
-- Main scrape endpoint: **src/app/api/scrape/__tests__/route.test.ts** (303 lines)
-- Batch processing: **src/app/api/scrape/batch/__tests__/route.test.ts**
-- Redis cache: **src/lib/cache/__tests__/redis-cache.test.ts**
+
+- Main scrape endpoint: **src/app/api/scrape/**tests**/route.test.ts** (303 lines)
+- Batch processing: **src/app/api/scrape/batch/**tests**/route.test.ts**
+- Redis cache: **src/lib/cache/**tests**/redis-cache.test.ts**
 
 **Component Tests** - React components using Testing Library (when present)
+
 - Setup with happy-dom environment for fast DOM testing
 - Global test setup in **src/test/setup.ts** (lines 1-36)
 
 ## Running Tests
 
 **Basic Commands**:
+
 ```bash
 npm test              # Run all tests in watch mode
 npm run test:ui       # Interactive UI mode for debugging
@@ -35,20 +39,22 @@ npm run test:coverage # Generate coverage report
 ```
 
 **Test Environment Setup** - Global configuration in **src/test/setup.ts**:
+
 ```typescript
 // From src/test/setup.ts:1-10
-import '@testing-library/jest-dom';
-import { vi } from 'vitest';
+import "@testing-library/jest-dom";
+import { vi } from "vitest";
 
 // Mock Next.js Image component
-vi.mock('next/image', () => ({
+vi.mock("next/image", () => ({
   default: (props: Record<string, unknown>) => {
     return props;
   },
 }));
 ```
 
-**Example Test Structure** from **src/utils/__tests__/url-utils.test.ts**:
+**Example Test Structure** from **src/utils/**tests**/url-utils.test.ts**:
+
 ```typescript
 // From src/utils/__tests__/url-utils.test.ts:10-20
 describe('url-utils', () => {
@@ -67,21 +73,23 @@ describe('url-utils', () => {
 ## Reference
 
 **Test File Organization**:
-- **src/utils/__tests__/** - Utility function tests
-- **src/app/api/scrape/__tests__/** - API route tests
-- **src/lib/cache/__tests__/** - Cache implementation tests
+
+- **src/utils/**tests**/** - Utility function tests
+- **src/app/api/scrape/**tests**/** - API route tests
+- **src/lib/cache/**tests**/** - Cache implementation tests
 - **src/test/setup.ts** - Global test configuration
 
 **Testing Patterns**:
 
 1. **Mocking External APIs** - Example from **route.test.ts** (lines 25-35):
+
 ```typescript
 const mockFirecrawlResponse = {
   ok: true,
   json: vi.fn().mockResolvedValue({
     success: true,
     data: {
-      markdown: '# Test Content\n\nThis is test content.',
+      markdown: "# Test Content\n\nThis is test content.",
     },
   }),
 };
@@ -89,6 +97,7 @@ vi.mocked(global.fetch).mockResolvedValue(mockFirecrawlResponse as unknown as Re
 ```
 
 2. **Testing Retry Logic** with fake timers from **route.test.ts** (lines 153-214):
+
 ```typescript
 // Use fake timers to speed up the test
 vi.useFakeTimers();
@@ -100,23 +109,27 @@ for (let i = 0; i < 5; i++) {
 ```
 
 3. **Comprehensive Edge Case Testing** - **documentation-filter.test.ts** tests:
+
 - Navigation removal patterns
 - Legal boilerplate filtering
 - Empty content detection
 - Platform-specific content handling
 
 **Coverage Configuration**:
+
 - Target: 95%+ coverage maintained
 - Coverage reports: Generated with `npm run test:coverage`
 - Output location: **coverage/** directory
 
 **Common Test Utilities**:
+
 - `vi.fn()` - Mock functions
 - `vi.mocked()` - Type-safe mocking
 - `vi.useFakeTimers()` - Control time-based operations
 - `describe/it/expect` - Test structure from Vitest globals
 
 **Debugging Tests**:
+
 - Use `npm run test:ui` for interactive debugging
 - Add `.only` to focus on specific tests: `it.only('test name', ...)`
 - Console logs appear in test output for debugging

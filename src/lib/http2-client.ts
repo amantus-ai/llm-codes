@@ -1,4 +1,4 @@
-import { Agent } from 'undici';
+import { Agent } from "undici";
 
 // Create an HTTP/2-enabled agent for improved performance
 const http2Agent = new Agent({

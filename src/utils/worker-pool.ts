@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from "events";
 
 export interface WorkerPoolOptions<T = unknown, E = unknown> {
   concurrency: number;
@@ -55,7 +55,7 @@ export class WorkerPool<T, R> extends EventEmitter {
     if (this.isRunning) return;
 
     this.isRunning = true;
-    this.emit('start');
+    this.emit("start");
 
     // Start initial workers up to concurrency limit
     const initialWorkers = Math.min(this.options.concurrency, this.queue.length);
@@ -69,7 +69,7 @@ export class WorkerPool<T, R> extends EventEmitter {
    */
   async stop(): Promise<void> {
     this.isRunning = false;
-    this.emit('stop');
+    this.emit("stop");
 
     // Wait for all active workers to complete
     while (this.activeWorkers > 0) {
@@ -89,7 +89,7 @@ export class WorkerPool<T, R> extends EventEmitter {
     ) {
       // Check if we're done
       if (this.activeWorkers === 0 && this.queue.length === 0) {
-        this.emit('drain');
+        this.emit("drain");
         this.options.onQueueEmpty?.();
       }
       return;
@@ -100,7 +100,7 @@ export class WorkerPool<T, R> extends EventEmitter {
     if (!queueItem) return;
 
     this.activeWorkers++;
-    this.emit('workerStart', {
+    this.emit("workerStart", {
       activeWorkers: this.activeWorkers,
       queueLength: this.queue.length,
     });
@@ -109,16 +109,16 @@ export class WorkerPool<T, R> extends EventEmitter {
       const result = await this.processingFunction(queueItem.data);
       this.processedCount++;
 
-      this.emit('taskComplete', result);
+      this.emit("taskComplete", result);
       this.options.onTaskComplete?.(result);
     } catch (error) {
       this.errorCount++;
 
-      this.emit('taskError', error);
+      this.emit("taskError", error);
       this.options.onTaskError?.(error);
     } finally {
       this.activeWorkers--;
-      this.emit('workerEnd', {
+      this.emit("workerEnd", {
         activeWorkers: this.activeWorkers,
         queueLength: this.queue.length,
       });
@@ -146,7 +146,7 @@ export class WorkerPool<T, R> extends EventEmitter {
    */
   clearQueue(): void {
     this.queue = [];
-    this.emit('queueCleared');
+    this.emit("queueCleared");
   }
 
   /**
@@ -161,12 +161,12 @@ export class WorkerPool<T, R> extends EventEmitter {
 
       const checkCompletion = () => {
         if (this.activeWorkers === 0 && this.queue.length === 0) {
-          this.removeListener('workerEnd', checkCompletion);
+          this.removeListener("workerEnd", checkCompletion);
           resolve();
         }
       };
 
-      this.on('workerEnd', checkCompletion);
+      this.on("workerEnd", checkCompletion);
     });
   }
 }
@@ -185,25 +185,25 @@ export const PRIORITY_LEVELS = {
  */
 export function getUrlPriority(url: string): number {
   const urlPath = new URL(url).pathname.toLowerCase();
-  const segments = urlPath.split('/').filter((p) => p);
+  const segments = urlPath.split("/").filter((p) => p);
   const depth = segments.length;
 
   // Root or index pages get highest priority
-  if (urlPath === '/' || urlPath.endsWith('/index') || (urlPath.endsWith('/') && depth === 0)) {
+  if (urlPath === "/" || urlPath.endsWith("/index") || (urlPath.endsWith("/") && depth === 0)) {
     return PRIORITY_LEVELS.ROOT;
   }
 
   // Getting started, quickstart, overview pages always get MAIN priority
   if (
-    urlPath.includes('getting-started') ||
-    urlPath.includes('quickstart') ||
-    urlPath.includes('overview')
+    urlPath.includes("getting-started") ||
+    urlPath.includes("quickstart") ||
+    urlPath.includes("overview")
   ) {
     return PRIORITY_LEVELS.MAIN;
   }
 
   // Docs root should be ROOT priority
-  if (urlPath === '/docs/' || urlPath === '/docs') {
+  if (urlPath === "/docs/" || urlPath === "/docs") {
     return PRIORITY_LEVELS.ROOT;
   }
 

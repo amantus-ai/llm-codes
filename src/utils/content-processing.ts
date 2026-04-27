@@ -4,7 +4,7 @@ import {
   filterUrlsFromMarkdown as filterUrlsBase,
   filterAvailabilityStrings as filterAvailabilityBase,
   deduplicateMarkdown as deduplicateBase,
-} from './documentation-filter';
+} from "./documentation-filter";
 
 export function is404Page(content: string): boolean {
   return is404PageFromFilter(content);
@@ -43,7 +43,7 @@ export function deduplicateMarkdown(markdown: string, deduplicateContent: boolea
 export function extractLinks(markdown: string, baseUrl: string): string[] {
   const links = new Set<string>();
   const baseUrlObj = new URL(baseUrl);
-  const isAppleDocs = baseUrlObj.hostname === 'developer.apple.com';
+  const isAppleDocs = baseUrlObj.hostname === "developer.apple.com";
 
   // Extract URLs from markdown links: [text](url)
   // Handle URLs with parentheses by matching balanced parentheses
@@ -51,7 +51,7 @@ export function extractLinks(markdown: string, baseUrl: string): string[] {
   let match;
   while ((match = markdownLinkRegex.exec(markdown)) !== null) {
     const url = match[2];
-    if (url.startsWith('http://') || url.startsWith('https://')) {
+    if (url.startsWith("http://") || url.startsWith("https://")) {
       links.add(url);
     }
   }
@@ -60,7 +60,7 @@ export function extractLinks(markdown: string, baseUrl: string): string[] {
   const htmlLinkRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi;
   while ((match = htmlLinkRegex.exec(markdown)) !== null) {
     const url = match[1];
-    if (url.startsWith('http://') || url.startsWith('https://')) {
+    if (url.startsWith("http://") || url.startsWith("https://")) {
       links.add(url);
     }
   }
@@ -70,7 +70,7 @@ export function extractLinks(markdown: string, baseUrl: string): string[] {
   while ((match = plainUrlRegex.exec(markdown)) !== null) {
     const url = match[0];
     // Clean up the URL (remove trailing punctuation)
-    const cleanUrl = url.replace(/[.,;:!?]+$/, '');
+    const cleanUrl = url.replace(/[.,;:!?]+$/, "");
     links.add(cleanUrl);
   }
 
@@ -87,22 +87,22 @@ export function extractLinks(markdown: string, baseUrl: string): string[] {
       // Filter out non-documentation URLs for Apple
       if (isAppleDocs) {
         // Must be in the documentation path
-        if (!linkUrl.pathname.startsWith('/documentation/')) {
+        if (!linkUrl.pathname.startsWith("/documentation/")) {
           return false;
         }
 
         // Filter out search, login, and other non-content pages
         const pathLower = linkUrl.pathname.toLowerCase();
         if (
-          pathLower.includes('/search') ||
-          pathLower.includes('/login') ||
-          pathLower.includes('/download')
+          pathLower.includes("/search") ||
+          pathLower.includes("/login") ||
+          pathLower.includes("/download")
         ) {
           return false;
         }
 
         // Must be deeper than just /documentation/
-        const pathParts = linkUrl.pathname.split('/').filter((p) => p);
+        const pathParts = linkUrl.pathname.split("/").filter((p) => p);
         if (pathParts.length <= 1) {
           return false;
         }
@@ -112,15 +112,15 @@ export function extractLinks(markdown: string, baseUrl: string): string[] {
         // Just filter out obviously non-content URLs
         const pathLower = linkUrl.pathname.toLowerCase();
         if (
-          pathLower.includes('/search') ||
-          pathLower.includes('/login') ||
-          pathLower.includes('/signin') ||
-          pathLower.includes('/signup') ||
-          pathLower.includes('/download') ||
-          pathLower.endsWith('.zip') ||
-          pathLower.endsWith('.tar.gz') ||
-          pathLower.endsWith('.dmg') ||
-          pathLower.endsWith('.pkg')
+          pathLower.includes("/search") ||
+          pathLower.includes("/login") ||
+          pathLower.includes("/signin") ||
+          pathLower.includes("/signup") ||
+          pathLower.includes("/download") ||
+          pathLower.endsWith(".zip") ||
+          pathLower.endsWith(".tar.gz") ||
+          pathLower.endsWith(".dmg") ||
+          pathLower.endsWith(".pkg")
         ) {
           return false;
         }

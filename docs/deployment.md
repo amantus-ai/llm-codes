@@ -1,4 +1,5 @@
 <!-- Generated: 2025-01-15 20:33:00 UTC -->
+
 # Deployment
 
 llm-codes is a Next.js 15 application optimized for serverless deployment with built-in support for Vercel, Netlify, and standalone Node.js environments.
@@ -113,6 +114,7 @@ VERCEL_URL=https://your-deployment.vercel.app
 ```
 
 **Configuration Files**:
+
 - .env.local.example (lines 1-7) - Template for environment variables
 - src/lib/cache/redis-cache.ts (lines 33-47) - Redis initialization with fallback
 - src/constants.ts (lines 447-463) - Processing and cache configurations

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { downloadMarkdown } from '../file-utils';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { downloadMarkdown } from "../file-utils";
 
 // Mock document methods
 const mockCreateElement = vi.fn();
@@ -11,15 +11,15 @@ const mockClick = vi.fn();
 const mockCreateObjectURL = vi.fn();
 const mockRevokeObjectURL = vi.fn();
 
-describe('file-utils', () => {
+describe("file-utils", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
     // Setup document mocks
     mockCreateElement.mockReturnValue({
       click: mockClick,
-      href: '',
-      download: '',
+      href: "",
+      download: "",
     });
 
     document.createElement = mockCreateElement;
@@ -27,28 +27,33 @@ describe('file-utils', () => {
     document.body.removeChild = mockRemoveChild;
 
     // Setup URL mocks
-    mockCreateObjectURL.mockReturnValue('blob:mock-url');
+    mockCreateObjectURL.mockReturnValue("blob:mock-url");
 
     global.URL.createObjectURL = mockCreateObjectURL;
     global.URL.revokeObjectURL = mockRevokeObjectURL;
 
     // Mock Blob
-    global.Blob = vi.fn().mockImplementation((content, options) => ({
-      size: content[0].length,
-      type: options.type,
-    })) as unknown as typeof Blob;
+    global.Blob = vi.fn().mockImplementation(function (
+      content: BlobPart[],
+      options: BlobPropertyBag,
+    ) {
+      return {
+        size: String(content[0] ?? "").length,
+        type: options.type,
+      };
+    }) as unknown as typeof Blob;
   });
 
-  describe('downloadMarkdown', () => {
+  describe("downloadMarkdown", () => {
     const mockResults = [
-      { url: 'https://example.com/page1', content: 'Content 1' },
-      { url: 'https://example.com/page2', content: 'Content 2' },
-      { url: 'https://example.com/page3', content: '' },
+      { url: "https://example.com/page1", content: "Content 1" },
+      { url: "https://example.com/page2", content: "Content 2" },
+      { url: "https://example.com/page3", content: "" },
     ];
 
-    it('should download markdown with all filters disabled', () => {
+    it("should download markdown with all filters disabled", () => {
       downloadMarkdown({
-        url: 'https://example.com',
+        url: "https://example.com",
         results: mockResults,
         filterUrls: false,
         deduplicateContent: false,
@@ -58,13 +63,13 @@ describe('file-utils', () => {
       // Check that Blob was created with correct content
       expect(global.Blob).toHaveBeenCalled();
       const blobContent = vi.mocked(global.Blob).mock.calls[0]?.[0]?.[0] as string;
-      expect(blobContent).toContain('Downloaded via https://llm.codes');
-      expect(blobContent).toContain('Source URL: https://example.com');
-      expect(blobContent).toContain('Total pages processed: 3');
-      expect(blobContent).toContain('Pages with content: 2');
-      expect(blobContent).toContain('Content 1');
-      expect(blobContent).toContain('Content 2');
-      expect(blobContent).not.toContain('https://example.com/page3'); // Empty content filtered
+      expect(blobContent).toContain("Downloaded via https://llm.codes");
+      expect(blobContent).toContain("Source URL: https://example.com");
+      expect(blobContent).toContain("Total pages processed: 3");
+      expect(blobContent).toContain("Pages with content: 2");
+      expect(blobContent).toContain("Content 1");
+      expect(blobContent).toContain("Content 2");
+      expect(blobContent).not.toContain("https://example.com/page3"); // Empty content filtered
 
       // Check download was triggered
       expect(mockClick).toHaveBeenCalled();
@@ -72,16 +77,16 @@ describe('file-utils', () => {
       expect(mockRevokeObjectURL).toHaveBeenCalled();
     });
 
-    it('should apply URL filtering when enabled', () => {
+    it("should apply URL filtering when enabled", () => {
       const resultsWithUrls = [
         {
-          url: 'https://example.com/page1',
-          content: 'Check [this link](https://example.com) for more info.',
+          url: "https://example.com/page1",
+          content: "Check [this link](https://example.com) for more info.",
         },
       ];
 
       downloadMarkdown({
-        url: 'https://example.com',
+        url: "https://example.com",
         results: resultsWithUrls,
         filterUrls: true,
         deduplicateContent: false,
@@ -89,20 +94,20 @@ describe('file-utils', () => {
       });
 
       const blobContent = vi.mocked(global.Blob).mock.calls[0]?.[0]?.[0] as string;
-      expect(blobContent).toContain('Check this link for more info.');
-      expect(blobContent).not.toContain('[this link](https://example.com)');
+      expect(blobContent).toContain("Check this link for more info.");
+      expect(blobContent).not.toContain("[this link](https://example.com)");
     });
 
-    it('should apply availability filtering when enabled', () => {
+    it("should apply availability filtering when enabled", () => {
       const resultsWithAvailability = [
         {
-          url: 'https://example.com/page1',
-          content: 'iOS 14.0+iPadOS 14.0+ This feature is available',
+          url: "https://example.com/page1",
+          content: "iOS 14.0+iPadOS 14.0+ This feature is available",
         },
       ];
 
       downloadMarkdown({
-        url: 'https://example.com',
+        url: "https://example.com",
         results: resultsWithAvailability,
         filterUrls: false,
         deduplicateContent: false,
@@ -110,20 +115,20 @@ describe('file-utils', () => {
       });
 
       const blobContent = vi.mocked(global.Blob).mock.calls[0]?.[0]?.[0] as string;
-      expect(blobContent).toContain('This feature is available');
-      expect(blobContent).not.toContain('iOS 14.0+');
+      expect(blobContent).toContain("This feature is available");
+      expect(blobContent).not.toContain("iOS 14.0+");
     });
 
-    it('should apply deduplication when enabled', () => {
+    it("should apply deduplication when enabled", () => {
       const resultsWithDuplicates = [
         {
-          url: 'https://example.com/page1',
-          content: 'Duplicate content\n\nUnique content\n\nDuplicate content',
+          url: "https://example.com/page1",
+          content: "Duplicate content\n\nUnique content\n\nDuplicate content",
         },
       ];
 
       downloadMarkdown({
-        url: 'https://example.com',
+        url: "https://example.com",
         results: resultsWithDuplicates,
         filterUrls: false,
         deduplicateContent: true,
@@ -134,12 +139,12 @@ describe('file-utils', () => {
       // Should only contain duplicate content once
       const duplicateMatches = blobContent?.match(/Duplicate content/g);
       expect(duplicateMatches).toHaveLength(1);
-      expect(blobContent).toContain('Unique content');
+      expect(blobContent).toContain("Unique content");
     });
 
-    it('should generate correct filename for Apple docs', () => {
+    it("should generate correct filename for Apple docs", () => {
       downloadMarkdown({
-        url: 'https://developer.apple.com/documentation/swiftui',
+        url: "https://developer.apple.com/documentation/swiftui",
         results: mockResults,
         filterUrls: false,
         deduplicateContent: false,
@@ -147,12 +152,12 @@ describe('file-utils', () => {
       });
 
       const anchorElement = mockCreateElement.mock.results[0].value;
-      expect(anchorElement.download).toBe('apple-developer-documentation-swiftui-docs.md');
+      expect(anchorElement.download).toBe("apple-developer-documentation-swiftui-docs.md");
     });
 
-    it('should generate correct filename for Swift Package Index', () => {
+    it("should generate correct filename for Swift Package Index", () => {
       downloadMarkdown({
-        url: 'https://swiftpackageindex.com/vapor/vapor',
+        url: "https://swiftpackageindex.com/vapor/vapor",
         results: mockResults,
         filterUrls: false,
         deduplicateContent: false,
@@ -160,12 +165,12 @@ describe('file-utils', () => {
       });
 
       const anchorElement = mockCreateElement.mock.results[0].value;
-      expect(anchorElement.download).toBe('swift-package-index-vapor-vapor-docs.md');
+      expect(anchorElement.download).toBe("swift-package-index-vapor-vapor-docs.md");
     });
 
-    it('should generate correct filename for GitHub Pages', () => {
+    it("should generate correct filename for GitHub Pages", () => {
       downloadMarkdown({
-        url: 'https://pointfreeco.github.io/swift-composable-architecture/',
+        url: "https://pointfreeco.github.io/swift-composable-architecture/",
         results: mockResults,
         filterUrls: false,
         deduplicateContent: false,
@@ -173,17 +178,19 @@ describe('file-utils', () => {
       });
 
       const anchorElement = mockCreateElement.mock.results[0].value;
-      expect(anchorElement.download).toContain('pointfreeco-github-io-swift-composable-architecture-docs.md');
+      expect(anchorElement.download).toContain(
+        "pointfreeco-github-io-swift-composable-architecture-docs.md",
+      );
     });
 
-    it('should handle results with only empty content', () => {
+    it("should handle results with only empty content", () => {
       const emptyResults = [
-        { url: 'https://example.com/page1', content: '' },
-        { url: 'https://example.com/page2', content: '   ' },
+        { url: "https://example.com/page1", content: "" },
+        { url: "https://example.com/page2", content: "   " },
       ];
 
       downloadMarkdown({
-        url: 'https://example.com',
+        url: "https://example.com",
         results: emptyResults,
         filterUrls: false,
         deduplicateContent: false,
@@ -191,9 +198,9 @@ describe('file-utils', () => {
       });
 
       const blobContent = vi.mocked(global.Blob).mock.calls[0]?.[0]?.[0] as string;
-      expect(blobContent).toContain('Pages with content: 0');
-      expect(blobContent).not.toContain('# https://example.com/page1');
-      expect(blobContent).not.toContain('# https://example.com/page2');
+      expect(blobContent).toContain("Pages with content: 0");
+      expect(blobContent).not.toContain("# https://example.com/page1");
+      expect(blobContent).not.toContain("# https://example.com/page2");
     });
   });
 });

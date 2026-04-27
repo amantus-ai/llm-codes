@@ -1,11 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { WorkerPool, getUrlPriority, PRIORITY_LEVELS } from '../worker-pool';
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
+import { WorkerPool, getUrlPriority, PRIORITY_LEVELS } from "../worker-pool";
 
-describe('WorkerPool', () => {
-  let processingFn: ReturnType<typeof vi.fn>;
-  let onTaskComplete: ReturnType<typeof vi.fn>;
-  let onTaskError: ReturnType<typeof vi.fn>;
-  let onQueueEmpty: ReturnType<typeof vi.fn>;
+describe("WorkerPool", () => {
+  let processingFn: Mock<(item: any) => Promise<any>>;
+  let onTaskComplete: Mock<(result: any) => void>;
+  let onTaskError: Mock<(error: unknown) => void>;
+  let onQueueEmpty: Mock<() => void>;
 
   beforeEach(() => {
     processingFn = vi.fn();
@@ -14,8 +14,8 @@ describe('WorkerPool', () => {
     onQueueEmpty = vi.fn();
   });
 
-  describe('basic functionality', () => {
-    it('should process items with correct concurrency', async () => {
+  describe("basic functionality", () => {
+    it("should process items with correct concurrency", async () => {
       let activeCount = 0;
       let maxActiveCount = 0;
 
@@ -48,7 +48,7 @@ describe('WorkerPool', () => {
       expect(onTaskComplete).toHaveBeenCalledTimes(10);
     });
 
-    it('should process items immediately when slots available', async () => {
+    it("should process items immediately when slots available", async () => {
       const results: number[] = [];
 
       processingFn.mockImplementation(async (item: number) => {
@@ -76,8 +76,8 @@ describe('WorkerPool', () => {
     });
   });
 
-  describe('priority handling', () => {
-    it('should process high priority items first', async () => {
+  describe("priority handling", () => {
+    it("should process high priority items first", async () => {
       const processOrder: number[] = [];
 
       processingFn.mockImplementation(async (item: { id: number }) => {
@@ -104,11 +104,11 @@ describe('WorkerPool', () => {
     });
   });
 
-  describe('error handling', () => {
-    it('should handle processing errors gracefully', async () => {
+  describe("error handling", () => {
+    it("should handle processing errors gracefully", async () => {
       processingFn.mockImplementation(async (item: number) => {
         if (item === 5) {
-          throw new Error('Processing error');
+          throw new Error("Processing error");
         }
         return item * 2;
       });
@@ -132,8 +132,8 @@ describe('WorkerPool', () => {
     });
   });
 
-  describe('queue management', () => {
-    it('should clear queue when requested', () => {
+  describe("queue management", () => {
+    it("should clear queue when requested", () => {
       const pool = new WorkerPool(processingFn, { concurrency: 1 });
 
       for (let i = 0; i < 10; i++) {
@@ -147,7 +147,7 @@ describe('WorkerPool', () => {
       expect(pool.getStatus().queueLength).toBe(0);
     });
 
-    it('should emit drain event when queue empties', async () => {
+    it("should emit drain event when queue empties", async () => {
       processingFn.mockImplementation(async () => {
         await new Promise((resolve) => setTimeout(resolve, 10));
       });
@@ -158,7 +158,7 @@ describe('WorkerPool', () => {
       });
 
       const drainListener = vi.fn();
-      pool.on('drain', drainListener);
+      pool.on("drain", drainListener);
 
       pool.add(1);
       pool.add(2);
@@ -171,8 +171,8 @@ describe('WorkerPool', () => {
     });
   });
 
-  describe('stop functionality', () => {
-    it('should stop processing gracefully', async () => {
+  describe("stop functionality", () => {
+    it("should stop processing gracefully", async () => {
       let processedCount = 0;
 
       processingFn.mockImplementation(async () => {
@@ -208,32 +208,32 @@ describe('WorkerPool', () => {
   });
 });
 
-describe('getUrlPriority', () => {
-  it('should assign highest priority to root pages', () => {
-    expect(getUrlPriority('https://example.com/')).toBe(PRIORITY_LEVELS.ROOT);
-    expect(getUrlPriority('https://example.com/index')).toBe(PRIORITY_LEVELS.ROOT);
-    expect(getUrlPriority('https://example.com/docs/')).toBe(PRIORITY_LEVELS.ROOT);
+describe("getUrlPriority", () => {
+  it("should assign highest priority to root pages", () => {
+    expect(getUrlPriority("https://example.com/")).toBe(PRIORITY_LEVELS.ROOT);
+    expect(getUrlPriority("https://example.com/index")).toBe(PRIORITY_LEVELS.ROOT);
+    expect(getUrlPriority("https://example.com/docs/")).toBe(PRIORITY_LEVELS.ROOT);
   });
 
-  it('should assign main priority to documentation and overview pages', () => {
-    expect(getUrlPriority('https://example.com/docs/getting-started')).toBe(PRIORITY_LEVELS.MAIN);
-    expect(getUrlPriority('https://example.com/quickstart')).toBe(PRIORITY_LEVELS.MAIN);
-    expect(getUrlPriority('https://example.com/overview')).toBe(PRIORITY_LEVELS.MAIN);
+  it("should assign main priority to documentation and overview pages", () => {
+    expect(getUrlPriority("https://example.com/docs/getting-started")).toBe(PRIORITY_LEVELS.MAIN);
+    expect(getUrlPriority("https://example.com/quickstart")).toBe(PRIORITY_LEVELS.MAIN);
+    expect(getUrlPriority("https://example.com/overview")).toBe(PRIORITY_LEVELS.MAIN);
   });
 
-  it('should assign section priority to moderate depth pages', () => {
-    expect(getUrlPriority('https://example.com/docs/api')).toBe(PRIORITY_LEVELS.SECTION);
-    expect(getUrlPriority('https://example.com/guide/basics')).toBe(PRIORITY_LEVELS.SECTION);
+  it("should assign section priority to moderate depth pages", () => {
+    expect(getUrlPriority("https://example.com/docs/api")).toBe(PRIORITY_LEVELS.SECTION);
+    expect(getUrlPriority("https://example.com/guide/basics")).toBe(PRIORITY_LEVELS.SECTION);
   });
 
-  it('should assign subsection priority to deep pages', () => {
-    expect(getUrlPriority('https://example.com/docs/api/v2/methods/users/create')).toBe(
-      PRIORITY_LEVELS.SUBSECTION
+  it("should assign subsection priority to deep pages", () => {
+    expect(getUrlPriority("https://example.com/docs/api/v2/methods/users/create")).toBe(
+      PRIORITY_LEVELS.SUBSECTION,
     );
-    expect(getUrlPriority('https://example.com/a/b/c/d/e/f')).toBe(PRIORITY_LEVELS.SUBSECTION);
+    expect(getUrlPriority("https://example.com/a/b/c/d/e/f")).toBe(PRIORITY_LEVELS.SUBSECTION);
   });
 
-  it('should assign default priority to other pages', () => {
-    expect(getUrlPriority('https://example.com/docs/api/methods')).toBe(PRIORITY_LEVELS.DEFAULT);
+  it("should assign default priority to other pages", () => {
+    expect(getUrlPriority("https://example.com/docs/api/methods")).toBe(PRIORITY_LEVELS.DEFAULT);
   });
 });

@@ -27,7 +27,7 @@ function isLikelyCodeBlockEnd(line: string): boolean {
   // Common documentation section starters (must be at start of line)
   if (
     line.match(
-      /^(##\s|###\s|####\s|#####\s|######\s|Parameters:|Returns:|Example:|Note:|Warning:|Tip:|Important:)/i
+      /^(##\s|###\s|####\s|#####\s|######\s|Parameters:|Returns:|Example:|Note:|Warning:|Tip:|Important:)/i,
     )
   )
     return true;
@@ -42,7 +42,7 @@ function isLikelyCodeBlockEnd(line: string): boolean {
  * Extracts all code blocks from markdown content, handling malformed blocks
  */
 export function extractCodeBlocks(markdown: string): CodeBlock[] {
-  const lines = markdown.split('\n');
+  const lines = markdown.split("\n");
   const codeBlocks: CodeBlock[] = [];
 
   let i = 0;
@@ -51,7 +51,7 @@ export function extractCodeBlocks(markdown: string): CodeBlock[] {
     const trimmed = line.trim();
 
     // Check for code block start
-    if (trimmed.startsWith('```')) {
+    if (trimmed.startsWith("```")) {
       const startLine = i;
       // Extract language, handling cases like ```python # comment
       const languageMatch = trimmed.slice(3).match(/^\s*([^\s]+)/);
@@ -67,7 +67,7 @@ export function extractCodeBlocks(markdown: string): CodeBlock[] {
         const currentTrimmed = currentLine.trim();
 
         // Check for explicit closing (only if it's just ``` with no language)
-        if (currentTrimmed === '```') {
+        if (currentTrimmed === "```") {
           // Found closing marker
           i++; // Move past the closing ```
           break;
@@ -95,11 +95,11 @@ export function extractCodeBlocks(markdown: string): CodeBlock[] {
         // For unclosed blocks, handle trailing newlines
         if (isUnclosed && codeLines.length > 0) {
           // If ended at EOF, the last line might have a trailing newline from split
-          if (i >= lines.length && codeLines[codeLines.length - 1] === '') {
+          if (i >= lines.length && codeLines[codeLines.length - 1] === "") {
             codeLines.pop();
           }
           // If ended due to detection, remove empty line before the marker
-          else if (i < lines.length && codeLines[codeLines.length - 1] === '') {
+          else if (i < lines.length && codeLines[codeLines.length - 1] === "") {
             codeLines.pop();
           }
         }
@@ -107,14 +107,14 @@ export function extractCodeBlocks(markdown: string): CodeBlock[] {
         // For closed blocks, remove only completely empty trailing lines
         // This preserves lines that contain only whitespace
         if (!isUnclosed) {
-          while (codeLines.length > 0 && codeLines[codeLines.length - 1] === '') {
+          while (codeLines.length > 0 && codeLines[codeLines.length - 1] === "") {
             codeLines.pop();
           }
         }
 
         if (codeLines.length > 0) {
           codeBlocks.push({
-            code: codeLines.join('\n'),
+            code: codeLines.join("\n"),
             language,
             startLine: startLine + 1, // 1-indexed for user display
             endLine: i,
@@ -135,7 +135,7 @@ export function extractCodeBlocks(markdown: string): CodeBlock[] {
  */
 export function formatCodeBlocksAsMarkdown(codeBlocks: CodeBlock[]): string {
   if (codeBlocks.length === 0) {
-    return '# No code blocks found\n\nThe documentation does not contain any code examples.';
+    return "# No code blocks found\n\nThe documentation does not contain any code examples.";
   }
 
   const sections: string[] = [];
@@ -155,13 +155,13 @@ export function formatCodeBlocksAsMarkdown(codeBlocks: CodeBlock[]): string {
   }
 
   // Add header
-  sections.push('# Code Examples\n');
+  sections.push("# Code Examples\n");
 
   // Add warning if there were unclosed blocks
   const unclosedCount = codeBlocks.filter((b) => b.isUnclosed).length;
   if (unclosedCount > 0) {
     sections.push(
-      `> **Note**: ${unclosedCount} code block${unclosedCount > 1 ? 's were' : ' was'} detected as potentially unclosed and extracted using heuristics.\n`
+      `> **Note**: ${unclosedCount} code block${unclosedCount > 1 ? "s were" : " was"} detected as potentially unclosed and extracted using heuristics.\n`,
     );
   }
 
@@ -177,28 +177,28 @@ export function formatCodeBlocksAsMarkdown(codeBlocks: CodeBlock[]): string {
         if (blocks.length > 1) {
           sections.push(`### Example ${index + 1}\n`);
         }
-        sections.push('```' + lang);
+        sections.push("```" + lang);
         sections.push(block.code);
-        sections.push('```\n');
+        sections.push("```\n");
       });
     }
   }
 
   // Add blocks without language
   if (noLanguage.length > 0) {
-    sections.push('## Other Code Examples\n');
+    sections.push("## Other Code Examples\n");
 
     noLanguage.forEach((block, index) => {
       if (noLanguage.length > 1) {
         sections.push(`### Example ${index + 1}\n`);
       }
-      sections.push('```');
+      sections.push("```");
       sections.push(block.code);
-      sections.push('```\n');
+      sections.push("```\n");
     });
   }
 
-  return sections.join('\n');
+  return sections.join("\n");
 }
 
 /**

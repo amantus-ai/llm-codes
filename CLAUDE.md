@@ -5,12 +5,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 ### Building and Running
+
 - `npm run dev` - Start development server with Turbopack (fast HMR)
 - `npm run build` - Build production bundle
 - `npm start` - Start production server
 - `npm run type-check` - Run TypeScript type checking
 
 ### Testing and Quality
+
 - `npm test` - Run all tests with Vitest
 - `npm run test:ui` - Run tests with interactive UI
 - `npm run test:coverage` - Generate test coverage report
@@ -19,6 +21,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Architecture Overview
 
 ### Core Concept
+
 llm.codes converts JavaScript-heavy documentation sites into clean Markdown for AI consumption. It solves the problem of AI agents being unable to parse modern documentation that relies on client-side rendering.
 
 ### Key Components
@@ -42,6 +45,7 @@ llm.codes converts JavaScript-heavy documentation sites into clean Markdown for 
    - Browser notifications support
 
 ### Processing Flow
+
 1. User enters documentation URL
 2. Frontend validates against allowed domains
 3. API checks cache, then fetches via Firecrawl
@@ -50,6 +54,7 @@ llm.codes converts JavaScript-heavy documentation sites into clean Markdown for 
 6. Returns clean Markdown optimized for AI context
 
 ### Performance Optimizations
+
 - Parallel batch processing (20 URLs concurrently)
 - Set-based URL deduplication
 - Progressive UI updates
@@ -58,6 +63,7 @@ llm.codes converts JavaScript-heavy documentation sites into clean Markdown for 
 ## Environment Setup
 
 Required environment variable:
+
 ```
 FIRECRAWL_API_KEY=your_api_key_here
 ```
@@ -65,6 +71,7 @@ FIRECRAWL_API_KEY=your_api_key_here
 ## Testing Strategy
 
 The project maintains 95%+ test coverage. Key test files:
+
 - API route tests: `__tests__/route.test.ts`
 - Utility tests: `utils/__tests__/*.test.ts`
 - Uses Vitest with happy-dom environment

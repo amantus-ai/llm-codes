@@ -32,7 +32,7 @@ const DEFAULT_FILTER_OPTIONS: FilterOptions = {
  */
 export function filterDocumentation(
   content: string,
-  options: FilterOptions = DEFAULT_FILTER_OPTIONS
+  options: FilterOptions = DEFAULT_FILTER_OPTIONS,
 ): string {
   let filtered = content;
 
@@ -124,7 +124,7 @@ export function filterNavigationAndUIChrome(content: string): string {
   ];
 
   navigationPatterns.forEach((pattern) => {
-    filtered = filtered.replace(pattern, '');
+    filtered = filtered.replace(pattern, "");
   });
 
   return filtered;
@@ -157,33 +157,33 @@ export function filterLegalAndCopyrightBoilerplate(content: string): string {
   ];
 
   legalPatterns.forEach((pattern) => {
-    filtered = filtered.replace(pattern, '');
+    filtered = filtered.replace(pattern, "");
   });
 
   // Handle license mentions outside of code blocks
-  const lines = filtered.split('\n');
+  const lines = filtered.split("\n");
   let inCodeBlock = false;
   const filteredLines = lines.map((line) => {
-    if (line.trim().startsWith('```')) {
+    if (line.trim().startsWith("```")) {
       inCodeBlock = !inCodeBlock;
       return line;
     }
 
     if (!inCodeBlock && line.match(/\b(MIT|Apache|GPL|BSD|ISC) License\b/i)) {
-      return ''; // Remove license mentions outside code blocks
+      return ""; // Remove license mentions outside code blocks
     }
 
     return line;
   });
 
-  return filteredLines.join('\n');
+  return filteredLines.join("\n");
 }
 
 /**
  * Filter empty or placeholder content
  */
 export function filterEmptyOrPlaceholderContent(content: string): string {
-  const lines = content.split('\n');
+  const lines = content.split("\n");
   const filteredLines: string[] = [];
 
   for (let i = 0; i < lines.length; i++) {
@@ -192,7 +192,7 @@ export function filterEmptyOrPlaceholderContent(content: string): string {
     // const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : ''; // Currently unused
 
     // Skip section headers with no content
-    if (trimmedLine.startsWith('#')) {
+    if (trimmedLine.startsWith("#")) {
       // Check if this is an empty section pattern that should always be removed
       const emptyHeaderPatterns = [
         /^##\s*Mentioned in$/i,
@@ -208,11 +208,11 @@ export function filterEmptyOrPlaceholderContent(content: string): string {
         let hasContent = false;
         for (let j = i + 1; j < lines.length; j++) {
           const checkLine = lines[j].trim();
-          if (checkLine && !checkLine.startsWith('#')) {
+          if (checkLine && !checkLine.startsWith("#")) {
             hasContent = true;
             break;
           }
-          if (checkLine.startsWith('#')) {
+          if (checkLine.startsWith("#")) {
             // Hit another header without finding content
             break;
           }
@@ -233,11 +233,11 @@ export function filterEmptyOrPlaceholderContent(content: string): string {
       let hasContent = false;
       for (let j = i + 1; j < lines.length; j++) {
         const checkLine = lines[j].trim();
-        if (checkLine && !checkLine.startsWith('#')) {
+        if (checkLine && !checkLine.startsWith("#")) {
           hasContent = true;
           break;
         }
-        if (checkLine.startsWith('#')) {
+        if (checkLine.startsWith("#")) {
           // Hit another header without finding content
           break;
         }
@@ -250,22 +250,22 @@ export function filterEmptyOrPlaceholderContent(content: string): string {
     }
 
     // Skip broken image links
-    if (trimmedLine.match(/^!\[\]\([^)]*\)$/) || trimmedLine === '![]') {
+    if (trimmedLine.match(/^!\[\]\([^)]*\)$/) || trimmedLine === "![]") {
       continue;
     }
 
     // Skip empty code blocks
-    if (trimmedLine === '```') {
+    if (trimmedLine === "```") {
       // Check if this is an empty code block
       let isEmptyBlock = false;
       if (i + 1 < lines.length) {
         let nextIdx = i + 1;
         // Skip empty lines after opening ```
-        while (nextIdx < lines.length && lines[nextIdx].trim() === '') {
+        while (nextIdx < lines.length && lines[nextIdx].trim() === "") {
           nextIdx++;
         }
         // Check if we hit closing ``` without content
-        if (nextIdx < lines.length && lines[nextIdx].trim() === '```') {
+        if (nextIdx < lines.length && lines[nextIdx].trim() === "```") {
           isEmptyBlock = true;
           i = nextIdx; // Skip to closing ```
         }
@@ -278,7 +278,7 @@ export function filterEmptyOrPlaceholderContent(content: string): string {
     filteredLines.push(line);
   }
 
-  return filteredLines.join('\n');
+  return filteredLines.join("\n");
 }
 
 /**
@@ -289,7 +289,7 @@ export function filterRedundantTypeAliases(content: string): string {
   // e.g., typealias UITraitBridgedEnvironmentKey = UITraitBridgedEnvironmentKey
   const redundantAliasPattern = /typealias\s+(\w+)\s*=\s*\1\b/g;
 
-  return content.replace(redundantAliasPattern, '');
+  return content.replace(redundantAliasPattern, "");
 }
 
 /**
@@ -298,24 +298,24 @@ export function filterRedundantTypeAliases(content: string): string {
 export function filterUrlsFromMarkdown(markdown: string): string {
   // Convert markdown links: [text](url) -> text
   // Handle URLs with parentheses by matching balanced parentheses
-  let filtered = markdown.replace(/\[([^\]]+)\]\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g, '$1');
+  let filtered = markdown.replace(/\[([^\]]+)\]\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g, "$1");
 
   // Remove bare URLs - updated to handle parentheses in URLs
   filtered = filtered.replace(
     /(^|\s)(https?:\/\/[^\s<>\[\]]+(?:\([^\s<>\[\]]*\)[^\s<>\[\]]*)*)(?=\s|[.,;:!?]|$)/gm,
-    '$1'
+    "$1",
   );
   filtered = filtered.replace(
     /(^|\s)(ftp:\/\/[^\s<>\[\]]+(?:\([^\s<>\[\]]*\)[^\s<>\[\]]*)*)(?=\s|[.,;:!?]|$)/gm,
-    '$1'
+    "$1",
   );
 
   // Remove angle bracket URLs
-  filtered = filtered.replace(/<https?:\/\/[^>]+>/g, '');
-  filtered = filtered.replace(/<ftp:\/\/[^>]+>/g, '');
+  filtered = filtered.replace(/<https?:\/\/[^>]+>/g, "");
+  filtered = filtered.replace(/<ftp:\/\/[^>]+>/g, "");
 
   // Clean up any double spaces left behind
-  filtered = filtered.replace(/  +/g, ' ');
+  filtered = filtered.replace(/  +/g, " ");
 
   return filtered;
 }
@@ -327,21 +327,21 @@ export function filterAvailabilityStrings(markdown: string): string {
   const availabilityPattern =
     /(iOS|iPadOS|macOS|Mac Catalyst|tvOS|visionOS|watchOS)[\s]*[\d.]+\+(?:Beta)?(?:\s*(?:iOS|iPadOS|macOS|Mac Catalyst|tvOS|visionOS|watchOS)[\s]*[\d.]+\+(?:Beta)?)*/g;
 
-  return markdown.replace(availabilityPattern, '');
+  return markdown.replace(availabilityPattern, "");
 }
 
 /**
  * Filter excessive platform availability notices
  */
 export function filterExcessivePlatformNotices(content: string): string {
-  const lines = content.split('\n');
+  const lines = content.split("\n");
   const filteredLines: string[] = [];
   let availabilityCount = 0;
   const maxAvailabilityPerSection = 2;
 
   for (const line of lines) {
     // Reset counter on new sections
-    if (line.trim().startsWith('#')) {
+    if (line.trim().startsWith("#")) {
       availabilityCount = 0;
       filteredLines.push(line);
       continue;
@@ -350,7 +350,7 @@ export function filterExcessivePlatformNotices(content: string): string {
     // Check if line contains availability info
     const hasAvailability =
       /Available (on|in|since)[\s:]*(iOS|iPadOS|macOS|Mac Catalyst|tvOS|visionOS|watchOS)/i.test(
-        line
+        line,
       );
 
     if (hasAvailability) {
@@ -364,7 +364,7 @@ export function filterExcessivePlatformNotices(content: string): string {
     }
   }
 
-  return filteredLines.join('\n');
+  return filteredLines.join("\n");
 }
 
 /**
@@ -374,13 +374,13 @@ export function filterFormattingArtifacts(content: string): string {
   let filtered = content;
 
   // Remove excessive section separators
-  filtered = filtered.replace(/^-{3,}$/gm, '');
-  filtered = filtered.replace(/^={3,}$/gm, '');
-  filtered = filtered.replace(/^\*{3,}$/gm, '');
-  filtered = filtered.replace(/^_{3,}$/gm, '');
+  filtered = filtered.replace(/^-{3,}$/gm, "");
+  filtered = filtered.replace(/^={3,}$/gm, "");
+  filtered = filtered.replace(/^\*{3,}$/gm, "");
+  filtered = filtered.replace(/^_{3,}$/gm, "");
 
   // Remove standalone formatting characters
-  filtered = filtered.replace(/^\s*[*_~`]+\s*$/gm, '');
+  filtered = filtered.replace(/^\s*[*_~`]+\s*$/gm, "");
 
   return filtered;
 }
@@ -389,34 +389,34 @@ export function filterFormattingArtifacts(content: string): string {
  * Deduplicate markdown content (moved from content-processing.ts)
  */
 export function deduplicateMarkdown(markdown: string): string {
-  const lines = markdown.split('\n');
+  const lines = markdown.split("\n");
   const deduplicatedLines: string[] = [];
   const seenContent = new Set<string>();
-  let currentParagraph = '';
+  let currentParagraph = "";
 
   for (const line of lines) {
     const trimmedLine = line.trim();
 
-    if (trimmedLine === '') {
+    if (trimmedLine === "") {
       if (currentParagraph) {
         const normalizedParagraph = currentParagraph.trim();
         if (!seenContent.has(normalizedParagraph)) {
           seenContent.add(normalizedParagraph);
           deduplicatedLines.push(currentParagraph);
         }
-        currentParagraph = '';
+        currentParagraph = "";
       }
-      if (deduplicatedLines.length > 0 && deduplicatedLines[deduplicatedLines.length - 1] !== '') {
-        deduplicatedLines.push('');
+      if (deduplicatedLines.length > 0 && deduplicatedLines[deduplicatedLines.length - 1] !== "") {
+        deduplicatedLines.push("");
       }
       continue;
     }
 
-    if (trimmedLine.startsWith('#')) {
+    if (trimmedLine.startsWith("#")) {
       if (currentParagraph && !seenContent.has(currentParagraph.trim())) {
         seenContent.add(currentParagraph.trim());
         deduplicatedLines.push(currentParagraph);
-        currentParagraph = '';
+        currentParagraph = "";
       }
 
       if (!seenContent.has(trimmedLine)) {
@@ -428,14 +428,14 @@ export function deduplicateMarkdown(markdown: string): string {
       continue;
     }
 
-    currentParagraph += (currentParagraph ? '\n' : '') + line;
+    currentParagraph += (currentParagraph ? "\n" : "") + line;
   }
 
   if (currentParagraph && !seenContent.has(currentParagraph.trim())) {
     deduplicatedLines.push(currentParagraph);
   }
 
-  return deduplicatedLines.join('\n');
+  return deduplicatedLines.join("\n");
 }
 
 /**
@@ -445,16 +445,16 @@ export function cleanupWhitespace(content: string): string {
   let cleaned = content;
 
   // Clean up multiple spaces
-  cleaned = cleaned.replace(/  +/g, ' ');
+  cleaned = cleaned.replace(/  +/g, " ");
 
   // Clean up multiple empty lines
-  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+  cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
 
   // Trim whitespace from each line (both leading and trailing)
   cleaned = cleaned
-    .split('\n')
+    .split("\n")
     .map((line) => line.trim())
-    .join('\n');
+    .join("\n");
 
   // Remove leading/trailing newlines
   cleaned = cleaned.trim();
@@ -470,22 +470,22 @@ export function is404Page(content: string): boolean {
 
   const notFoundIndicators = [
     "the page you're looking for can't be found",
-    'page not found',
-    '404 not found',
-    '404 error',
+    "page not found",
+    "404 not found",
+    "404 error",
     "this page doesn't exist",
     "we couldn't find that page",
-    'the requested page could not be found',
+    "the requested page could not be found",
     "sorry, we can't find that page",
     "oops! that page can't be found",
-    'the page you requested was not found',
+    "the page you requested was not found",
   ];
 
   // Check for exact phrases, not partial matches
   // This prevents matching content like "Learn how to handle 404 errors"
   return notFoundIndicators.some((indicator) => {
     // Create word boundary regex to match complete phrases
-    const regex = new RegExp(`\\b${indicator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    const regex = new RegExp(`\\b${indicator.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
     return regex.test(content);
   });
 

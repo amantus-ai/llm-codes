@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
@@ -57,41 +57,49 @@
   :root {
     view-transition-name: root;
   }
-  
+
   /* Apply to html element as well for better compatibility */
   html {
     view-transition-name: root;
   }
-  
+
   /* Ensure smooth transition between light and dark themes */
   ::view-transition-old(root),
   ::view-transition-new(root) {
     animation-duration: 0.25s;
   }
-  
+
   /* Customize the transition style */
   ::view-transition-old(root) {
     animation: fade-out 0.25s ease-out;
   }
-  
+
   ::view-transition-new(root) {
     animation: fade-in 0.25s ease-out;
   }
-  
+
   @keyframes fade-out {
-    from { opacity: 1; }
-    to { opacity: 0; }
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
   }
-  
+
   @keyframes fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 }
 
 @theme {
-  --font-family-sans: 'Inter', system-ui, sans-serif;
-  
+  --font-family-sans: "Inter", system-ui, sans-serif;
+
   /* Define custom colors */
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
@@ -312,7 +320,9 @@
 }
 
 .activity-log-container {
-  transition: max-height 300ms ease-out, opacity 300ms ease-out;
+  transition:
+    max-height 300ms ease-out,
+    opacity 300ms ease-out;
 }
 
 .activity-log-container.show {

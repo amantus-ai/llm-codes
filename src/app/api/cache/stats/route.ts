@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { cacheService } from '@/lib/cache/redis-cache';
+import { NextRequest, NextResponse } from "next/server";
+import { cacheService } from "@/lib/cache/redis-cache";
 
 export async function GET(_request: NextRequest) {
   try {
@@ -11,7 +11,7 @@ export async function GET(_request: NextRequest) {
     const response = {
       success: true,
       cache: {
-        type: redisAvailable ? 'redis' : 'memory-only',
+        type: redisAvailable ? "redis" : "memory-only",
         stats: {
           hits: stats.hits,
           misses: stats.misses,
@@ -19,7 +19,7 @@ export async function GET(_request: NextRequest) {
           hitRate: `${(stats.hitRate * 100).toFixed(1)}%`,
           localCacheSize: stats.localCacheSize,
         },
-        status: redisAvailable ? 'connected' : 'fallback',
+        status: redisAvailable ? "connected" : "fallback",
       },
       timestamp: new Date().toISOString(),
     };
@@ -27,17 +27,17 @@ export async function GET(_request: NextRequest) {
     // Add cache headers for this endpoint
     return NextResponse.json(response, {
       headers: {
-        'Cache-Control': 'public, max-age=60', // Cache stats for 1 minute
+        "Cache-Control": "public, max-age=60", // Cache stats for 1 minute
       },
     });
   } catch (error) {
-    console.error('Cache stats error:', error);
+    console.error("Cache stats error:", error);
     return NextResponse.json(
       {
-        error: 'Failed to retrieve cache statistics',
-        cache: { type: 'unknown', status: 'error' },
+        error: "Failed to retrieve cache statistics",
+        cache: { type: "unknown", status: "error" },
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

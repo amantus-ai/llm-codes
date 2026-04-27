@@ -1,8 +1,8 @@
-import { useState, useCallback, useRef } from 'react';
-import { filterDocumentation } from '@/utils/documentation-filter';
+import { useState, useCallback, useRef } from "react";
+import { filterDocumentation } from "@/utils/documentation-filter";
 
 interface StreamMessage {
-  type: 'url_start' | 'url_complete' | 'url_error' | 'progress' | 'done' | 'stats';
+  type: "url_start" | "url_complete" | "url_error" | "progress" | "done" | "stats";
   url?: string;
   content?: string;
   error?: string;
@@ -51,9 +51,9 @@ export function useStreamingScrape(options: UseStreamingScrapeOptions = {}) {
       abortControllerRef.current = new AbortController();
 
       try {
-        const response = await fetch('/api/scrape/stream', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch("/api/scrape/stream", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ urls, depth, maxUrls }),
           signal: abortControllerRef.current.signal,
         });
@@ -64,35 +64,35 @@ export function useStreamingScrape(options: UseStreamingScrapeOptions = {}) {
 
         const reader = response.body?.getReader();
         if (!reader) {
-          throw new Error('No response body');
+          throw new Error("No response body");
         }
 
         const decoder = new TextDecoder();
-        let buffer = '';
+        let buffer = "";
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
 
           for (const line of lines) {
-            if (line.startsWith('data: ')) {
+            if (line.startsWith("data: ")) {
               const jsonStr = line.slice(6);
               if (jsonStr.trim()) {
                 try {
                   const message: StreamMessage = JSON.parse(jsonStr);
 
                   switch (message.type) {
-                    case 'url_start':
+                    case "url_start":
                       if (message.url && options.onUrlStart) {
                         options.onUrlStart(message.url);
                       }
                       break;
 
-                    case 'url_complete':
+                    case "url_complete":
                       if (message.url && message.content) {
                         let filteredContent = message.content;
 
@@ -119,22 +119,22 @@ export function useStreamingScrape(options: UseStreamingScrapeOptions = {}) {
                           options.onUrlComplete(
                             message.url,
                             filteredContent,
-                            message.cached || false
+                            message.cached || false,
                           );
                         }
                       }
                       break;
 
-                    case 'url_error':
+                    case "url_error":
                       if (message.url && message.error && options.onUrlError) {
                         options.onUrlError(message.url, message.error);
                       }
                       break;
 
-                    case 'progress':
+                    case "progress":
                       if (message.progress !== undefined && message.total !== undefined) {
                         const progressPercent = Math.round(
-                          (message.progress / message.total) * 100
+                          (message.progress / message.total) * 100,
                         );
                         setProgress(progressPercent);
 
@@ -144,14 +144,14 @@ export function useStreamingScrape(options: UseStreamingScrapeOptions = {}) {
                       }
                       break;
 
-                    case 'stats':
+                    case "stats":
                       if (message.stats && options.onStats) {
                         options.onStats(message.stats);
                       }
                       // Stats available via onStats callback
                       break;
 
-                    case 'done':
+                    case "done":
                       setProgress(100);
                       if (options.onComplete) {
                         options.onComplete(collectedResults);
@@ -159,7 +159,7 @@ export function useStreamingScrape(options: UseStreamingScrapeOptions = {}) {
                       break;
                   }
                 } catch (e) {
-                  console.error('Error parsing stream message:', e);
+                  console.error("Error parsing stream message:", e);
                 }
               }
             }
@@ -167,18 +167,18 @@ export function useStreamingScrape(options: UseStreamingScrapeOptions = {}) {
         }
       } catch (err) {
         if (err instanceof Error) {
-          if (err.name !== 'AbortError') {
+          if (err.name !== "AbortError") {
             setError(err.message);
           }
         } else {
-          setError('Unknown error occurred');
+          setError("Unknown error occurred");
         }
       } finally {
         setIsProcessing(false);
         abortControllerRef.current = null;
       }
     },
-    [options]
+    [options],
   );
 
   const cancel = useCallback(() => {

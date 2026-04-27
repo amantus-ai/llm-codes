@@ -1,6 +1,6 @@
-import { Redis } from '@upstash/redis';
-import { PROCESSING_CONFIG } from '@/constants';
-import { logError } from './errors';
+import { Redis } from "@upstash/redis";
+import { PROCESSING_CONFIG } from "@/constants";
+import { logError } from "./errors";
 
 interface RetryTask {
   id: string;
@@ -14,7 +14,7 @@ export class RetryQueue {
   private redis: Redis | null;
   private keyPrefix: string;
 
-  constructor(redis: Redis | null, keyPrefix = 'retry') {
+  constructor(redis: Redis | null, keyPrefix = "retry") {
     this.redis = redis;
     this.keyPrefix = keyPrefix;
   }
@@ -25,7 +25,7 @@ export class RetryQueue {
    */
   async enqueue(task: RetryTask): Promise<boolean> {
     if (!this.redis) {
-      console.warn('Redis not available, retry queue disabled');
+      console.warn("Redis not available, retry queue disabled");
       return false;
     }
 
@@ -33,7 +33,7 @@ export class RetryQueue {
       // Calculate backoff delay with jitter
       const baseDelay = Math.min(
         PROCESSING_CONFIG.INITIAL_RETRY_DELAY * Math.pow(2, task.attempt - 1),
-        PROCESSING_CONFIG.MAX_RETRY_DELAY
+        PROCESSING_CONFIG.MAX_RETRY_DELAY,
       );
 
       // Add jitter (±25% of base delay)
@@ -56,7 +56,7 @@ export class RetryQueue {
       await this.redis.set(
         `${this.keyPrefix}:task:${task.id}`,
         taskData,
-        { ex: 24 * 60 * 60 } // Expire after 24 hours
+        { ex: 24 * 60 * 60 }, // Expire after 24 hours
       );
 
       console.warn(`Task ${task.id} queued for retry at score ${score} (delay: ${delay}ms)`);
@@ -244,7 +244,7 @@ export class RetryQueue {
     options: {
       batchSize?: number;
       maxAttempts?: number;
-    } = {}
+    } = {},
   ): Promise<{ processed: number; failed: number }> {
     const { batchSize = 10, maxAttempts = PROCESSING_CONFIG.MAX_RETRIES } = options;
 
@@ -283,7 +283,7 @@ export class RetryQueue {
           await this.enqueue({
             ...task,
             attempt: task.attempt + 1,
-            lastError: error instanceof Error ? error.message : 'Unknown error',
+            lastError: error instanceof Error ? error.message : "Unknown error",
           });
           failed++;
         }

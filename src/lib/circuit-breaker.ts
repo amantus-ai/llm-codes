@@ -1,4 +1,4 @@
-import { Redis } from '@upstash/redis';
+import { Redis } from "@upstash/redis";
 
 export interface CircuitBreakerConfig {
   failureThreshold: number; // Number of failures before opening
@@ -11,7 +11,7 @@ export interface CircuitBreakerState {
   failures: number;
   successes: number;
   lastFailureTime: number;
-  state: 'closed' | 'open' | 'half-open';
+  state: "closed" | "open" | "half-open";
   halfOpenRequests: number;
 }
 
@@ -38,7 +38,7 @@ export class CircuitBreaker {
         failures: 0,
         successes: 0,
         lastFailureTime: 0,
-        state: 'closed',
+        state: "closed",
         halfOpenRequests: 0,
       };
     }
@@ -50,17 +50,17 @@ export class CircuitBreaker {
           failures: 0,
           successes: 0,
           lastFailureTime: 0,
-          state: 'closed',
+          state: "closed",
           halfOpenRequests: 0,
         }
       );
     } catch (error) {
-      console.error('Failed to get circuit breaker state:', error);
+      console.error("Failed to get circuit breaker state:", error);
       return {
         failures: 0,
         successes: 0,
         lastFailureTime: 0,
-        state: 'closed',
+        state: "closed",
         halfOpenRequests: 0,
       };
     }
@@ -74,7 +74,7 @@ export class CircuitBreaker {
         ex: 3600, // Expire after 1 hour
       });
     } catch (error) {
-      console.error('Failed to set circuit breaker state:', error);
+      console.error("Failed to set circuit breaker state:", error);
     }
   }
 
@@ -82,23 +82,23 @@ export class CircuitBreaker {
     const state = await this.getState();
 
     switch (state.state) {
-      case 'closed':
+      case "closed":
         return true;
 
-      case 'open':
+      case "open":
         // Check if timeout has passed
         if (Date.now() - state.lastFailureTime >= this.config.timeout) {
           // Transition to half-open
           await this.setState({
             ...state,
-            state: 'half-open',
+            state: "half-open",
             halfOpenRequests: 0,
           });
           return true;
         }
         return false;
 
-      case 'half-open':
+      case "half-open":
         // Allow limited requests in half-open state
         if (state.halfOpenRequests < this.config.halfOpenRequests) {
           await this.setState({
@@ -118,7 +118,7 @@ export class CircuitBreaker {
     const state = await this.getState();
 
     switch (state.state) {
-      case 'half-open':
+      case "half-open":
         const newSuccesses = state.successes + 1;
         if (newSuccesses >= this.config.successThreshold) {
           // Close the circuit
@@ -126,7 +126,7 @@ export class CircuitBreaker {
             failures: 0,
             successes: 0,
             lastFailureTime: 0,
-            state: 'closed',
+            state: "closed",
             halfOpenRequests: 0,
           });
         } else {
@@ -137,13 +137,13 @@ export class CircuitBreaker {
         }
         break;
 
-      case 'open':
+      case "open":
         // Shouldn't happen, but reset to closed
         await this.setState({
           failures: 0,
           successes: 0,
           lastFailureTime: 0,
-          state: 'closed',
+          state: "closed",
           halfOpenRequests: 0,
         });
         break;
@@ -157,7 +157,7 @@ export class CircuitBreaker {
     const now = Date.now();
 
     switch (state.state) {
-      case 'closed':
+      case "closed":
         const newFailures = state.failures + 1;
         if (newFailures >= this.config.failureThreshold) {
           // Open the circuit
@@ -165,7 +165,7 @@ export class CircuitBreaker {
             ...state,
             failures: newFailures,
             lastFailureTime: now,
-            state: 'open',
+            state: "open",
           });
         } else {
           await this.setState({
@@ -176,19 +176,19 @@ export class CircuitBreaker {
         }
         break;
 
-      case 'half-open':
+      case "half-open":
         // Failure in half-open state immediately opens the circuit
         await this.setState({
           ...state,
           failures: state.failures + 1,
           lastFailureTime: now,
-          state: 'open',
+          state: "open",
           halfOpenRequests: 0,
         });
         break;
 
       // For open state, just update the last failure time
-      case 'open':
+      case "open":
         await this.setState({
           ...state,
           lastFailureTime: now,
@@ -217,7 +217,7 @@ export class CircuitBreaker {
       failures: 0,
       successes: 0,
       lastFailureTime: 0,
-      state: 'closed',
+      state: "closed",
       halfOpenRequests: 0,
     });
   }
@@ -226,11 +226,11 @@ export class CircuitBreaker {
 // Export singleton instance for Firecrawl API
 export const firecrawlCircuitBreaker = new CircuitBreaker(
   null, // Will be initialized with Redis instance
-  'firecrawl',
+  "firecrawl",
   {
     failureThreshold: 50, // 10x more lenient - was 5
     successThreshold: 2,
     timeout: 60000, // 1 minute
     halfOpenRequests: 3,
-  }
+  },
 );

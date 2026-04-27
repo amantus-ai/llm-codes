@@ -1,251 +1,59 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { http2Fetch } from '../http2-client';
-import { request } from 'undici';
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock undici
-vi.mock('undici', () => ({
-  request: vi.fn(),
-  Agent: vi.fn().mockImplementation(() => ({})),
+const agentStats = { connected: 1 };
+
+vi.mock("undici", () => ({
+  Agent: vi.fn().mockImplementation(function () {
+    return { stats: agentStats };
+  }),
 }));
 
 const describeFn = process.env.CI ? describe.skip : describe;
 
-describeFn('http2Fetch', () => {
+describeFn("http2Fetch", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    global.fetch = vi.fn().mockResolvedValue(new Response('{"data":"test"}', { status: 200 }));
   });
 
-  it('should make a successful GET request', async () => {
-    const mockResponse = {
-      statusCode: 200,
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: {
-        text: vi.fn().mockResolvedValue('{"data": "test"}'),
-        json: vi.fn().mockResolvedValue({ data: 'test' }),
-      },
-    };
+  it("should pass requests through fetch with the HTTP/2 dispatcher", async () => {
+    const { http2Fetch } = await import("../http2-client");
 
-    vi.mocked(request).mockResolvedValue(
-      mockResponse as unknown as Awaited<ReturnType<typeof request>>
-    );
-
-    const response = await http2Fetch('https://example.com/api');
+    const response = await http2Fetch("https://example.com/api");
 
     expect(response.status).toBe(200);
     expect(response.ok).toBe(true);
-    expect(await response.json()).toEqual({ data: 'test' });
-    expect(request).toHaveBeenCalledWith('https://example.com/api', {
-      method: 'GET',
-      headers: {},
-      body: undefined,
-      signal: undefined,
-    });
-  });
-
-  it('should make a POST request with body', async () => {
-    const mockResponse = {
-      statusCode: 201,
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: {
-        text: vi.fn().mockResolvedValue('{"created": true}'),
-        json: vi.fn().mockResolvedValue({ created: true }),
-      },
-    };
-
-    vi.mocked(request).mockResolvedValue(
-      mockResponse as unknown as Awaited<ReturnType<typeof request>>
+    expect(await response.json()).toEqual({ data: "test" });
+    expect(global.fetch).toHaveBeenCalledWith(
+      "https://example.com/api",
+      expect.objectContaining({ dispatcher: expect.objectContaining({ stats: agentStats }) }),
     );
-
-    const response = await http2Fetch('https://example.com/api', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ name: 'test' }),
-    });
-
-    expect(response.status).toBe(201);
-    expect(response.ok).toBe(true);
-    expect(await response.json()).toEqual({ created: true });
-    expect(request).toHaveBeenCalledWith('https://example.com/api', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ name: 'test' }),
-      signal: undefined,
-    });
   });
 
-  it('should handle 4xx errors', async () => {
-    const mockResponse = {
-      statusCode: 404,
-      headers: {},
-      body: {
-        text: vi.fn().mockResolvedValue('Not Found'),
-        json: vi.fn().mockRejectedValue(new Error('Invalid JSON')),
-      },
-    };
+  it("should preserve caller options", async () => {
+    const { http2Fetch } = await import("../http2-client");
+    const body = JSON.stringify({ name: "test" });
 
-    vi.mocked(request).mockResolvedValue(
-      mockResponse as unknown as Awaited<ReturnType<typeof request>>
+    await http2Fetch("https://example.com/api", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      "https://example.com/api",
+      expect.objectContaining({
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+        dispatcher: expect.objectContaining({ stats: agentStats }),
+      }),
     );
-
-    const response = await http2Fetch('https://example.com/api/missing');
-
-    expect(response.status).toBe(404);
-    expect(response.ok).toBe(false);
-    expect(await response.text()).toBe('Not Found');
   });
 
-  it('should handle 5xx errors', async () => {
-    const mockResponse = {
-      statusCode: 500,
-      headers: {},
-      body: {
-        text: vi.fn().mockResolvedValue('Internal Server Error'),
-        json: vi.fn().mockRejectedValue(new Error('Invalid JSON')),
-      },
-    };
+  it("should expose connection stats", async () => {
+    const { getConnectionStats } = await import("../http2-client");
 
-    vi.mocked(request).mockResolvedValue(
-      mockResponse as unknown as Awaited<ReturnType<typeof request>>
-    );
-
-    const response = await http2Fetch('https://example.com/api');
-
-    expect(response.status).toBe(500);
-    expect(response.ok).toBe(false);
-    expect(response.statusText).toBe('Internal Server Error');
-  });
-
-  it('should handle network errors', async () => {
-    vi.mocked(request).mockRejectedValue(new Error('Network error'));
-
-    await expect(http2Fetch('https://example.com/api')).rejects.toThrow('Network error');
-  });
-
-  it('should pass through abort signal', async () => {
-    const controller = new AbortController();
-    const mockResponse = {
-      statusCode: 200,
-      headers: {},
-      body: {
-        text: vi.fn().mockResolvedValue('OK'),
-        json: vi.fn().mockResolvedValue({}),
-      },
-    };
-
-    vi.mocked(request).mockResolvedValue(
-      mockResponse as unknown as Awaited<ReturnType<typeof request>>
-    );
-
-    await http2Fetch('https://example.com/api', {
-      signal: controller.signal,
-    });
-
-    expect(request).toHaveBeenCalledWith('https://example.com/api', {
-      method: 'GET',
-      headers: {},
-      body: undefined,
-      signal: controller.signal,
-    });
-  });
-
-  it('should handle different status codes correctly', async () => {
-    const testCases = [
-      { status: 200, ok: true, statusText: 'OK' },
-      { status: 201, ok: true, statusText: 'Created' },
-      { status: 204, ok: true, statusText: 'No Content' },
-      { status: 301, ok: false, statusText: 'Moved Permanently' },
-      { status: 400, ok: false, statusText: 'Bad Request' },
-      { status: 401, ok: false, statusText: 'Unauthorized' },
-      { status: 403, ok: false, statusText: 'Forbidden' },
-      { status: 404, ok: false, statusText: 'Not Found' },
-      { status: 500, ok: false, statusText: 'Internal Server Error' },
-      { status: 502, ok: false, statusText: 'Bad Gateway' },
-      { status: 503, ok: false, statusText: 'Service Unavailable' },
-    ];
-
-    for (const testCase of testCases) {
-      vi.mocked(request).mockResolvedValue({
-        statusCode: testCase.status,
-        headers: {},
-        body: {
-          text: vi.fn().mockResolvedValue(''),
-          json: vi.fn().mockResolvedValue({}),
-        },
-      } as unknown as Awaited<ReturnType<typeof request>>);
-
-      const response = await http2Fetch('https://example.com/api');
-
-      expect(response.status).toBe(testCase.status);
-      expect(response.ok).toBe(testCase.ok);
-      expect(response.statusText).toBe(testCase.statusText);
-    }
-  });
-
-  it('should handle headers correctly', async () => {
-    const responseHeaders = {
-      'content-type': 'application/json',
-      'x-custom-header': 'custom-value',
-      'cache-control': 'no-cache',
-    };
-
-    vi.mocked(request).mockResolvedValue({
-      statusCode: 200,
-      headers: responseHeaders as unknown as Record<string, string>,
-      body: {
-        text: vi.fn().mockResolvedValue('{}'),
-        json: vi.fn().mockResolvedValue({}),
-      },
-    } as unknown as Awaited<ReturnType<typeof request>>);
-
-    const response = await http2Fetch('https://example.com/api');
-
-    expect(response.headers.get('content-type')).toBe('application/json');
-    expect(response.headers.get('x-custom-header')).toBe('custom-value');
-    expect(response.headers.get('cache-control')).toBe('no-cache');
-  });
-
-  it('should handle request with all options', async () => {
-    const mockResponse = {
-      statusCode: 200,
-      headers: {},
-      body: {
-        text: vi.fn().mockResolvedValue('OK'),
-        json: vi.fn().mockResolvedValue({}),
-      },
-    };
-
-    vi.mocked(request).mockResolvedValue(
-      mockResponse as unknown as Awaited<ReturnType<typeof request>>
-    );
-
-    const controller = new AbortController();
-
-    await http2Fetch('https://example.com/api', {
-      method: 'PUT',
-      headers: {
-        Authorization: 'Bearer token',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ update: true }),
-      signal: controller.signal,
-    });
-
-    expect(request).toHaveBeenCalledWith('https://example.com/api', {
-      method: 'PUT',
-      headers: {
-        Authorization: 'Bearer token',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ update: true }),
-      signal: controller.signal,
-    });
+    expect(getConnectionStats()).toBe(agentStats);
   });
 });

@@ -1,4 +1,4 @@
-import { DOCUMENTATION_PATTERNS, ALLOWED_EXCEPTIONS, SPECIAL_DOMAINS } from '@/constants';
+import { DOCUMENTATION_PATTERNS, ALLOWED_EXCEPTIONS, SPECIAL_DOMAINS } from "@/constants";
 
 export function isValidDocumentationUrl(url: string): boolean {
   if (!url) return false;
@@ -17,7 +17,7 @@ export function isValidDocumentationUrl(url: string): boolean {
 }
 
 export function getSupportedDomainsText(): string {
-  return 'Most documentation pages are supported';
+  return "Most documentation pages are supported";
 }
 
 export function extractUrlFromQueryString(queryString: string): string | null {
@@ -27,7 +27,7 @@ export function extractUrlFromQueryString(queryString: string): string | null {
   const decoded = decodeURIComponent(queryString);
 
   // Check if it looks like a URL (starts with http)
-  if (decoded.startsWith('http://') || decoded.startsWith('https://')) {
+  if (decoded.startsWith("http://") || decoded.startsWith("https://")) {
     return decoded;
   }
 
@@ -39,18 +39,18 @@ export function updateUrlWithDocumentation(url: string): void {
 
   // Update the URL without reloading the page
   const newUrl = `${window.location.pathname}?${encodeURIComponent(url)}`;
-  window.history.replaceState({}, '', newUrl);
+  window.history.replaceState({}, "", newUrl);
 }
 
 export function normalizeUrl(url: string): string {
   try {
     const urlObj = new URL(url);
     // Remove fragment and query parameters
-    urlObj.hash = '';
-    urlObj.search = '';
+    urlObj.hash = "";
+    urlObj.search = "";
     // Remove trailing slash if it's not the root path
     let normalized = urlObj.toString();
-    if (normalized.endsWith('/') && urlObj.pathname !== '/') {
+    if (normalized.endsWith("/") && urlObj.pathname !== "/") {
       normalized = normalized.slice(0, -1);
     }
     return normalized;
@@ -71,11 +71,11 @@ export function generateFilename(url: string): string {
     });
 
     if (specialDomain) {
-      const baseName = specialDomain.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      const pathParts = pathname.split('/').filter((p) => p && p.length > 0);
+      const baseName = specialDomain.name.toLowerCase().replace(/[^a-z0-9]/g, "-");
+      const pathParts = pathname.split("/").filter((p) => p && p.length > 0);
 
       if (pathParts.length > 0) {
-        const pathSuffix = pathParts.slice(0, 2).join('-');
+        const pathSuffix = pathParts.slice(0, 2).join("-");
         return `${baseName}-${pathSuffix}-docs.md`;
       }
       return `${baseName}-docs.md`;
@@ -88,24 +88,24 @@ export function generateFilename(url: string): string {
 
     if (matchedException) {
       // Use the exception name as a base for the filename
-      const baseName = matchedException.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      const pathParts = pathname.split('/').filter((p) => p && p.length > 0);
+      const baseName = matchedException.name.toLowerCase().replace(/[^a-z0-9]/g, "-");
+      const pathParts = pathname.split("/").filter((p) => p && p.length > 0);
 
       if (pathParts.length > 0) {
         // Take up to 2 path parts for the filename
-        const pathSuffix = pathParts.slice(0, 2).join('-');
+        const pathSuffix = pathParts.slice(0, 2).join("-");
         return `${baseName}-${pathSuffix}-docs.md`;
       }
       return `${baseName}-docs.md`;
     }
 
     // Fallback: use the hostname and any path
-    const pathParts = pathname.split('/').filter((p) => p);
+    const pathParts = pathname.split("/").filter((p) => p);
     if (pathParts.length > 0) {
-      return `${hostname.replace(/\./g, '-')}-${pathParts[0]}-docs.md`;
+      return `${hostname.replace(/\./g, "-")}-${pathParts[0]}-docs.md`;
     }
-    return `${hostname.replace(/\./g, '-')}-docs.md`;
+    return `${hostname.replace(/\./g, "-")}-docs.md`;
   } catch {
-    return 'documentation.md';
+    return "documentation.md";
   }
 }

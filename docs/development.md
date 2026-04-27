@@ -9,12 +9,14 @@ This guide covers the development environment setup, coding conventions, impleme
 ## Development Environment
 
 **Prerequisites**:
+
 - Node.js 20.0+ (enforced in `package.json` lines 15-17)
 - npm or pnpm package manager
 - Firecrawl API key (required for scraping functionality)
 - Upstash Redis credentials (optional, for production caching)
 
 **Initial Setup**:
+
 ```bash
 # Clone repository
 git clone https://github.com/amantusai/llm-tech.git
@@ -29,6 +31,7 @@ cp .env.example .env.local
 ```
 
 **Development Scripts** (`package.json` lines 5-13):
+
 - `npm run dev` - Start dev server with Turbopack (fast HMR)
 - `npm run build` - Build production bundle
 - `npm start` - Run production server
@@ -41,21 +44,23 @@ cp .env.example .env.local
 ## Code Style
 
 **TypeScript Configuration** (`tsconfig.json` lines 3-24):
+
 ```json
 {
   "compilerOptions": {
     "target": "es5",
-    "strict": true,              // Strict type checking enabled
+    "strict": true, // Strict type checking enabled
     "esModuleInterop": true,
     "skipLibCheck": true,
     "paths": {
-      "@/*": ["./src/*"]       // Path aliasing for imports
+      "@/*": ["./src/*"] // Path aliasing for imports
     }
   }
 }
 ```
 
 **ESLint Rules** (`.eslintrc.json` lines 5-12):
+
 ```json
 {
   "rules": {
@@ -68,6 +73,7 @@ cp .env.example .env.local
 ```
 
 **Prettier Configuration** (`.prettierrc` lines 2-8):
+
 ```javascript
 {
   "semi": true,
@@ -79,15 +85,16 @@ cp .env.example .env.local
 ```
 
 **Import Organization Pattern** (from `src/app/api/scrape/route.ts` lines 1-7):
+
 ```typescript
 // 1. Next.js imports
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 // 2. Internal utilities with @ alias
-import { isValidDocumentationUrl } from '@/utils/url-utils';
-import { PROCESSING_CONFIG } from '@/constants';
+import { isValidDocumentationUrl } from "@/utils/url-utils";
+import { PROCESSING_CONFIG } from "@/constants";
 // 3. Library/service imports
-import { cacheService } from '@/lib/cache/redis-cache';
-import { http2Fetch } from '@/lib/http2-client';
+import { cacheService } from "@/lib/cache/redis-cache";
+import { http2Fetch } from "@/lib/http2-client";
 ```
 
 ## Common Patterns
@@ -95,13 +102,14 @@ import { http2Fetch } from '@/lib/http2-client';
 ### Error Handling
 
 **API Route Error Pattern** (`src/app/api/scrape/route.ts` lines 9-29):
+
 ```typescript
 export async function POST(request: NextRequest) {
   try {
     // Validate environment
     const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
     if (!FIRECRAWL_API_KEY) {
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
     }
 
     // Validate input
@@ -109,18 +117,22 @@ export async function POST(request: NextRequest) {
     const { url, action } = body;
     if (!isValidDocumentationUrl(url)) {
       return NextResponse.json(
-        { error: 'Invalid URL. Must be from developer.apple.com, swiftpackageindex.com, or *.github.io' },
-        { status: 400 }
+        {
+          error:
+            "Invalid URL. Must be from developer.apple.com, swiftpackageindex.com, or *.github.io",
+        },
+        { status: 400 },
       );
     }
   } catch (error) {
     // Handle unexpected errors
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 ```
 
 **Frontend Error Handling** (`src/app/page.tsx` lines 291-299):
+
 ```typescript
 if (!response.ok) {
   let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
@@ -137,6 +149,7 @@ if (!response.ok) {
 ### Caching Pattern
 
 **Two-Tier Cache Implementation** (`src/lib/cache/redis-cache.ts` lines 98-134):
+
 ```typescript
 export class RedisCache {
   private redis: Redis | null = null;
@@ -145,14 +158,14 @@ export class RedisCache {
 
   async get(url: string): Promise<string | null> {
     const key = this.getCacheKey(url);
-    
+
     // Check L1 cache first
     const localEntry = this.localCache.get(key);
     if (localEntry && !this.isLocalCacheExpired(localEntry)) {
       this.stats.hits++;
       return this.decompressContent(localEntry.value, localEntry.compressed || false);
     }
-    
+
     // Check L2 cache (Redis)
     if (this.redis) {
       try {
@@ -166,7 +179,7 @@ export class RedisCache {
         this.stats.errors++;
       }
     }
-    
+
     this.stats.misses++;
     return null;
   }
@@ -176,6 +189,7 @@ export class RedisCache {
 ### Component State Management
 
 **Progress Tracking Pattern** (`src/app/page.tsx`):
+
 ```typescript
 const [isLoading, setIsLoading] = useState(false);
 const [progress, setProgress] = useState(0);
@@ -186,13 +200,13 @@ const log = (message: string) => {
   const timestamp = new Date().toLocaleTimeString();
   const logEntry = `[${timestamp}] ${message}`;
   setLogs((prev) => [...prev, logEntry]);
-  
+
   // Auto-scroll to bottom
   if (logContainerRef.current && !userScrolling.current) {
     setTimeout(() => {
       logContainerRef.current?.scrollTo({
         top: logContainerRef.current.scrollHeight,
-        behavior: 'smooth',
+        behavior: "smooth",
       });
     }, 50);
   }
@@ -202,15 +216,16 @@ const log = (message: string) => {
 ### URL Processing Pattern
 
 **Flexible URL Filtering** (`src/app/page.tsx` lines 209-272):
+
 ```typescript
 // Domain-specific filtering logic
-if (baseDomain === 'https://developer.apple.com') {
+if (baseDomain === "https://developer.apple.com") {
   // Strict section filtering for Apple docs
-  if (fullUrl.includes('/documentation/')) {
+  if (fullUrl.includes("/documentation/")) {
     const linkPath = normalizedUrl.pathname.toLowerCase();
     const basePathLower = basePath.toLowerCase();
-    const basePathParts = basePathLower.split('/').filter((p) => p);
-    const linkPathParts = linkPath.split('/').filter((p) => p);
+    const basePathParts = basePathLower.split("/").filter((p) => p);
+    const linkPathParts = linkPath.split("/").filter((p) => p);
 
     if (basePathParts.length >= 2 && linkPathParts.length >= 2) {
       if (linkPathParts[0] === basePathParts[0] && linkPathParts[1] === basePathParts[1]) {
@@ -229,6 +244,7 @@ if (baseDomain === 'https://developer.apple.com') {
 ### Retry Pattern with Exponential Backoff
 
 **API Retry Implementation** (`src/app/api/scrape/route.ts` lines 56-63):
+
 ```typescript
 for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
   if (attempt > 0) {
@@ -237,7 +253,7 @@ for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     console.warn(`Retry attempt ${attempt}/${MAX_RETRIES} for ${url}, waiting ${delay}ms...`);
     await new Promise((resolve) => setTimeout(resolve, delay));
   }
-  
+
   try {
     const response = await http2Fetch(/* ... */);
     // Process response...
@@ -251,6 +267,7 @@ for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
 ### Content Processing Pipeline
 
 **Multi-Stage Filtering** (`src/utils/content-processing.ts` lines 18-30):
+
 ```typescript
 export function removeCommonPhrases(markdown: string): string {
   // Use the comprehensive filter with specific options
@@ -273,17 +290,19 @@ export function removeCommonPhrases(markdown: string): string {
 ### Adding a New Documentation Domain
 
 1. **Update Constants** (`src/constants.ts`):
+
 ```typescript
 export const ALLOWED_DOMAINS = [
-  'developer.apple.com',
-  'swiftpackageindex.com',
+  "developer.apple.com",
+  "swiftpackageindex.com",
   // Add new domain here
-  'newdocs.example.com',
+  "newdocs.example.com",
   // ...
 ];
 ```
 
 2. **Add Domain-Specific Logic** (if needed in `src/app/page.tsx`):
+
 ```typescript
 } else if (baseDomain.includes('newdocs.example.com')) {
   // Custom filtering logic for this domain
@@ -294,15 +313,17 @@ export const ALLOWED_DOMAINS = [
 ```
 
 3. **Add Tests** (`src/utils/__tests__/url-utils.test.ts`):
+
 ```typescript
-it('should validate newdocs.example.com URLs', () => {
-  expect(isValidDocumentationUrl('https://newdocs.example.com/docs')).toBe(true);
+it("should validate newdocs.example.com URLs", () => {
+  expect(isValidDocumentationUrl("https://newdocs.example.com/docs")).toBe(true);
 });
 ```
 
 ### Creating New Utility Functions
 
 1. **Create Function** (`src/utils/new-utility.ts`):
+
 ```typescript
 // Follow existing patterns for exports
 export function processContent(content: string, options: ProcessOptions): string {
@@ -311,26 +332,29 @@ export function processContent(content: string, options: ProcessOptions): string
 ```
 
 2. **Add Tests** (`src/utils/__tests__/new-utility.test.ts`):
-```typescript
-import { describe, it, expect } from 'vitest';
-import { processContent } from '../new-utility';
 
-describe('processContent', () => {
-  it('should handle basic case', () => {
-    const result = processContent('input', { option: true });
-    expect(result).toBe('expected');
+```typescript
+import { describe, it, expect } from "vitest";
+import { processContent } from "../new-utility";
+
+describe("processContent", () => {
+  it("should handle basic case", () => {
+    const result = processContent("input", { option: true });
+    expect(result).toBe("expected");
   });
 });
 ```
 
 3. **Export from Index** (if applicable):
+
 ```typescript
-export { processContent } from './new-utility';
+export { processContent } from "./new-utility";
 ```
 
 ### Debugging Cache Issues
 
 1. **Check Cache Stats** (`src/lib/cache/redis-cache.ts`):
+
 ```typescript
 getStats(): CacheStats {
   return { ...this.stats };
@@ -338,12 +362,14 @@ getStats(): CacheStats {
 ```
 
 2. **Enable Debug Logging**:
+
 ```typescript
 console.info(`Cache hit for ${url} (L1: ${fromL1})`);
 console.warn(`Cache miss for ${url}`);
 ```
 
 3. **Clear Cache**:
+
 ```typescript
 async clear(): Promise<void> {
   this.localCache.clear();
@@ -356,26 +382,31 @@ async clear(): Promise<void> {
 ### Running Tests
 
 **Full Test Suite**:
+
 ```bash
 npm test
 ```
 
 **Watch Mode**:
+
 ```bash
 npm test -- --watch
 ```
 
 **Coverage Report**:
+
 ```bash
 npm run test:coverage
 ```
 
 **Specific Test File**:
+
 ```bash
 npm test content-processing
 ```
 
 **Debug Tests**:
+
 ```bash
 npm run test:ui  # Opens Vitest UI for debugging
 ```
@@ -385,6 +416,7 @@ npm run test:ui  # Opens Vitest UI for debugging
 ### File Organization
 
 **Source Structure**:
+
 ```
 src/
 ├── app/                    # Next.js app router pages
@@ -407,18 +439,19 @@ src/
 
 **Test File Naming**: `[filename].test.ts` in `__tests__` directories
 **Test Structure** (`src/utils/__tests__/content-processing.test.ts` lines 10-88):
+
 ```typescript
-describe('module-name', () => {
-  describe('function-name', () => {
-    it('should handle specific case', () => {
+describe("module-name", () => {
+  describe("function-name", () => {
+    it("should handle specific case", () => {
       // Arrange
-      const input = 'test input';
-      
+      const input = "test input";
+
       // Act
       const result = functionName(input);
-      
+
       // Assert
-      expect(result).toBe('expected output');
+      expect(result).toBe("expected output");
     });
   });
 });
@@ -427,16 +460,19 @@ describe('module-name', () => {
 ### Performance Considerations
 
 **Parallel Processing** (`src/constants.ts` line 442):
+
 - Batch size: 20 concurrent URLs
 - Prevents API rate limiting
 - Optimizes processing time
 
 **Caching Strategy**:
+
 - L1: 5-minute in-memory cache
 - L2: 30-day Redis cache with LZ compression
 - Compression threshold: 5KB
 
 **UI Optimizations**:
+
 - Virtual scrolling for logs
 - Progressive updates during processing
 - Debounced progress updates

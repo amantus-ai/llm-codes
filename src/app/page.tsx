@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
-import { PROCESSING_CONFIG } from '@/constants';
+import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
+import { PROCESSING_CONFIG } from "@/constants";
 import {
   extractUrlFromQueryString,
   getSupportedDomainsText,
   isValidDocumentationUrl,
   updateUrlWithDocumentation,
   normalizeUrl,
-} from '@/utils/url-utils';
-import { filterDocumentation } from '@/utils/documentation-filter';
-import { extractOnlyCodeBlocks } from '@/utils/code-extraction';
-import { useCrawl } from '@/hooks/useCrawl';
+} from "@/utils/url-utils";
+import { filterDocumentation } from "@/utils/documentation-filter";
+import { extractOnlyCodeBlocks } from "@/utils/code-extraction";
+import { useCrawl } from "@/hooks/useCrawl";
 
 interface ProcessingResult {
   url: string;
@@ -20,7 +20,7 @@ interface ProcessingResult {
 }
 
 export default function Home() {
-  const [url, setUrl] = useState('');
+  const [url, setUrl] = useState("");
   const [depth, setDepth] = useState(PROCESSING_CONFIG.DEFAULT_CRAWL_DEPTH);
   const [maxUrls, setMaxUrls] = useState(PROCESSING_CONFIG.DEFAULT_MAX_URLS);
   const [filterUrls, setFilterUrls] = useState(true);
@@ -33,12 +33,12 @@ export default function Home() {
   const [logs, setLogs] = useState<string[]>([]);
   const [results, setResults] = useState<ProcessingResult[]>([]);
   const [filteredResults, setFilteredResults] = useState<ProcessingResult[]>([]);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [stats, setStats] = useState({ lines: 0, size: 0, urls: 0 });
   const [showLogs, setShowLogs] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
   const [notificationPermission, setNotificationPermission] =
-    useState<NotificationPermission>('default');
+    useState<NotificationPermission>("default");
   const [isIOS, setIsIOS] = useState(false);
   const [crawlCreditsUsed, setCrawlCreditsUsed] = useState(0);
 
@@ -104,11 +104,11 @@ export default function Home() {
   // Check for iOS and notification permission on mount
   useEffect(() => {
     // Detect iOS devices (iPhone, iPad, iPod)
-    const checkIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !('MSStream' in window);
+    const checkIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !("MSStream" in window);
     setIsIOS(checkIOS);
 
     // Only check notification permission if not on iOS and Notification API is available
-    if (!checkIOS && 'Notification' in window) {
+    if (!checkIOS && "Notification" in window) {
       setNotificationPermission(Notification.permission);
     }
   }, []);
@@ -167,24 +167,25 @@ export default function Home() {
     // Skip notification permission on iOS
     if (isIOS) return false;
 
-    if ('Notification' in window && Notification.permission === 'default') {
+    if ("Notification" in window && Notification.permission === "default") {
       const permission = await Notification.requestPermission();
       setNotificationPermission(permission);
-      return permission === 'granted';
+      return permission === "granted";
     }
-    return Notification.permission === 'granted';
+    if (!("Notification" in window)) return false;
+    return Notification.permission === "granted";
   };
 
   const showNotification = (title: string, body: string) => {
     // Skip notifications on iOS
     if (isIOS) return;
 
-    if ('Notification' in window && Notification.permission === 'granted') {
+    if ("Notification" in window && Notification.permission === "granted") {
       const notification = new Notification(title, {
         body,
-        icon: '/logo.png',
-        badge: '/logo.png',
-        tag: 'apple-docs-converter',
+        icon: "/logo.png",
+        badge: "/logo.png",
+        tag: "apple-docs-converter",
         requireInteraction: false,
       });
 
@@ -224,9 +225,9 @@ export default function Home() {
         const url = match[2] || match[1] || match[0];
         if (
           url &&
-          !url.startsWith('#') &&
-          !url.startsWith('mailto:') &&
-          !url.startsWith('javascript:')
+          !url.startsWith("#") &&
+          !url.startsWith("mailto:") &&
+          !url.startsWith("javascript:")
         ) {
           potentialLinks.push(url);
         }
@@ -235,23 +236,23 @@ export default function Home() {
 
     // Process and filter links
     potentialLinks.forEach((href) => {
-      let fullUrl = '';
+      let fullUrl = "";
 
       try {
-        if (href.startsWith('http://') || href.startsWith('https://')) {
+        if (href.startsWith("http://") || href.startsWith("https://")) {
           // Absolute URL
           fullUrl = href;
-        } else if (href.startsWith('//')) {
+        } else if (href.startsWith("//")) {
           // Protocol-relative URL
-          fullUrl = 'https:' + href;
-        } else if (href.startsWith('/')) {
+          fullUrl = "https:" + href;
+        } else if (href.startsWith("/")) {
           // Absolute path
           fullUrl = `${baseDomain}${href}`;
         } else {
           // Relative path - improved handling
-          const baseDir = basePath.endsWith('/')
+          const baseDir = basePath.endsWith("/")
             ? basePath
-            : basePath.substring(0, basePath.lastIndexOf('/') + 1);
+            : basePath.substring(0, basePath.lastIndexOf("/") + 1);
           fullUrl = `${baseDomain}${baseDir}${href}`;
         }
 
@@ -260,13 +261,13 @@ export default function Home() {
         fullUrl = normalizedUrl.href;
 
         // Apply domain-specific filtering
-        if (baseDomain === 'https://developer.apple.com') {
+        if (baseDomain === "https://developer.apple.com") {
           // For Apple, maintain strict section filtering
-          if (fullUrl.includes('/documentation/')) {
+          if (fullUrl.includes("/documentation/")) {
             const linkPath = normalizedUrl.pathname.toLowerCase();
             const basePathLower = basePath.toLowerCase();
-            const basePathParts = basePathLower.split('/').filter((p) => p);
-            const linkPathParts = linkPath.split('/').filter((p) => p);
+            const basePathParts = basePathLower.split("/").filter((p) => p);
+            const linkPathParts = linkPath.split("/").filter((p) => p);
 
             if (basePathParts.length >= 2 && linkPathParts.length >= 2) {
               if (linkPathParts[0] === basePathParts[0] && linkPathParts[1] === basePathParts[1]) {
@@ -279,7 +280,7 @@ export default function Home() {
           // Include if it's on the same domain and shares some path similarity
           if (normalizedUrl.origin === baseDomain) {
             // For Swift Package Index, allow exploring the package documentation
-            if (baseDomain.includes('swiftpackageindex.com')) {
+            if (baseDomain.includes("swiftpackageindex.com")) {
               // Allow any path under the same package
               const basePackageMatch = basePath.match(/\/([^\/]+\/[^\/]+)/);
               const linkPackageMatch = normalizedUrl.pathname.match(/\/([^\/]+\/[^\/]+)/);
@@ -293,20 +294,20 @@ export default function Home() {
               } else if (normalizedUrl.pathname.startsWith(basePath)) {
                 links.add(normalizeUrl(fullUrl));
               }
-            } else if (baseDomain.includes('vercel.com') && basePath.startsWith('/docs')) {
+            } else if (baseDomain.includes("vercel.com") && basePath.startsWith("/docs")) {
               // For Vercel docs, allow any path under /docs
-              if (normalizedUrl.pathname.startsWith('/docs')) {
+              if (normalizedUrl.pathname.startsWith("/docs")) {
                 links.add(normalizeUrl(fullUrl));
               }
             } else {
               // For GitHub Pages and other sites, check if they're documentation sites
-              const pathParts = basePath.split('/').filter((p) => p);
-              const linkParts = normalizedUrl.pathname.split('/').filter((p) => p);
+              const pathParts = basePath.split("/").filter((p) => p);
+              const linkParts = normalizedUrl.pathname.split("/").filter((p) => p);
 
               // If the base path contains 'docs' or 'documentation', allow broader exploration
               if (
                 pathParts.length > 0 &&
-                (pathParts[0] === 'docs' || pathParts[0] === 'documentation')
+                (pathParts[0] === "docs" || pathParts[0] === "documentation")
               ) {
                 // Allow any path that starts with the same docs root
                 if (linkParts.length > 0 && linkParts[0] === pathParts[0]) {
@@ -314,9 +315,9 @@ export default function Home() {
                 }
               } else {
                 // For other sites, allow same directory and subdirectories
-                const baseDir = basePath.endsWith('/')
+                const baseDir = basePath.endsWith("/")
                   ? basePath
-                  : basePath.substring(0, basePath.lastIndexOf('/') + 1);
+                  : basePath.substring(0, basePath.lastIndexOf("/") + 1);
                 if (normalizedUrl.pathname.startsWith(baseDir)) {
                   links.add(normalizeUrl(fullUrl));
                 }
@@ -335,10 +336,10 @@ export default function Home() {
     try {
       log(`Fetching content from ${urlToScrape}...`);
 
-      const response = await fetch('/api/scrape', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: urlToScrape, action: 'scrape', codeBlocksOnly }),
+      const response = await fetch("/api/scrape", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: urlToScrape, action: "scrape", codeBlocksOnly }),
       });
 
       if (!response.ok) {
@@ -357,7 +358,7 @@ export default function Home() {
 
       // Check if we have the expected response structure
       if (!data.success) {
-        const errorMsg = data.error || 'Scraping failed - unknown error';
+        const errorMsg = data.error || "Scraping failed - unknown error";
         log(`❌ Scraping failed for ${urlToScrape}: ${errorMsg}`);
 
         // Add helpful context for specific errors
@@ -375,7 +376,7 @@ export default function Home() {
         log(`📦 Using cached content for ${urlToScrape}`);
       }
 
-      const markdown = data.data?.markdown || '';
+      const markdown = data.data?.markdown || "";
       const contentLength = data.contentLength || markdown.length;
 
       if (!markdown) {
@@ -386,20 +387,20 @@ export default function Home() {
         log(`💡 This might be truncated content. The scraper will retry if needed.`);
       } else {
         log(
-          `✅ Successfully scraped ${markdown.length.toLocaleString()} characters from ${urlToScrape}`
+          `✅ Successfully scraped ${markdown.length.toLocaleString()} characters from ${urlToScrape}`,
         );
       }
 
       return markdown;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
       // Check for common error patterns
-      if (errorMessage.includes('Failed to fetch')) {
+      if (errorMessage.includes("Failed to fetch")) {
         log(`❌ Network error for ${urlToScrape}: Unable to connect to server`);
-      } else if (errorMessage.includes('timeout')) {
+      } else if (errorMessage.includes("timeout")) {
         log(`❌ Timeout error for ${urlToScrape}: Page took too long to load`);
-      } else if (!errorMessage.includes('❌')) {
+      } else if (!errorMessage.includes("❌")) {
         // Only log if we haven't already logged a specific error
         log(`❌ Error scraping ${urlToScrape}: ${errorMessage}`);
       }
@@ -414,7 +415,7 @@ export default function Home() {
     maxDepth: number,
     maxUrlsToProcess: number,
     processedUrls: Set<string> = new Set(),
-    baseUrl: string = ''
+    baseUrl: string = "",
   ): Promise<ProcessingResult[]> => {
     if (currentDepth > maxDepth) return [];
 
@@ -423,7 +424,7 @@ export default function Home() {
 
     // Process URLs individually with controlled concurrency
     const urlsToProcess = urls.filter(
-      (url) => !processedUrls.has(url) && processedUrls.size < maxUrlsToProcess
+      (url) => !processedUrls.has(url) && processedUrls.size < maxUrlsToProcess,
     );
 
     // Process URLs with controlled concurrency to avoid timeouts
@@ -460,22 +461,22 @@ export default function Home() {
 
           return { url, content };
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
           // Provide specific guidance based on error type
-          if (errorMessage.includes('Invalid URL')) {
+          if (errorMessage.includes("Invalid URL")) {
             log(`❌ Invalid URL format: ${url}`);
-          } else if (errorMessage.includes('Firecrawl API error')) {
+          } else if (errorMessage.includes("Firecrawl API error")) {
             log(`❌ API error for ${url}: ${errorMessage}`);
             log(`💡 Tip: This might be a temporary issue. Try again in a few moments.`);
-          } else if (errorMessage.includes('No content returned')) {
+          } else if (errorMessage.includes("No content returned")) {
             log(
-              `❌ No content found for ${url}: The page might be empty or require authentication`
+              `❌ No content found for ${url}: The page might be empty or require authentication`,
             );
           }
 
           // Return with empty content
-          return { url, content: '' };
+          return { url, content: "" };
         }
       });
 
@@ -485,7 +486,7 @@ export default function Home() {
 
       // Update progress after each batch
       const progressPercent = Math.round(
-        Math.min(90, (processedUrls.size / maxUrlsToProcess) * 90)
+        Math.min(90, (processedUrls.size / maxUrlsToProcess) * 90),
       );
       setProgress(progressPercent);
     }
@@ -502,7 +503,7 @@ export default function Home() {
         maxDepth,
         maxUrlsToProcess,
         processedUrls,
-        baseUrl || urls[0]
+        baseUrl || urls[0],
       );
       results.push(...nextResults);
     }
@@ -513,15 +514,15 @@ export default function Home() {
   const processUrl = async () => {
     // Validate URL
     if (!url) {
-      setError('Please enter a URL');
+      setError("Please enter a URL");
       return;
     }
 
     const trimmedUrl = url.trim();
 
     // Check for common URL mistakes
-    if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
-      setError('URL must start with https:// or http://');
+    if (!trimmedUrl.startsWith("http://") && !trimmedUrl.startsWith("https://")) {
+      setError("URL must start with https:// or http://");
       return;
     }
 
@@ -529,12 +530,12 @@ export default function Home() {
       setError(`URL must be from one of the ${getSupportedDomainsText()}`);
 
       // Provide helpful suggestions
-      if (trimmedUrl.includes('apple.com') && !trimmedUrl.includes('/documentation/')) {
+      if (trimmedUrl.includes("apple.com") && !trimmedUrl.includes("/documentation/")) {
         setError(
-          'For Apple documentation, use URLs starting with https://developer.apple.com/documentation/'
+          "For Apple documentation, use URLs starting with https://developer.apple.com/documentation/",
         );
-      } else if (trimmedUrl.includes('github.com')) {
-        setError('For GitHub documentation, use GitHub Pages URLs (*.github.io), not github.com');
+      } else if (trimmedUrl.includes("github.com")) {
+        setError("For GitHub documentation, use GitHub Pages URLs (*.github.io), not github.com");
       }
 
       return;
@@ -545,7 +546,7 @@ export default function Home() {
       setUrl(trimmedUrl);
     }
 
-    setError('');
+    setError("");
     setIsProcessing(true);
     setProgress(0);
     setLogs([]);
@@ -596,7 +597,7 @@ export default function Home() {
           depth,
           maxUrls,
           new Set(),
-          trimmedUrl
+          trimmedUrl,
         );
       }
 
@@ -609,7 +610,7 @@ export default function Home() {
       // Calculate size before filtering (for crawl mode, content is already filtered)
       const unfilteredContent = processedResults
         .map((r) => `# ${r.url}\n\n${r.content}\n\n---\n\n`)
-        .join('');
+        .join("");
       const unfilteredSizeKB = new Blob([unfilteredContent]).size / 1024;
 
       // Apply the same filters as in download function
@@ -645,9 +646,9 @@ export default function Home() {
       // Calculate size after filtering
       const filteredContent = filteredResultsData
         .map((r) => `# ${r.url}\n\n${r.content}\n\n---\n\n`)
-        .join('');
+        .join("");
       const filteredSizeKB = new Blob([filteredContent]).size / 1024;
-      const lines = filteredContent.split('\n').length;
+      const lines = filteredContent.split("\n").length;
 
       // Log the size difference
       if (useCrawlMode) {
@@ -655,7 +656,7 @@ export default function Home() {
       } else {
         log(`📏 Size before filtering: ${Math.round(unfilteredSizeKB)}K`);
         log(
-          `📏 Size after filtering: ${Math.round(filteredSizeKB)}K (${Math.round((1 - filteredSizeKB / unfilteredSizeKB) * 100)}% reduction)`
+          `📏 Size after filtering: ${Math.round(filteredSizeKB)}K (${Math.round((1 - filteredSizeKB / unfilteredSizeKB) * 100)}% reduction)`,
         );
       }
 
@@ -670,7 +671,7 @@ export default function Home() {
       // Provide summary
       log(`✅ Processing complete!`);
       log(
-        `📈 Summary: ${successfulResults.length} successful, ${failedResults.length} failed, ${processedResults.length} total URLs`
+        `📈 Summary: ${successfulResults.length} successful, ${failedResults.length} failed, ${processedResults.length} total URLs`,
       );
 
       if (failedResults.length > 0) {
@@ -683,7 +684,7 @@ export default function Home() {
         log(`  - Is the URL accessible?`);
         log(`  - Does the site require authentication?`);
         log(`  - Is the content loaded dynamically?`);
-        setError('No content could be extracted from any URL');
+        setError("No content could be extracted from any URL");
         hasError = true;
 
         // Explicitly keep logs visible on error
@@ -696,37 +697,37 @@ export default function Home() {
       // Show notification
       if (successfulResults.length > 0) {
         showNotification(
-          '✅ Documentation Ready!',
-          `Successfully processed ${successfulResults.length} URLs. Your Markdown file is ready to download.`
+          "✅ Documentation Ready!",
+          `Successfully processed ${successfulResults.length} URLs. Your Markdown file is ready to download.`,
         );
       } else {
         // Ensure logs are visible before showing error notification
         setShowLogs(true);
         showNotification(
-          '❌ No Content Found',
-          'Unable to extract content from any URLs. Check the activity log below for details.'
+          "❌ No Content Found",
+          "Unable to extract content from any URLs. Check the activity log below for details.",
         );
       }
     } catch (error) {
       hasError = true;
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
       log(`❌ Processing failed: ${errorMessage}`);
 
       // Provide helpful error messages
-      if (errorMessage.includes('network') || errorMessage.includes('Failed to fetch')) {
+      if (errorMessage.includes("network") || errorMessage.includes("Failed to fetch")) {
         log(`💡 Tip: Check your internet connection and try again`);
-        setError('Network error: Unable to connect to the server');
-      } else if (errorMessage.includes('timeout')) {
+        setError("Network error: Unable to connect to the server");
+      } else if (errorMessage.includes("timeout")) {
         log(`💡 Tip: The website might be slow. Try reducing the number of URLs or depth`);
-        setError('Timeout: The website took too long to respond');
+        setError("Timeout: The website took too long to respond");
       } else {
         setError(`Processing failed: ${errorMessage}`);
       }
 
       showNotification(
-        '❌ Processing Failed',
-        'An error occurred. Check the activity log for details.'
+        "❌ Processing Failed",
+        "An error occurred. Check the activity log for details.",
       );
 
       // Keep logs visible so user can see the error details
@@ -746,40 +747,40 @@ export default function Home() {
   const downloadMarkdown = () => {
     // Generate header with attribution
     const now = new Date();
-    const dateStr = now.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    const dateStr = now.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
-    const timeStr = now.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
+    const timeStr = now.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
     });
 
     const header = `<!--
 Downloaded via https://llm.codes by @steipete on ${dateStr} at ${timeStr}
 Source URL: ${url}
 Total pages processed: ${results.length}
-URLs filtered: ${filterUrls ? 'Yes' : 'No'}
-Content de-duplicated: ${deduplicateContent ? 'Yes' : 'No'}
-Availability strings filtered: ${filterAvailability ? 'Yes' : 'No'}
-Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
+URLs filtered: ${filterUrls ? "Yes" : "No"}
+Content de-duplicated: ${deduplicateContent ? "Yes" : "No"}
+Availability strings filtered: ${filterAvailability ? "Yes" : "No"}
+Code blocks only: ${codeBlocksOnly ? "Yes" : "No"}
 -->
 
 `;
 
     // Use pre-filtered results
     const content =
-      header + filteredResults.map((r) => `# ${r.url}\n\n${r.content}\n\n---\n\n`).join('');
-    const blob = new Blob([content], { type: 'text/markdown' });
+      header + filteredResults.map((r) => `# ${r.url}\n\n${r.content}\n\n---\n\n`).join("");
+    const blob = new Blob([content], { type: "text/markdown" });
     const downloadUrl = URL.createObjectURL(blob);
 
     // Generate filename from the original URL
-    const urlPath = url.replace('https://developer.apple.com/documentation/', '');
-    const pathParts = urlPath.split('/').filter((part) => part.length > 0);
-    const filename = pathParts.length > 0 ? `${pathParts.join('-')}.md` : 'apple-developer-docs.md';
+    const urlPath = url.replace("https://developer.apple.com/documentation/", "");
+    const pathParts = urlPath.split("/").filter((part) => part.length > 0);
+    const filename = pathParts.length > 0 ? `${pathParts.join("-")}.md` : "apple-developer-docs.md";
 
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = downloadUrl;
     a.download = filename;
     document.body.appendChild(a);
@@ -811,7 +812,7 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
             </div>
             <div className="ml-auto text-xs text-muted-foreground text-right">
               <div>
-                made by{' '}
+                made by{" "}
                 <a
                   href="https://steipete.me"
                   target="_blank"
@@ -822,7 +823,7 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
                 </a>
               </div>
               <div>
-                powered by{' '}
+                powered by{" "}
                 <a
                   href="https://www.firecrawl.dev/referral?rid=9CG538BE"
                   target="_blank"
@@ -833,7 +834,7 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
                 </a>
               </div>
               <div>
-                open-source on{' '}
+                open-source on{" "}
                 <a
                   href="https://github.com/amantus-ai/llm-codes"
                   target="_blank"
@@ -893,7 +894,7 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
             )}
             <div className="mt-3">
               <p className="text-xs text-muted-foreground">
-                {getSupportedDomainsText()}.{' '}
+                {getSupportedDomainsText()}.{" "}
                 <a
                   href="https://github.com/amantus-ai/llm-codes#supported-documentation-sites"
                   target="_blank"
@@ -910,18 +911,18 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
           <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-medium text-foreground">Processing Configuration</h3>
-              {typeof window !== 'undefined' &&
+              {typeof window !== "undefined" &&
                 !isIOS &&
-                'Notification' in window &&
-                notificationPermission !== 'default' && (
+                "Notification" in window &&
+                notificationPermission !== "default" && (
                   <div className="flex items-center gap-2 text-xs">
                     <div
                       className={`w-2 h-2 rounded-full ${
-                        notificationPermission === 'granted' ? 'bg-green-500' : 'bg-red-500'
+                        notificationPermission === "granted" ? "bg-green-500" : "bg-red-500"
                       }`}
                     />
                     <span className="text-muted-foreground">
-                      Notifications {notificationPermission === 'granted' ? 'enabled' : 'blocked'}
+                      Notifications {notificationPermission === "granted" ? "enabled" : "blocked"}
                     </span>
                   </div>
                 )}
@@ -929,7 +930,7 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="depth" className="block text-sm text-muted-foreground mb-2">
-                  Crawl Depth{' '}
+                  Crawl Depth{" "}
                   {useCrawlMode && <span className="text-xs">(ignored in crawl mode)</span>}
                 </label>
                 <div className="relative">
@@ -992,7 +993,7 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
                 className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-foreground/90 transition-colors"
               >
                 <svg
-                  className={`w-4 h-4 transition-transform ${showOptions ? 'rotate-90' : ''}`}
+                  className={`w-4 h-4 transition-transform ${showOptions ? "rotate-90" : ""}`}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -1103,11 +1104,11 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
                   ></path>
                 </svg>
                 {useCrawlMode
-                  ? `${crawlStatus === 'crawling' ? 'Crawling' : 'Processing'} Documentation... (Click to cancel)`
-                  : 'Processing Documentation...'}
+                  ? `${crawlStatus === "crawling" ? "Crawling" : "Processing"} Documentation... (Click to cancel)`
+                  : "Processing Documentation..."}
               </span>
             ) : (
-              'Process Documentation'
+              "Process Documentation"
             )}
           </button>
 
@@ -1163,7 +1164,7 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
                   className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-2"
                 >
                   <svg
-                    className={`w-4 h-4 transition-transform ${showLogs ? 'rotate-90' : ''}`}
+                    className={`w-4 h-4 transition-transform ${showLogs ? "rotate-90" : ""}`}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -1175,10 +1176,10 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
                       d="M9 5l7 7-7 7"
                     />
                   </svg>
-                  {showLogs ? 'Hide' : 'Show'} activity log
+                  {showLogs ? "Hide" : "Show"} activity log
                 </button>
 
-                <div className={`activity-log-container ${showLogs ? 'show' : 'hide'}`}>
+                <div className={`activity-log-container ${showLogs ? "show" : "hide"}`}>
                   <div
                     ref={logContainerRef}
                     onScroll={handleLogScroll}
@@ -1202,7 +1203,7 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
             <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl shadow-sm border border-primary/20 p-6">
               <h4 className="text-sm font-medium text-foreground mb-4">Statistics</h4>
               <div
-                className={`grid ${useCrawlMode && crawlCreditsUsed > 0 ? 'grid-cols-4' : 'grid-cols-3'} gap-4`}
+                className={`grid ${useCrawlMode && crawlCreditsUsed > 0 ? "grid-cols-4" : "grid-cols-3"} gap-4`}
               >
                 <div className="text-center">
                   <div className="text-2xl font-bold text-primary">{stats.urls}</div>
@@ -1252,7 +1253,7 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
       <footer className="border-t border-border bg-card/80 backdrop-blur-sm mt-auto">
         <div className="max-w-4xl mx-auto px-4 py-8 text-center">
           <p className="text-sm text-muted-foreground mb-6">
-            This service is being offered and <em>paid</em> for by{' '}
+            This service is being offered and <em>paid</em> for by{" "}
             <a
               href="https://twitter.com/steipete"
               target="_blank"
@@ -1262,7 +1263,7 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
               Peter Steinberger (@steipete)
             </a>
             .<br />
-            For more cool stuff, check out{' '}
+            For more cool stuff, check out{" "}
             <a
               href="https://steipete.me"
               target="_blank"
@@ -1270,7 +1271,7 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
               className="text-primary hover:text-primary/90 underline"
             >
               my blog
-            </a>{' '}
+            </a>{" "}
             and subscribe.
           </p>
 
@@ -1281,7 +1282,7 @@ Code blocks only: ${codeBlocksOnly ? 'Yes' : 'No'}
               method="post"
               target="popupwindow"
               onSubmit={(_e) => {
-                window.open('https://buttondown.email/steipete', 'popupwindow');
+                window.open("https://buttondown.email/steipete", "popupwindow");
               }}
               className="flex gap-3"
             >

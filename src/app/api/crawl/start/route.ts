@@ -1,17 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { isValidDocumentationUrl } from '@/utils/url-utils';
-import { PROCESSING_CONFIG } from '@/constants';
-import { cacheService } from '@/lib/cache/redis-cache';
-import { http2Fetch } from '@/lib/http2-client';
+import { NextRequest, NextResponse } from "next/server";
+import { isValidDocumentationUrl } from "@/utils/url-utils";
+import { PROCESSING_CONFIG } from "@/constants";
+import { cacheService } from "@/lib/cache/redis-cache";
+import { http2Fetch } from "@/lib/http2-client";
 
-const FIRECRAWL_API_URL = 'https://api.firecrawl.dev/v1';
+const FIRECRAWL_API_URL = "https://api.firecrawl.dev/v1";
 
 export async function POST(request: NextRequest) {
   try {
     const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
 
     if (!FIRECRAWL_API_KEY) {
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
     }
 
     const body = await request.json();
@@ -23,9 +23,9 @@ export async function POST(request: NextRequest) {
     if (!isValidDocumentationUrl(url)) {
       return NextResponse.json(
         {
-          error: 'Invalid URL. Must be from an allowed documentation domain',
+          error: "Invalid URL. Must be from an allowed documentation domain",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -36,32 +36,32 @@ export async function POST(request: NextRequest) {
       console.error(`Circuit breaker is OPEN for Firecrawl API, failing fast for crawl ${url}`);
       return NextResponse.json(
         {
-          error: 'Documentation service is temporarily unavailable',
-          details: 'The service is experiencing high failure rates. Please try again in a minute.',
-          circuitBreaker: 'open',
+          error: "Documentation service is temporarily unavailable",
+          details: "The service is experiencing high failure rates. Please try again in a minute.",
+          circuitBreaker: "open",
         },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
     try {
       // Start a crawl job with Firecrawl
       const response = await http2Fetch(`${FIRECRAWL_API_URL}/crawl`, {
-        method: 'POST',
+        method: "POST",
         headers: {
           Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           url,
           limit: enforcedLimit,
           scrapeOptions: {
-            formats: ['markdown'],
+            formats: ["markdown"],
             onlyMainContent: true,
             waitFor: PROCESSING_CONFIG.FIRECRAWL_WAIT_TIME,
             timeout: PROCESSING_CONFIG.FIRECRAWL_TIMEOUT,
             headers: {
-              'User-Agent': 'Mozilla/5.0 (compatible; Documentation-Scraper/1.0)',
+              "User-Agent": "Mozilla/5.0 (compatible; Documentation-Scraper/1.0)",
             },
           },
         }),
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
             id: data.id,
             url,
             limit,
-            status: 'crawling',
+            status: "crawling",
             startedAt: new Date().toISOString(),
             totalPages: 0,
             completedPages: 0,
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
         }
 
         // API returned success but no job ID
-        const error = data.error || 'No job ID returned from crawl API';
+        const error = data.error || "No job ID returned from crawl API";
         console.error(`Crawl API error for ${url}:`, error);
 
         return NextResponse.json({ error: `Failed to start crawl: ${error}` }, { status: 500 });
@@ -130,11 +130,11 @@ export async function POST(request: NextRequest) {
 
       // Add helpful context based on status code
       if (response.status === 429) {
-        errorMessage = 'Rate limit exceeded. Please try again in a few moments.';
+        errorMessage = "Rate limit exceeded. Please try again in a few moments.";
       } else if (response.status === 403) {
-        errorMessage = 'Access forbidden. The API key might be invalid.';
+        errorMessage = "Access forbidden. The API key might be invalid.";
       } else if (response.status >= 500) {
-        errorMessage = 'Server error. Please try again later.';
+        errorMessage = "Server error. Please try again later.";
       }
 
       // Record failure in circuit breaker for server errors
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(errorResponse, { status: response.status });
     } catch (error) {
       // Network or other error
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
 
       // Record failure in circuit breaker
       await cacheService.firecrawlCircuitBreaker.recordFailure();
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Network error: ${errorMessage}` }, { status: 500 });
     }
   } catch (error) {
-    console.error('Crawl Start API Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Crawl Start API Error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

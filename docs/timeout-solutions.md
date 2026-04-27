@@ -1,18 +1,22 @@
 # Vercel Timeout Solutions for llm.codes
 
 ## Current Situation
+
 - Current timeout: 60 seconds (Pro plan maximum)
 - Issue: Some documentation scraping operations take longer than 60 seconds
 
 ## Solutions
 
 ### 1. **Optimize Current Implementation** (Recommended)
+
 - Reduce concurrent scraping from 15 to 5-10
 - Implement better caching to avoid re-scraping
 - Add request queuing with smaller batches
 
 ### 2. **Implement Background Jobs**
+
 Instead of synchronous processing:
+
 ```javascript
 // Start job
 POST /api/scrape/start
@@ -27,17 +31,22 @@ GET /api/scrape/results/:jobId
 ```
 
 ### 3. **Use Edge Functions**
+
 Edge Functions have different timeout limits:
+
 - Hobby: 30 seconds
 - Pro/Enterprise: 30 seconds (but can stream responses)
 
 ### 4. **External Processing Service**
+
 - Use AWS Lambda (15 min timeout)
 - Use Google Cloud Functions (9 min timeout)
 - Use dedicated worker service (Render, Railway)
 
 ### 5. **Streaming Response**
+
 Stream partial results as they're processed:
+
 ```javascript
 export async function POST(request: Request) {
   const encoder = new TextEncoder();

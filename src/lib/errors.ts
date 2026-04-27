@@ -37,7 +37,7 @@ export class NetworkError extends BaseError {
     message: string,
     statusCode?: number,
     url?: string,
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
   ) {
     super(message, { ...context, statusCode, url });
     this.statusCode = statusCode;
@@ -55,7 +55,7 @@ export class FirecrawlError extends NetworkError {
     url?: string,
     apiError?: string,
     retryable = false,
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
   ) {
     super(message, statusCode, url, { ...context, apiError, retryable });
     this.apiError = apiError;
@@ -64,12 +64,12 @@ export class FirecrawlError extends NetworkError {
 }
 
 export class CacheError extends BaseError {
-  public readonly operation: 'get' | 'set' | 'delete' | 'lock';
+  public readonly operation: "get" | "set" | "delete" | "lock";
 
   constructor(
     message: string,
-    operation: 'get' | 'set' | 'delete' | 'lock',
-    context?: Record<string, unknown>
+    operation: "get" | "set" | "delete" | "lock",
+    context?: Record<string, unknown>,
   ) {
     super(message, { ...context, operation });
     this.operation = operation;
@@ -88,14 +88,14 @@ export class ValidationError extends BaseError {
 }
 
 export class CircuitBreakerError extends BaseError {
-  public readonly state: 'open' | 'half-open';
+  public readonly state: "open" | "half-open";
   public readonly cooldownRemaining?: number;
 
   constructor(
     message: string,
-    state: 'open' | 'half-open',
+    state: "open" | "half-open",
     cooldownRemaining?: number,
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
   ) {
     super(message, { ...context, state, cooldownRemaining });
     this.state = state;
@@ -111,7 +111,7 @@ export class ContentError extends BaseError {
     message: string,
     contentLength: number,
     truncated = false,
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
   ) {
     super(message, { ...context, contentLength, truncated });
     this.contentLength = contentLength;
@@ -159,5 +159,5 @@ export function logError(error: Error, additionalContext?: Record<string, unknow
   }
 
   // In production, this would send to an error monitoring service
-  console.error('Error occurred:', errorData);
+  console.error("Error occurred:", errorData);
 }

@@ -1,10 +1,10 @@
 /* eslint-disable no-console */
-import { Redis } from '@upstash/redis';
-import { compress, decompress } from 'lz-string';
-import crypto from 'crypto';
-import { normalizeUrl } from '@/utils/url-utils';
-import { PROCESSING_CONFIG } from '@/constants';
-import { CircuitBreaker } from '@/lib/circuit-breaker';
+import { Redis } from "@upstash/redis";
+import { compress, decompress } from "lz-string";
+import crypto from "crypto";
+import { normalizeUrl } from "@/utils/url-utils";
+import { PROCESSING_CONFIG } from "@/constants";
+import { CircuitBreaker } from "@/lib/circuit-breaker";
 
 interface CacheEntry {
   value: string;
@@ -74,14 +74,14 @@ export class RedisCache {
 
   constructor(
     ttl: number = PROCESSING_CONFIG.CACHE_DURATION / 1000, // Convert ms to seconds
-    compressionThreshold: number = PROCESSING_CONFIG.COMPRESSION_THRESHOLD
+    compressionThreshold: number = PROCESSING_CONFIG.COMPRESSION_THRESHOLD,
   ) {
     this.ttl = ttl;
     this.compressionThreshold = compressionThreshold;
     this.initializeRedis();
 
     // Initialize circuit breaker with Redis instance
-    this.firecrawlCircuitBreaker = new CircuitBreaker(this.redis, 'firecrawl', {
+    this.firecrawlCircuitBreaker = new CircuitBreaker(this.redis, "firecrawl", {
       failureThreshold: 50, // 10x more lenient - was 5
       successThreshold: 2,
       timeout: 60000, // 1 minute
@@ -96,13 +96,13 @@ export class RedisCache {
     if (url && token) {
       try {
         this.redis = new Redis({ url, token });
-        console.info('Redis cache initialized successfully');
+        console.info("Redis cache initialized successfully");
       } catch (error) {
-        console.error('Failed to initialize Redis:', error);
+        console.error("Failed to initialize Redis:", error);
         this.redis = null;
       }
     } else {
-      console.warn('Redis credentials not found, falling back to in-memory cache only');
+      console.warn("Redis credentials not found, falling back to in-memory cache only");
     }
   }
 
@@ -114,7 +114,7 @@ export class RedisCache {
     // Normalize URL to improve cache hit rate
     const normalized = normalizeUrl(url);
     // Use 32 characters (128 bits) for better collision resistance
-    const hash = crypto.createHash('sha256').update(normalized).digest('hex').substring(0, 32);
+    const hash = crypto.createHash("sha256").update(normalized).digest("hex").substring(0, 32);
     return `page:${hash}:v3`; // Bump version to v3 to invalidate old cache entries
   }
 
@@ -164,7 +164,7 @@ export class RedisCache {
     if (duration > this.SLOW_REDIS_THRESHOLD) {
       this.stats.slowRedisOps++;
       console.warn(
-        `[SLOW REDIS] GET operation took ${duration}ms (threshold: ${this.SLOW_REDIS_THRESHOLD}ms)`
+        `[SLOW REDIS] GET operation took ${duration}ms (threshold: ${this.SLOW_REDIS_THRESHOLD}ms)`,
       );
     }
   }
@@ -211,7 +211,7 @@ export class RedisCache {
           console.log(`[CACHE MISS - L2] ${url} (Redis checked in ${duration}ms)`);
         }
       } catch (error) {
-        console.error('Redis get error:', error);
+        console.error("Redis get error:", error);
         this.stats.errors++;
       }
     }
@@ -244,10 +244,10 @@ export class RedisCache {
         const duration = Date.now() - startTime;
         this.trackRedisLatency(duration);
         console.log(
-          `[CACHE SET] ${url} (${value.length} chars, compressed: ${compressed}, Redis: ${duration}ms)`
+          `[CACHE SET] ${url} (${value.length} chars, compressed: ${compressed}, Redis: ${duration}ms)`,
         );
       } catch (error) {
-        console.error('Redis set error:', error);
+        console.error("Redis set error:", error);
         this.stats.errors++;
       }
     }
@@ -310,7 +310,7 @@ export class RedisCache {
           }
         });
       } catch (error) {
-        console.error('Redis mget error:', error);
+        console.error("Redis mget error:", error);
         this.stats.errors++;
 
         // Set all missing URLs to null
@@ -359,7 +359,7 @@ export class RedisCache {
       try {
         await pipeline.exec();
       } catch (error) {
-        console.error('Redis mset error:', error);
+        console.error("Redis mset error:", error);
         this.stats.errors++;
       }
     }
@@ -379,7 +379,7 @@ export class RedisCache {
       try {
         await this.redis.del(key);
       } catch (error) {
-        console.error('Redis delete error:', error);
+        console.error("Redis delete error:", error);
         this.stats.errors++;
       }
     }
@@ -416,7 +416,7 @@ export class RedisCache {
       hitRate: total > 0 ? this.stats.hits / total : 0,
       redisHitRate: redisTotal > 0 ? this.stats.redisHits / redisTotal : 0,
       localCacheSize: this.localCache.size,
-      summary: '',
+      summary: "",
     };
 
     stats.summary =
@@ -486,7 +486,7 @@ export class RedisCache {
       const duration = Date.now() - startTime;
       this.trackRedisLatency(duration);
 
-      if (result === 'OK') {
+      if (result === "OK") {
         console.log(`[LOCK ACQUIRED] ${url} (${duration}ms)`);
         return lockId;
       } else {
@@ -494,7 +494,7 @@ export class RedisCache {
         return null;
       }
     } catch (error) {
-      console.error('Failed to acquire lock:', error);
+      console.error("Failed to acquire lock:", error);
       return crypto.randomUUID(); // Fallback to allow operation
     }
   }
@@ -516,7 +516,7 @@ export class RedisCache {
       }
       return false;
     } catch (error) {
-      console.error('Failed to release lock:', error);
+      console.error("Failed to release lock:", error);
       return false;
     }
   }
@@ -533,7 +533,7 @@ export class RedisCache {
       const exists = await this.redis.exists(lockKey);
       return exists === 1;
     } catch (error) {
-      console.error('Failed to check lock:', error);
+      console.error("Failed to check lock:", error);
       return false;
     }
   }
@@ -567,7 +567,7 @@ export class RedisCache {
       try {
         await this.redis.set(key, data, { ex: ttl });
       } catch (error) {
-        console.error('Failed to store crawl job:', error);
+        console.error("Failed to store crawl job:", error);
       }
     }
   }
@@ -582,7 +582,7 @@ export class RedisCache {
       try {
         return await this.redis.get(key);
       } catch (error) {
-        console.error('Failed to get crawl job:', error);
+        console.error("Failed to get crawl job:", error);
         return null;
       }
     }
@@ -602,7 +602,7 @@ export class RedisCache {
           await this.redis.set(key, { ...existing, ...status }, { ex: 86400 });
         }
       } catch (error) {
-        console.error('Failed to update crawl job status:', error);
+        console.error("Failed to update crawl job status:", error);
       }
     }
   }
@@ -614,7 +614,7 @@ export class RedisCache {
     jobId: string,
     pageNumber: number,
     results: CrawlResult[],
-    ttl: number = 86400
+    ttl: number = 86400,
   ): Promise<void> {
     const key = `crawl:results:${jobId}:page:${pageNumber}`;
 
@@ -622,7 +622,7 @@ export class RedisCache {
       try {
         await this.redis.set(key, results, { ex: ttl });
       } catch (error) {
-        console.error('Failed to store crawl results:', error);
+        console.error("Failed to store crawl results:", error);
       }
     }
   }
@@ -637,7 +637,7 @@ export class RedisCache {
       try {
         return await this.redis.get(key);
       } catch (error) {
-        console.error('Failed to get crawl results:', error);
+        console.error("Failed to get crawl results:", error);
         return null;
       }
     }
@@ -664,7 +664,7 @@ export class RedisCache {
         }
       }
     } catch (error) {
-      console.error('Failed to get all crawl results:', error);
+      console.error("Failed to get all crawl results:", error);
     }
 
     return results;

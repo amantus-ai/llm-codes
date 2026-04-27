@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { isValidDocumentationUrl } from '@/utils/url-utils';
-import { PROCESSING_CONFIG } from '@/constants';
-import { cacheService } from '@/lib/cache/redis-cache';
-import { http2Fetch } from '@/lib/http2-client';
+import { NextRequest, NextResponse } from "next/server";
+import { isValidDocumentationUrl } from "@/utils/url-utils";
+import { PROCESSING_CONFIG } from "@/constants";
+import { cacheService } from "@/lib/cache/redis-cache";
+import { http2Fetch } from "@/lib/http2-client";
 
-const FIRECRAWL_API_URL = 'https://api.firecrawl.dev/v1';
+const FIRECRAWL_API_URL = "https://api.firecrawl.dev/v1";
 
 export async function POST(request: NextRequest) {
   let action: string | undefined;
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
 
     if (!FIRECRAWL_API_KEY) {
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
     }
 
     const body = await request.json();
@@ -24,18 +24,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            'Invalid URL. Must be from developer.apple.com, swiftpackageindex.com, or *.github.io',
+            "Invalid URL. Must be from developer.apple.com, swiftpackageindex.com, or *.github.io",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    if (action === 'scrape') {
+    if (action === "scrape") {
       // Check cache first
       const cached = await cacheService.get(url);
       if (cached) {
         // Validate cached content isn't truncated
-        if (cached.length < 200 && cached.trim().startsWith('[Skip Navigation]')) {
+        if (cached.length < 200 && cached.trim().startsWith("[Skip Navigation]")) {
           // Remove invalid cached entry
           await cacheService.delete(url);
           console.warn(`Removed truncated cached content for ${url} (${cached.length} chars)`);
@@ -85,12 +85,12 @@ export async function POST(request: NextRequest) {
           console.error(`Circuit breaker is OPEN for Firecrawl API, failing fast for ${url}`);
           return NextResponse.json(
             {
-              error: 'Documentation service is temporarily unavailable',
+              error: "Documentation service is temporarily unavailable",
               details:
-                'The service is experiencing high failure rates. Please try again in a minute.',
-              circuitBreaker: 'open',
+                "The service is experiencing high failure rates. Please try again in a minute.",
+              circuitBreaker: "open",
             },
-            { status: 503 }
+            { status: 503 },
           );
         }
 
@@ -107,26 +107,26 @@ export async function POST(request: NextRequest) {
             // Calculate delay with exponential backoff
             const delay = Math.min(INITIAL_RETRY_DELAY * Math.pow(2, attempt - 1), MAX_RETRY_DELAY);
             console.warn(
-              `Retry attempt ${attempt}/${MAX_RETRIES} for ${url}, waiting ${delay}ms...`
+              `Retry attempt ${attempt}/${MAX_RETRIES} for ${url}, waiting ${delay}ms...`,
             );
             await new Promise((resolve) => setTimeout(resolve, delay));
           }
 
           try {
             const response = await http2Fetch(`${FIRECRAWL_API_URL}/scrape`, {
-              method: 'POST',
+              method: "POST",
               headers: {
                 Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-                'Content-Type': 'application/json',
+                "Content-Type": "application/json",
               },
               body: JSON.stringify({
                 url,
-                formats: ['markdown'],
+                formats: ["markdown"],
                 onlyMainContent: true,
                 waitFor: PROCESSING_CONFIG.FIRECRAWL_WAIT_TIME,
                 timeout: PROCESSING_CONFIG.FIRECRAWL_TIMEOUT,
                 headers: {
-                  'User-Agent': 'Mozilla/5.0 (compatible; Documentation-Scraper/1.0)',
+                  "User-Agent": "Mozilla/5.0 (compatible; Documentation-Scraper/1.0)",
                 },
               }),
               // Add fetch-level timeout (90s to give Firecrawl time to complete)
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
                 });
               }
 
-              if (data.success && data.data && typeof data.data.markdown === 'string') {
+              if (data.success && data.data && typeof data.data.markdown === "string") {
                 const markdown = data.data.markdown;
 
                 // Detect various types of truncated/incomplete content
@@ -160,16 +160,16 @@ export async function POST(request: NextRequest) {
                 // Check for known truncated patterns
                 const isTruncated =
                   // Only navigation link (exactly 82 chars is the common case)
-                  (contentLength === 82 && trimmedContent.startsWith('[Skip Navigation]')) ||
+                  (contentLength === 82 && trimmedContent.startsWith("[Skip Navigation]")) ||
                   // Very short content that's likely incomplete
                   (contentLength < 200 &&
-                    (trimmedContent.startsWith('[Skip Navigation]') ||
-                      trimmedContent === 'Skip Navigation' ||
-                      trimmedContent.endsWith('...') ||
-                      trimmedContent.includes('Loading') ||
-                      trimmedContent.includes('Please wait'))) ||
+                    (trimmedContent.startsWith("[Skip Navigation]") ||
+                      trimmedContent === "Skip Navigation" ||
+                      trimmedContent.endsWith("...") ||
+                      trimmedContent.includes("Loading") ||
+                      trimmedContent.includes("Please wait"))) ||
                   // No actual content headers or paragraphs
-                  (!trimmedContent.includes('#') && contentLength < 500);
+                  (!trimmedContent.includes("#") && contentLength < 500);
 
                 if (isTruncated) {
                   const warningMsg = `Received suspicious/truncated content for ${url}: ${contentLength} chars`;
@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
                   await cacheService.set(url, markdown);
                 } else {
                   console.warn(
-                    `Content for ${url} is short (${contentLength} chars) but proceeding`
+                    `Content for ${url} is short (${contentLength} chars) but proceeding`,
                   );
                 }
 
@@ -212,10 +212,10 @@ export async function POST(request: NextRequest) {
               lastError =
                 data.error ||
                 (!data.success
-                  ? 'Firecrawl returned success: false'
+                  ? "Firecrawl returned success: false"
                   : !data.data
-                    ? 'No data object in response'
-                    : 'No markdown content in response');
+                    ? "No data object in response"
+                    : "No markdown content in response");
 
               // Don't retry for data structure issues
               break;
@@ -241,19 +241,19 @@ export async function POST(request: NextRequest) {
 
             // Add helpful context based on status code
             if (response.status === 429) {
-              errorMessage = 'Rate limit exceeded. Please try again in a few moments.';
+              errorMessage = "Rate limit exceeded. Please try again in a few moments.";
             } else if (response.status === 403) {
-              errorMessage = 'Access forbidden. The API key might be invalid.';
+              errorMessage = "Access forbidden. The API key might be invalid.";
             } else if (response.status === 500) {
-              errorMessage = 'Firecrawl server error. Please try again later.';
+              errorMessage = "Firecrawl server error. Please try again later.";
             } else if (response.status === 502) {
-              errorMessage = 'Server temporarily unavailable. Please try again.';
+              errorMessage = "Server temporarily unavailable. Please try again.";
             } else if (response.status === 503) {
-              errorMessage = 'Service unavailable. Please try again.';
+              errorMessage = "Service unavailable. Please try again.";
             } else if (response.status === 504) {
-              errorMessage = 'Gateway timeout. Please try again.';
+              errorMessage = "Gateway timeout. Please try again.";
             } else if (response.status === 404) {
-              errorMessage = 'Page not found. Please check the URL.';
+              errorMessage = "Page not found. Please check the URL.";
             }
 
             lastError = errorMessage;
@@ -269,7 +269,7 @@ export async function POST(request: NextRequest) {
             }
           } catch (error) {
             // Network or other error
-            lastError = error instanceof Error ? error.message : 'Unknown error occurred';
+            lastError = error instanceof Error ? error.message : "Unknown error occurred";
             lastStatus = 500;
 
             if (attempt === MAX_RETRIES) {
@@ -278,7 +278,7 @@ export async function POST(request: NextRequest) {
               console.error(`Failed to scrape ${url} after ${MAX_RETRIES + 1} attempts:`, error);
               return NextResponse.json(
                 { error: `Network error after ${MAX_RETRIES + 1} attempts: ${lastError}` },
-                { status: 500 }
+                { status: 500 },
               );
             }
           }
@@ -289,23 +289,23 @@ export async function POST(request: NextRequest) {
         await cacheService.firecrawlCircuitBreaker.recordFailure();
 
         // Provide helpful error message for truncated content
-        if (lastError?.includes('Truncated content')) {
+        if (lastError?.includes("Truncated content")) {
           return NextResponse.json(
             {
               error:
-                'Failed to get complete content from the page. This is usually a temporary issue.',
+                "Failed to get complete content from the page. This is usually a temporary issue.",
               details: lastError,
               suggestion:
-                'Please try again in a few moments. The server may be experiencing high load.',
+                "Please try again in a few moments. The server may be experiencing high load.",
               attempts: MAX_RETRIES + 1,
             },
-            { status: 500 }
+            { status: 500 },
           );
         }
 
         return NextResponse.json(
-          { error: lastError || 'Failed to scrape after multiple attempts' },
-          { status: lastStatus || 500 }
+          { error: lastError || "Failed to scrape after multiple attempts" },
+          { status: lastStatus || 500 },
         );
       } finally {
         // Always release the lock if we acquired one
@@ -315,14 +315,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (error) {
-    console.error('API Error:', error);
+    console.error("API Error:", error);
     // Cache statistics logged even on error
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   } finally {
     // Cache statistics tracked at the end of request
-    if (action === 'scrape') {
+    if (action === "scrape") {
       // Stats available via cacheService.getStats()
     }
   }

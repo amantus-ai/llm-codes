@@ -1,14 +1,14 @@
-import { NextRequest } from 'next/server';
-import { isValidDocumentationUrl } from '@/utils/url-utils';
-import { PROCESSING_CONFIG } from '@/constants';
-import { cacheService } from '@/lib/cache/redis-cache';
-import { http2Fetch } from '@/lib/http2-client';
-import { extractLinks } from '@/utils/content-processing';
-import { WorkerPool, getUrlPriority } from '@/utils/worker-pool';
-import { scrapeWithProgressiveTimeout, createCustomConfig } from '@/utils/progressive-timeout';
+import { NextRequest } from "next/server";
+import { isValidDocumentationUrl } from "@/utils/url-utils";
+import { PROCESSING_CONFIG } from "@/constants";
+import { cacheService } from "@/lib/cache/redis-cache";
+import { http2Fetch } from "@/lib/http2-client";
+import { extractLinks } from "@/utils/content-processing";
+import { WorkerPool, getUrlPriority } from "@/utils/worker-pool";
+import { scrapeWithProgressiveTimeout, createCustomConfig } from "@/utils/progressive-timeout";
 
 interface StreamMessage {
-  type: 'url_start' | 'url_complete' | 'url_error' | 'progress' | 'done' | 'stats';
+  type: "url_start" | "url_complete" | "url_error" | "progress" | "done" | "stats";
   url?: string;
   content?: string;
   error?: string;
@@ -31,9 +31,9 @@ export async function POST(request: NextRequest) {
     if (!FIRECRAWL_API_KEY) {
       return new Response(
         encoder.encode(
-          `data: ${JSON.stringify({ type: 'url_error', error: 'Server configuration error' })}\n\n`
+          `data: ${JSON.stringify({ type: "url_error", error: "Server configuration error" })}\n\n`,
         ),
-        { status: 500, headers: { 'Content-Type': 'text/event-stream' } }
+        { status: 500, headers: { "Content-Type": "text/event-stream" } },
       );
     }
 
@@ -47,9 +47,9 @@ export async function POST(request: NextRequest) {
     if (!urls || !Array.isArray(urls) || urls.length === 0) {
       return new Response(
         encoder.encode(
-          `data: ${JSON.stringify({ type: 'url_error', error: 'No URLs provided' })}\n\n`
+          `data: ${JSON.stringify({ type: "url_error", error: "No URLs provided" })}\n\n`,
         ),
-        { status: 400, headers: { 'Content-Type': 'text/event-stream' } }
+        { status: 400, headers: { "Content-Type": "text/event-stream" } },
       );
     }
 
@@ -58,9 +58,9 @@ export async function POST(request: NextRequest) {
       if (!isValidDocumentationUrl(url)) {
         return new Response(
           encoder.encode(
-            `data: ${JSON.stringify({ type: 'url_error', url, error: 'Invalid URL' })}\n\n`
+            `data: ${JSON.stringify({ type: "url_error", url, error: "Invalid URL" })}\n\n`,
           ),
-          { status: 400, headers: { 'Content-Type': 'text/event-stream' } }
+          { status: 400, headers: { "Content-Type": "text/event-stream" } },
         );
       }
     }
@@ -82,13 +82,13 @@ export async function POST(request: NextRequest) {
             onlyMainContent?: boolean;
             removeBase64Images?: boolean;
             skipTlsVerification?: boolean;
-          }
+          },
         ) => {
           const response = await http2Fetch(`https://api.firecrawl.dev/v1/scrape`, {
-            method: 'POST',
+            method: "POST",
             headers: {
               Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
               url,
@@ -113,13 +113,13 @@ export async function POST(request: NextRequest) {
             if (processedUrls.has(url)) return null;
             processedUrls.add(url);
 
-            controller.enqueue(sendMessage({ type: 'url_start', url }));
+            controller.enqueue(sendMessage({ type: "url_start", url }));
             controller.enqueue(
               sendMessage({
-                type: 'progress',
+                type: "progress",
                 progress: processedUrls.size,
                 total: Math.min(totalUrlsFound, enforcedMaxUrls),
-              })
+              }),
             );
 
             try {
@@ -128,11 +128,11 @@ export async function POST(request: NextRequest) {
               if (cached && cached.length >= 200) {
                 controller.enqueue(
                   sendMessage({
-                    type: 'url_complete',
+                    type: "url_complete",
                     url,
                     content: cached,
                     cached: true,
-                  })
+                  }),
                 );
                 results.push({ url, content: cached });
 
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
               const scrapeResult = await scrapeWithProgressiveTimeout(
                 scrapeFn,
                 url,
-                progressiveConfig
+                progressiveConfig,
               );
               const content = scrapeResult.data.markdown || scrapeResult.data.data?.markdown;
 
@@ -169,11 +169,11 @@ export async function POST(request: NextRequest) {
 
                 controller.enqueue(
                   sendMessage({
-                    type: 'url_complete',
+                    type: "url_complete",
                     url,
                     content,
                     cached: false,
-                  })
+                  }),
                 );
                 results.push({ url, content });
 
@@ -198,10 +198,10 @@ export async function POST(request: NextRequest) {
               } else {
                 controller.enqueue(
                   sendMessage({
-                    type: 'url_error',
+                    type: "url_error",
                     url,
-                    error: 'No content retrieved',
-                  })
+                    error: "No content retrieved",
+                  }),
                 );
                 await cacheService.firecrawlCircuitBreaker.recordFailure();
                 return null;
@@ -209,10 +209,10 @@ export async function POST(request: NextRequest) {
             } catch (error) {
               controller.enqueue(
                 sendMessage({
-                  type: 'url_error',
+                  type: "url_error",
                   url,
-                  error: error instanceof Error ? error.message : 'Unknown error',
-                })
+                  error: error instanceof Error ? error.message : "Unknown error",
+                }),
               );
               await cacheService.firecrawlCircuitBreaker.recordFailure();
               return null;
@@ -224,7 +224,7 @@ export async function POST(request: NextRequest) {
               // Progress is already sent in the worker function
             },
             onTaskError: (error) => {
-              console.error('Worker error:', error);
+              console.error("Worker error:", error);
             },
             onQueueEmpty: () => {
               // Queue is empty, we're done
@@ -232,16 +232,16 @@ export async function POST(request: NextRequest) {
               const stats = cacheService.getStats();
               controller.enqueue(
                 sendMessage({
-                  type: 'stats',
+                  type: "stats",
                   stats: stats.summary,
-                })
+                }),
               );
               // Stats already sent to client via SSE
 
-              controller.enqueue(sendMessage({ type: 'done' }));
+              controller.enqueue(sendMessage({ type: "done" }));
               controller.close();
             },
-          }
+          },
         );
 
         // Add initial URLs to the worker pool with priority
@@ -259,19 +259,19 @@ export async function POST(request: NextRequest) {
 
     return new Response(stream, {
       headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
       },
     });
   } catch (error) {
-    console.error('Stream API Error:', error);
+    console.error("Stream API Error:", error);
     // Cache statistics available via cacheService.getStats()
     return new Response(
       encoder.encode(
-        `data: ${JSON.stringify({ type: 'url_error', error: 'Internal server error' })}\n\n`
+        `data: ${JSON.stringify({ type: "url_error", error: "Internal server error" })}\n\n`,
       ),
-      { status: 500, headers: { 'Content-Type': 'text/event-stream' } }
+      { status: 500, headers: { "Content-Type": "text/event-stream" } },
     );
   }
 }

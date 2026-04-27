@@ -3,80 +3,80 @@ export const DOCUMENTATION_PATTERNS = [
   {
     pattern:
       /^https:\/\/(docs?|developer|dev|learn|help|api|guide|wiki|devcenter)\.[^\/]+\.[^\/]+\//,
-    name: 'Documentation Subdomains',
-    description: 'Matches documentation subdomains like docs.*, developer.*, learn.*, etc.',
-    examples: ['docs.python.org', 'developer.apple.com', 'learn.microsoft.com', 'docs.cypress.io'],
+    name: "Documentation Subdomains",
+    description: "Matches documentation subdomains like docs.*, developer.*, learn.*, etc.",
+    examples: ["docs.python.org", "developer.apple.com", "learn.microsoft.com", "docs.cypress.io"],
   },
   {
     pattern:
       /^https:\/\/([^\/]+\.)?[^\/]+\/(docs?|documentation|api[-_]?docs?|guides?|learn|help|stable|latest)(\/|$)/,
-    name: 'Documentation Paths',
-    description: 'Matches URLs with documentation paths like /docs, /guide, /learn, etc.',
-    examples: ['angular.io/docs', 'redis.io/docs', 'www.elastic.co/guide', 'react.dev/learn'],
+    name: "Documentation Paths",
+    description: "Matches URLs with documentation paths like /docs, /guide, /learn, etc.",
+    examples: ["angular.io/docs", "redis.io/docs", "www.elastic.co/guide", "react.dev/learn"],
   },
   {
     pattern: /^https:\/\/[^\/]+(js|lang|py|-doc)\.(org|com)(\/|$)/,
-    name: 'Programming Language Sites',
-    description: 'Matches programming language documentation sites',
-    examples: ['vuejs.org', 'kotlinlang.org', 'ruby-doc.org', 'expressjs.com'],
+    name: "Programming Language Sites",
+    description: "Matches programming language documentation sites",
+    examples: ["vuejs.org", "kotlinlang.org", "ruby-doc.org", "expressjs.com"],
   },
   {
     pattern: /^https:\/\/[^\/]+\.github\.io\//,
-    name: 'GitHub Pages',
-    description: 'Matches any GitHub Pages site (*.github.io)',
-    examples: ['username.github.io', 'project.github.io'],
+    name: "GitHub Pages",
+    description: "Matches any GitHub Pages site (*.github.io)",
+    examples: ["username.github.io", "project.github.io"],
   },
 ];
 
 // Explicit exceptions that don't match our patterns
 export const ALLOWED_EXCEPTIONS = {
   SWIFT_PACKAGE_INDEX: {
-    pattern: 'https://swiftpackageindex.com/',
-    name: 'Swift Package Index',
-    example: 'https://swiftpackageindex.com',
-    category: 'Programming Languages',
+    pattern: "https://swiftpackageindex.com/",
+    name: "Swift Package Index",
+    example: "https://swiftpackageindex.com",
+    category: "Programming Languages",
   },
   FLASK: {
-    pattern: 'https://flask.palletsprojects.com',
-    name: 'Flask',
-    example: 'https://flask.palletsprojects.com',
-    category: 'Web Frameworks',
+    pattern: "https://flask.palletsprojects.com",
+    name: "Flask",
+    example: "https://flask.palletsprojects.com",
+    category: "Web Frameworks",
   },
   MUI: {
-    pattern: 'https://mui.com/material-ui',
-    name: 'Material-UI',
-    example: 'https://mui.com/material-ui',
-    category: 'CSS Frameworks',
+    pattern: "https://mui.com/material-ui",
+    name: "Material-UI",
+    example: "https://mui.com/material-ui",
+    category: "CSS Frameworks",
   },
   PIP: {
-    pattern: 'https://pip.pypa.io/en/stable',
-    name: 'pip',
-    example: 'https://pip.pypa.io/en/stable',
-    category: 'Build Tools & Package Managers',
+    pattern: "https://pip.pypa.io/en/stable",
+    name: "pip",
+    example: "https://pip.pypa.io/en/stable",
+    category: "Build Tools & Package Managers",
   },
   PHP: {
-    pattern: 'https://www.php.net/docs.php',
-    name: 'PHP',
-    example: 'https://www.php.net/docs.php',
-    category: 'Programming Languages',
+    pattern: "https://www.php.net/docs.php",
+    name: "PHP",
+    example: "https://www.php.net/docs.php",
+    category: "Programming Languages",
   },
   TAURI: {
-    pattern: 'https://tauri.app/',
-    name: 'Tauri',
-    example: 'https://tauri.app/',
-    category: 'Desktop Frameworks',
+    pattern: "https://tauri.app/",
+    name: "Tauri",
+    example: "https://tauri.app/",
+    category: "Desktop Frameworks",
   },
 } as const;
 
 // Legacy support for specific domains that need special handling
 export const SPECIAL_DOMAINS = {
   APPLE: {
-    pattern: 'https://developer.apple.com',
-    name: 'Apple Developer',
+    pattern: "https://developer.apple.com",
+    name: "Apple Developer",
   },
   SWIFT_PACKAGE_INDEX: {
-    pattern: 'https://swiftpackageindex.com/',
-    name: 'Swift Package Index',
+    pattern: "https://swiftpackageindex.com/",
+    name: "Swift Package Index",
   },
 } as const;
 
@@ -117,7 +117,7 @@ export const UI_CONFIG = {
 
 // File configuration
 export const FILE_CONFIG = {
-  DEFAULT_FILENAME: 'documentation.md',
-  APPLE_DEFAULT_FILENAME: 'apple-docs.md',
-  SWIFT_PACKAGE_DEFAULT_FILENAME: 'swift-package-docs.md',
+  DEFAULT_FILENAME: "documentation.md",
+  APPLE_DEFAULT_FILENAME: "apple-docs.md",
+  SWIFT_PACKAGE_DEFAULT_FILENAME: "swift-package-docs.md",
 } as const;

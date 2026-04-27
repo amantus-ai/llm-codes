@@ -1,8 +1,8 @@
-import { useState, useCallback, useRef } from 'react';
-import { filterDocumentation } from '@/utils/documentation-filter';
+import { useState, useCallback, useRef } from "react";
+import { filterDocumentation } from "@/utils/documentation-filter";
 
 interface CrawlStatusMessage {
-  type: 'status' | 'progress' | 'url_complete' | 'error' | 'complete';
+  type: "status" | "progress" | "url_complete" | "error" | "complete";
   status?: string;
   progress?: number;
   total?: number;
@@ -37,7 +37,7 @@ export function useCrawl(options: UseCrawlOptions = {}) {
   const [results, setResults] = useState<ProcessingResult[]>([]);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<string>('idle');
+  const [status, setStatus] = useState<string>("idle");
   const [jobId, setJobId] = useState<string | null>(null);
   const [creditsUsed, setCreditsUsed] = useState(0);
 
@@ -49,14 +49,14 @@ export function useCrawl(options: UseCrawlOptions = {}) {
       setError(null);
       setProgress(0);
       setResults([]);
-      setStatus('starting');
+      setStatus("starting");
       setCreditsUsed(0);
 
       try {
         // Start the crawl job
-        const startResponse = await fetch('/api/crawl/start', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const startResponse = await fetch("/api/crawl/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ url, limit }),
         });
 
@@ -71,7 +71,7 @@ export function useCrawl(options: UseCrawlOptions = {}) {
         // Start monitoring the crawl status
         await monitorCrawlStatus(newJobId);
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+        const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
         setError(errorMessage);
         if (options.onError) {
           options.onError(errorMessage);
@@ -81,7 +81,7 @@ export function useCrawl(options: UseCrawlOptions = {}) {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [options]
+    [options],
   );
 
   const monitorCrawlStatus = useCallback(
@@ -100,29 +100,29 @@ export function useCrawl(options: UseCrawlOptions = {}) {
 
         const reader = response.body?.getReader();
         if (!reader) {
-          throw new Error('No response body');
+          throw new Error("No response body");
         }
 
         const decoder = new TextDecoder();
-        let buffer = '';
+        let buffer = "";
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
 
           for (const line of lines) {
-            if (line.startsWith('data: ')) {
+            if (line.startsWith("data: ")) {
               const jsonStr = line.slice(6);
               if (jsonStr.trim()) {
                 try {
                   const message: CrawlStatusMessage = JSON.parse(jsonStr);
 
                   switch (message.type) {
-                    case 'status':
+                    case "status":
                       if (message.status) {
                         setStatus(message.status);
                         if (options.onStatusChange) {
@@ -131,7 +131,7 @@ export function useCrawl(options: UseCrawlOptions = {}) {
                       }
                       break;
 
-                    case 'progress':
+                    case "progress":
                       if (message.progress !== undefined && message.total !== undefined) {
                         const progressPercent =
                           message.total > 0
@@ -149,7 +149,7 @@ export function useCrawl(options: UseCrawlOptions = {}) {
                       }
                       break;
 
-                    case 'url_complete':
+                    case "url_complete":
                       if (message.url && message.content) {
                         let filteredContent = message.content;
 
@@ -176,13 +176,13 @@ export function useCrawl(options: UseCrawlOptions = {}) {
                           options.onUrlComplete(
                             message.url,
                             filteredContent,
-                            message.cached || false
+                            message.cached || false,
                           );
                         }
                       }
                       break;
 
-                    case 'error':
+                    case "error":
                       if (message.error) {
                         setError(message.error);
                         if (options.onError) {
@@ -191,9 +191,12 @@ export function useCrawl(options: UseCrawlOptions = {}) {
                       }
                       break;
 
-                    case 'complete':
+                    case "complete":
                       setProgress(100);
-                      setStatus('completed');
+                      setStatus("completed");
+                      if (message.creditsUsed !== undefined) {
+                        setCreditsUsed(message.creditsUsed);
+                      }
                       // Ensure results are set before calling onComplete
                       setResults(collectedResults);
                       if (options.onComplete) {
@@ -202,7 +205,7 @@ export function useCrawl(options: UseCrawlOptions = {}) {
                       break;
                   }
                 } catch (e) {
-                  console.error('Error parsing stream message:', e);
+                  console.error("Error parsing stream message:", e);
                 }
               }
             }
@@ -210,14 +213,14 @@ export function useCrawl(options: UseCrawlOptions = {}) {
         }
       } catch (err) {
         if (err instanceof Error) {
-          if (err.name !== 'AbortError') {
+          if (err.name !== "AbortError") {
             setError(err.message);
             if (options.onError) {
               options.onError(err.message);
             }
           }
         } else {
-          const errorMessage = 'Unknown error occurred';
+          const errorMessage = "Unknown error occurred";
           setError(errorMessage);
           if (options.onError) {
             options.onError(errorMessage);
@@ -227,7 +230,7 @@ export function useCrawl(options: UseCrawlOptions = {}) {
         abortControllerRef.current = null;
       }
     },
-    [options]
+    [options],
   );
 
   const cancel = useCallback(() => {
@@ -239,7 +242,7 @@ export function useCrawl(options: UseCrawlOptions = {}) {
 
   const getResults = useCallback(async () => {
     if (!jobId) {
-      throw new Error('No job ID available');
+      throw new Error("No job ID available");
     }
 
     try {
@@ -252,7 +255,7 @@ export function useCrawl(options: UseCrawlOptions = {}) {
       const data = await response.json();
       return data;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
       setError(errorMessage);
       throw err;
     }
