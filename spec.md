@@ -860,14 +860,14 @@ for (let i = 0; i < urlsToProcess.length; i += BATCH_SIZE) {
 ### Local Development
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 # Visit http://localhost:3000
 
 # Run tests
-npm test
-npm run test:ui
-npm run test:coverage
+pnpm test
+pnpm run test:ui
+pnpm run test:coverage
 ```
 
 ### Environment Setup
@@ -917,10 +917,10 @@ describe("processUrlsWithDepth", () => {
 ### Running Tests
 
 ```bash
-npm test              # Run all tests
-npm run test:ui       # Interactive Vitest UI
-npm run test:coverage # Generate coverage report
-npm run type-check    # TypeScript validation
+pnpm test             # Run all tests
+pnpm run test:ui      # Interactive Vitest UI
+pnpm run test:coverage # Generate coverage report
+pnpm run type-check   # TypeScript validation
 ```
 
 ## Attribution

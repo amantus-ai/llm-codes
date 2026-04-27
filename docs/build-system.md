@@ -40,7 +40,7 @@ const nextConfig = {
 **Start Development Server**
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 - Uses Turbopack for fast Hot Module Replacement (HMR)
@@ -50,7 +50,7 @@ npm run dev
 **Build for Production**
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 - Creates optimized production bundle
@@ -60,39 +60,39 @@ npm run build
 **Start Production Server**
 
 ```bash
-npm start
+pnpm start
 ```
 
 - Serves the production build
-- Requires `npm run build` to be run first
+- Requires `pnpm run build` to be run first
 
 ### Quality Assurance Commands
 
 **TypeScript Type Checking**
 
 ```bash
-npm run type-check
+pnpm run type-check
 ```
 
-- Runs `tsc --noEmit` to check types without emitting files
+- Runs `tsgo --noEmit` to check types without emitting files
 - Configuration from `tsconfig.json`
 
 **Linting**
 
 ```bash
-npm run lint
+pnpm run lint
 ```
 
-- Uses ESLint with Next.js, TypeScript, and Prettier rules
+- Uses oxlint and oxfmt
 - Configuration in `.eslintrc.json` (lines 1-13)
 - Enforces code style and catches common issues
 
 **Testing**
 
 ```bash
-npm test          # Run all tests
-npm run test:ui   # Interactive test UI
-npm run test:coverage  # Generate coverage report
+pnpm test          # Run all tests
+pnpm run test:ui   # Interactive test UI
+pnpm run test:coverage  # Generate coverage report
 ```
 
 - Uses Vitest with React Testing Library
@@ -105,7 +105,7 @@ npm run test:coverage  # Generate coverage report
 
 **Node.js Requirements**
 
-- Minimum version: 20.0.0 (defined in `package.json` line 15-17)
+- Minimum version: 24.0.0 (defined in `package.json`)
 - Recommended: Use latest LTS version
 
 **Environment Variables**
@@ -148,13 +148,13 @@ git clone https://github.com/amantusai/llm-tech.git
 cd llm-tech
 
 # Install dependencies
-npm install
+pnpm install
 
 # Create .env.local file
 echo "FIRECRAWL_API_KEY=your_key_here" > .env.local
 
 # Start development
-npm run dev
+pnpm run dev
 ```
 
 ## Build Targets
@@ -206,7 +206,7 @@ npm run dev
 
 **TypeScript Errors**
 
-- Run `npm run type-check` to identify type issues
+- Run `pnpm run type-check` to identify type issues
 - Check `tsconfig.json` strict mode settings
 - Ensure all imports use correct paths
 

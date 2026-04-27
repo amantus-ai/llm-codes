@@ -27,7 +27,7 @@
     "dev": "next dev --turbo",
     "build": "next build",
     "start": "next start",
-    "lint": "npm run format:check && oxlint --deny-warnings --allow eslint/no-useless-escape --allow jest/no-conditional-expect --allow jest/require-to-throw-message --allow unicorn/prefer-string-starts-ends-with --allow vitest/require-mock-type-parameters --import-plugin --react-plugin --nextjs-plugin --vitest-plugin src",
+    "lint": "pnpm run format:check && oxlint --deny-warnings --allow eslint/no-useless-escape --allow jest/no-conditional-expect --allow jest/require-to-throw-message --allow unicorn/prefer-string-starts-ends-with --allow vitest/require-mock-type-parameters --import-plugin --react-plugin --nextjs-plugin --vitest-plugin src",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
@@ -73,6 +73,7 @@
     "vitest": "^4.1.5"
   },
   "engines": {
-    "node": ">=20.0.0"
-  }
+    "node": ">=24.0.0"
+  },
+  "packageManager": "pnpm@10.33.2"
 }

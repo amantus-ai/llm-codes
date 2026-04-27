@@ -6,17 +6,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Building and Running
 
-- `npm run dev` - Start development server with Turbopack (fast HMR)
-- `npm run build` - Build production bundle
-- `npm start` - Start production server
-- `npm run type-check` - Run TypeScript type checking
+- `pnpm run dev` - Start development server with Turbopack (fast HMR)
+- `pnpm run build` - Build production bundle
+- `pnpm start` - Start production server
+- `pnpm run type-check` - Run TypeScript type checking
 
 ### Testing and Quality
 
-- `npm test` - Run all tests with Vitest
-- `npm run test:ui` - Run tests with interactive UI
-- `npm run test:coverage` - Generate test coverage report
-- `npm run lint` - Run ESLint for code quality
+- `pnpm test` - Run all tests with Vitest
+- `pnpm run test:ui` - Run tests with interactive UI
+- `pnpm run test:coverage` - Generate test coverage report
+- `pnpm run lint` - Run lint and format checks
 
 ## Architecture Overview
 

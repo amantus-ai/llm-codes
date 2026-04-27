@@ -38,7 +38,7 @@ cd apple-docs-to-markdown
 2. Install dependencies:
 
 ```bash
-npm install
+pnpm install
 ```
 
 3. Create `.env.local`:
@@ -51,7 +51,7 @@ cp .env.local.example .env.local
 4. Run development server:
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 ### Coding Standards
@@ -67,7 +67,7 @@ npm run dev
 Run tests before submitting:
 
 ```bash
-npm test
+pnpm test
 ```
 
 ### Commit Messages

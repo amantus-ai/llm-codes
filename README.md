@@ -45,8 +45,8 @@ Experience the tool instantly without any setup required.
 
 ### Prerequisites
 
-- Node.js 20+
-- npm or yarn
+- Node.js 24+
+- pnpm 10+
 - [Firecrawl API key](https://firecrawl.dev)
 
 ### Installation
@@ -61,7 +61,7 @@ cd llm-codes
 2. Install dependencies:
 
 ```bash
-npm install
+pnpm install
 ```
 
 3. Create a `.env.local` file:
@@ -87,7 +87,7 @@ CACHE_ADMIN_KEY=your_secure_admin_key_here
 5. Run the development server:
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 6. Open [http://localhost:3000](http://localhost:3000)
@@ -294,16 +294,16 @@ llm-codes/
 
 ```bash
 # Run all tests
-npm test
+pnpm test
 
 # Run tests with UI
-npm run test:ui
+pnpm run test:ui
 
 # Run tests with coverage
-npm run test:coverage
+pnpm run test:coverage
 
 # Type checking
-npm run type-check
+pnpm run type-check
 ```
 
 Tests cover:

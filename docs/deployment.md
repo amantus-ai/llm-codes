@@ -9,30 +9,30 @@ llm-codes is a Next.js 15 application optimized for serverless deployment with b
 The application uses Next.js App Router with server-side rendering and API routes. Key deployment considerations include environment variables for Firecrawl API access, optional Redis caching, and function timeout configurations for long-running scraping operations.
 
 **Build Output** - Production bundle in .next/ directory, static assets in public/
-**Key Dependencies** - Node.js 20+, Firecrawl API key, optional Upstash Redis
+**Key Dependencies** - Node.js 24+, pnpm 10+, Firecrawl API key, optional Upstash Redis
 **Function Limits** - 60-second timeout for scraping API, configurable in vercel.json
 
 ## Package Types
 
 **Vercel Deployment** - Zero-config deployment with vercel.json (lines 3-5) function timeout settings
 **Netlify Deploy** - Standard Next.js adapter, requires manual function timeout configuration
-**Node.js Server** - Standalone server via `npm start` after build
-**Docker Container** - Buildable with standard Node.js 20 Alpine image
+**Node.js Server** - Standalone server via `pnpm start` after build
+**Docker Container** - Buildable with standard Node.js 24 Alpine image
 
 ### Build Commands
 
 ```bash
 # Development build with Turbopack
-npm run dev
+pnpm run dev
 
 # Production build
-npm run build
+pnpm run build
 
 # Start production server
-npm start
+pnpm start
 
 # Type checking before deploy
-npm run type-check
+pnpm run type-check
 ```
 
 ## Platform Deployment
@@ -45,15 +45,15 @@ npm run type-check
 
 ```bash
 # Deploy with Vercel CLI
-npx vercel
+pnpm dlx vercel
 
 # Production deployment
-npx vercel --prod
+pnpm dlx vercel --prod
 ```
 
 ### Netlify
 
-**Build Settings** - Build command: `npm run build`, publish: `.next`
+**Build Settings** - Build command: `pnpm run build`, publish: `.next`
 **Functions** - Requires netlify.toml for API timeout configuration
 **Environment** - Add FIRECRAWL_API_KEY in site settings
 
@@ -71,30 +71,31 @@ npx vercel --prod
 
 ### Node.js Server
 
-**Requirements** - Node.js 20+ from package.json (line 16)
+**Requirements** - Node.js 24+ from package.json
 **Port Config** - Uses PORT env variable or 3000 default
 **Process Manager** - Recommend PM2 for production
 
 ```bash
 # Build and start
-npm run build
-PORT=3000 npm start
+pnpm run build
+PORT=3000 pnpm start
 
 # With PM2
-pm2 start npm --name "llm-codes" -- start
+pm2 start pnpm --name "llm-codes" -- start
 ```
 
 ### Docker Deployment
 
 ```dockerfile
-FROM node:20-alpine
+FROM node:24-alpine
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
+RUN corepack enable
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --prod --frozen-lockfile
 COPY . .
-RUN npm run build
+RUN pnpm run build
 EXPOSE 3000
-CMD ["npm", "start"]
+CMD ["pnpm", "start"]
 ```
 
 ## Environment Configuration
@@ -156,7 +157,7 @@ VERCEL_URL=https://your-deployment.vercel.app
 vercel --env FIRECRAWL_API_KEY=xxx --prod
 
 # Build for specific platform
-NEXT_PUBLIC_DEPLOYMENT_TARGET=vercel npm run build
+NEXT_PUBLIC_DEPLOYMENT_TARGET=vercel pnpm run build
 
 # Health check endpoint
 curl https://your-app.vercel.app/api/scrape \

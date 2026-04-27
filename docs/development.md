@@ -10,8 +10,8 @@ This guide covers the development environment setup, coding conventions, impleme
 
 **Prerequisites**:
 
-- Node.js 20.0+ (enforced in `package.json` lines 15-17)
-- npm or pnpm package manager
+- Node.js 24.0+ (enforced in `package.json`)
+- pnpm 10+
 - Firecrawl API key (required for scraping functionality)
 - Upstash Redis credentials (optional, for production caching)
 
@@ -23,7 +23,7 @@ git clone https://github.com/amantusai/llm-tech.git
 cd llm-tech
 
 # Install dependencies
-npm install
+pnpm install
 
 # Set up environment variables
 cp .env.example .env.local
@@ -32,14 +32,14 @@ cp .env.example .env.local
 
 **Development Scripts** (`package.json` lines 5-13):
 
-- `npm run dev` - Start dev server with Turbopack (fast HMR)
-- `npm run build` - Build production bundle
-- `npm start` - Run production server
-- `npm run lint` - Run ESLint checks
-- `npm test` - Run all tests
-- `npm run test:ui` - Interactive test UI
-- `npm run test:coverage` - Generate coverage report
-- `npm run type-check` - TypeScript validation
+- `pnpm run dev` - Start dev server with Turbopack (fast HMR)
+- `pnpm run build` - Build production bundle
+- `pnpm start` - Run production server
+- `pnpm run lint` - Run lint and format checks
+- `pnpm test` - Run all tests
+- `pnpm run test:ui` - Interactive test UI
+- `pnpm run test:coverage` - Generate coverage report
+- `pnpm run type-check` - TypeScript validation
 
 ## Code Style
 
@@ -384,31 +384,31 @@ async clear(): Promise<void> {
 **Full Test Suite**:
 
 ```bash
-npm test
+pnpm test
 ```
 
 **Watch Mode**:
 
 ```bash
-npm test -- --watch
+pnpm test -- --watch
 ```
 
 **Coverage Report**:
 
 ```bash
-npm run test:coverage
+pnpm run test:coverage
 ```
 
 **Specific Test File**:
 
 ```bash
-npm test content-processing
+pnpm test content-processing
 ```
 
 **Debug Tests**:
 
 ```bash
-npm run test:ui  # Opens Vitest UI for debugging
+pnpm run test:ui  # Opens Vitest UI for debugging
 ```
 
 ## Reference

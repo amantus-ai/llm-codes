@@ -33,9 +33,9 @@ Testing approach: Unit tests for utilities and components, integration tests for
 **Basic Commands**:
 
 ```bash
-npm test              # Run all tests in watch mode
-npm run test:ui       # Interactive UI mode for debugging
-npm run test:coverage # Generate coverage report
+pnpm test             # Run all tests in watch mode
+pnpm run test:ui      # Interactive UI mode for debugging
+pnpm run test:coverage # Generate coverage report
 ```
 
 **Test Environment Setup** - Global configuration in **src/test/setup.ts**:
@@ -118,7 +118,7 @@ for (let i = 0; i < 5; i++) {
 **Coverage Configuration**:
 
 - Target: 95%+ coverage maintained
-- Coverage reports: Generated with `npm run test:coverage`
+- Coverage reports: Generated with `pnpm run test:coverage`
 - Output location: **coverage/** directory
 
 **Common Test Utilities**:
@@ -130,6 +130,6 @@ for (let i = 0; i < 5; i++) {
 
 **Debugging Tests**:
 
-- Use `npm run test:ui` for interactive debugging
+- Use `pnpm run test:ui` for interactive debugging
 - Add `.only` to focus on specific tests: `it.only('test name', ...)`
 - Console logs appear in test output for debugging
