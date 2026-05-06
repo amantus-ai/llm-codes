@@ -2,7 +2,13 @@ import { NextRequest } from "next/server";
 import { isValidDocumentationUrl } from "@/utils/url-utils";
 import { PROCESSING_CONFIG } from "@/constants";
 import { cacheService } from "@/lib/cache/redis-cache";
-import { http2Fetch } from "@/lib/http2-client";
+import {
+  getIncompleteContentReason,
+  isCacheableFirecrawlContent,
+  readFirecrawlMarkdown,
+  scrapeFirecrawlUrl,
+  type FirecrawlScrapeOptions,
+} from "@/lib/firecrawl";
 import { extractLinks } from "@/utils/content-processing";
 import { WorkerPool, getUrlPriority } from "@/utils/worker-pool";
 import { scrapeWithProgressiveTimeout, createCustomConfig } from "@/utils/progressive-timeout";
@@ -72,40 +78,8 @@ export async function POST(request: NextRequest) {
         const results: Array<{ url: string; content: string }> = [];
         let totalUrlsFound = urls.length;
 
-        // Create scrape function
-        const scrapeFn = async (
-          url: string,
-          options: {
-            formats?: string[];
-            waitFor?: number;
-            timeout?: number;
-            onlyMainContent?: boolean;
-            removeBase64Images?: boolean;
-            skipTlsVerification?: boolean;
-          },
-        ) => {
-          const response = await http2Fetch(`https://api.firecrawl.dev/v1/scrape`, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              url,
-              ...options,
-              onlyMainContent: true,
-              waitFor: options.waitFor || PROCESSING_CONFIG.FIRECRAWL_WAIT_TIME,
-              timeout: options.timeout || PROCESSING_CONFIG.FIRECRAWL_TIMEOUT,
-            }),
-            signal: AbortSignal.timeout(PROCESSING_CONFIG.FETCH_TIMEOUT),
-          });
-
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-
-          return await response.json();
-        };
+        const scrapeFn = (url: string, options: FirecrawlScrapeOptions) =>
+          scrapeFirecrawlUrl(FIRECRAWL_API_KEY, url, options);
 
         // Create the worker pool for processing URLs
         const workerPool = new WorkerPool(
@@ -159,11 +133,11 @@ export async function POST(request: NextRequest) {
                 url,
                 progressiveConfig,
               );
-              const content = scrapeResult.data.markdown || scrapeResult.data.data?.markdown;
+              const content = readFirecrawlMarkdown(scrapeResult.data);
+              const incompleteReason = getIncompleteContentReason(content);
 
-              if (content) {
-                // Cache the content
-                if (content.length >= 200) {
+              if (content && !incompleteReason) {
+                if (isCacheableFirecrawlContent(content)) {
                   await cacheService.set(url, content);
                 }
 
@@ -200,7 +174,9 @@ export async function POST(request: NextRequest) {
                   sendMessage({
                     type: "url_error",
                     url,
-                    error: "No content retrieved",
+                    error: incompleteReason
+                      ? `Incomplete content: ${incompleteReason}`
+                      : "No content retrieved",
                   }),
                 );
                 await cacheService.firecrawlCircuitBreaker.recordFailure();

@@ -27,12 +27,10 @@ File organization follows Next.js App Router conventions with `src/app` for rout
 **Scraping Endpoints**
 
 - `src/app/api/scrape/route.ts` - Main scraping endpoint with caching, retries, and Firecrawl integration
-- `src/app/api/scrape/batch/route.ts` - Batch URL processing for multi-page documentation
+- `src/app/api/scrape/stream/route.ts` - SSE URL processing for multi-page documentation
+- `src/app/api/crawl/start/route.ts` - Starts Firecrawl crawl jobs
+- `src/app/api/crawl/[jobId]/status/route.ts` - Streams Firecrawl crawl status and page results
 - `src/app/api/cache/stats/route.ts` - Cache statistics endpoint for monitoring
-
-**API Mocks**
-
-- `src/app/api/scrape/__mocks__/cache.ts` - Mock cache implementation for testing
 
 ## Utilities
 
@@ -40,7 +38,6 @@ File organization follows Next.js App Router conventions with `src/app` for rout
 
 - `src/utils/content-processing.ts` - Multi-stage filtering pipeline for cleaning scraped content
 - `src/utils/documentation-filter.ts` - Comprehensive content filters (navigation, ads, code blocks)
-- `src/utils/scraping.ts` - Parallel URL processing with concurrency control
 - `src/utils/url-utils.ts` - URL validation, normalization, and domain whitelisting
 - `src/utils/file-utils.ts` - File download handling with proper naming
 - `src/utils/notifications.ts` - Browser notification API wrapper
@@ -48,7 +45,8 @@ File organization follows Next.js App Router conventions with `src/app` for rout
 **Libraries**
 
 - `src/lib/utils.ts` - Utility functions for className merging
-- `src/lib/http2-client.ts` - HTTP/2 client wrapper (currently unused)
+- `src/lib/firecrawl.ts` - Shared Firecrawl client, error mapping, and content validation helpers
+- `src/lib/http2-client.ts` - HTTP/2 client wrapper used by the Firecrawl client
 - `src/lib/cache/redis-cache.ts` - Redis cache implementation with TTL support
 
 **Constants**

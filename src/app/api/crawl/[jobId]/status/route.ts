@@ -1,9 +1,7 @@
 import { NextRequest } from "next/server";
 import { cacheService } from "@/lib/cache/redis-cache";
-import { http2Fetch } from "@/lib/http2-client";
 import { PROCESSING_CONFIG } from "@/constants";
-
-const FIRECRAWL_API_URL = "https://api.firecrawl.dev/v1";
+import { FIRECRAWL_API_URL, FirecrawlRequestError, getFirecrawlCrawlStatus } from "@/lib/firecrawl";
 
 interface CrawlStatusMessage {
   type: "status" | "progress" | "url_complete" | "error" | "complete";
@@ -75,16 +73,8 @@ export async function GET(
             // Check crawl status with Firecrawl
             const statusUrl = jobMetadata.next || `${FIRECRAWL_API_URL}/crawl/${jobId}`;
 
-            const response = await http2Fetch(statusUrl, {
-              method: "GET",
-              headers: {
-                Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-              },
-              signal: AbortSignal.timeout(30000), // 30s timeout for status check
-            });
-
-            if (response.ok) {
-              const data = await response.json();
+            try {
+              const data = await getFirecrawlCrawlStatus(FIRECRAWL_API_KEY, statusUrl);
 
               // Reset error counter on successful response
               consecutiveErrors = 0;
@@ -184,13 +174,14 @@ export async function GET(
                 data.completed && data.total ? data.completed / data.total : 0;
               const isNearComplete = completionRatio >= 0.95; // 95% complete
               const isMostlyComplete = completionRatio >= 0.8; // 80% complete
+              const completedPages = data.completed || 0;
 
               // Calculate progress rate (pages per millisecond)
               const progressRate =
-                data.completed && timeSinceLastProgress > 0
-                  ? (data.completed - lastCompletedCount) / timeSinceLastProgress
+                completedPages && timeSinceLastProgress > 0
+                  ? (completedPages - lastCompletedCount) / timeSinceLastProgress
                   : 0;
-              const isMakingSlowProgress = progressRate < minProgressRate && data.completed > 10;
+              const isMakingSlowProgress = progressRate < minProgressRate && completedPages > 10;
 
               // Check if we've been running too long overall
               const totalRunTime = Date.now() - startTime;
@@ -261,13 +252,17 @@ export async function GET(
               if (data.next) {
                 jobMetadata.next = data.next;
               }
-            } else {
+            } catch (error) {
+              if (!(error instanceof FirecrawlRequestError)) {
+                throw error;
+              }
+
               // Handle error response
-              console.error(`Failed to get crawl status for job ${jobId}: ${response.status}`);
+              console.error(`Failed to get crawl status for job ${jobId}: ${error.status}`);
 
               // For 502/503/504 errors, these are usually temporary gateway issues
               // Don't send error to client, just log and retry
-              if ([502, 503, 504].includes(response.status)) {
+              if ([502, 503, 504].includes(error.status)) {
                 consecutiveErrors++;
 
                 // If we have too many consecutive errors, stop trying
@@ -285,7 +280,7 @@ export async function GET(
                 controller.enqueue(
                   sendMessage({
                     type: "error",
-                    error: `Failed to get crawl status: ${response.status}`,
+                    error: `Failed to get crawl status: ${error.status}`,
                   }),
                 );
               }

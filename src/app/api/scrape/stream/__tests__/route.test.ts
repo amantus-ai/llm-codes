@@ -36,9 +36,7 @@ vi.mock("@/utils/progressive-timeout", () => ({
   }),
 }));
 
-const describeFn = process.env.CI ? describe.skip : describe;
-
-describeFn("POST /api/scrape/stream", () => {
+describe("POST /api/scrape/stream", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     process.env.FIRECRAWL_API_KEY = "test-api-key";

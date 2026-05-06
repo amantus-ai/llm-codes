@@ -17,7 +17,8 @@ llm.codes is a Next.js application that converts JavaScript-heavy documentation 
 **API Layer** - Next.js API routes in src/app/api/
 
 - Single URL Scraping: src/app/api/scrape/route.ts (lines 9-164)
-- Batch Processing: src/app/api/scrape/batch/route.ts (lines 23-180)
+- Streaming Scraping: src/app/api/scrape/stream/route.ts
+- Firecrawl Crawl Mode: src/app/api/crawl/start/route.ts and src/app/api/crawl/[jobId]/status/route.ts
 - Cache Statistics: src/app/api/cache/stats/route.ts
 
 **Caching Layer** - Dual-layer caching in src/lib/cache/redis-cache.ts
@@ -34,6 +35,7 @@ llm.codes is a Next.js application that converts JavaScript-heavy documentation 
 
 **Infrastructure** - Performance optimizations in src/lib/
 
+- Firecrawl Client: src/lib/firecrawl.ts owns Firecrawl request shapes, error mapping, and scrape payload validation
 - HTTP/2 Client: src/lib/http2-client.ts uses Undici agent with connection pooling
 - Constants: src/constants.ts defines all configuration (lines 1-477)
 
@@ -43,7 +45,9 @@ llm.codes is a Next.js application that converts JavaScript-heavy documentation 
 
 - src/app/page.tsx - Main React component handling user interaction, progress tracking, file downloads
 - src/app/api/scrape/route.ts - Primary API endpoint with retry logic (lines 56-123), cache checking (lines 31-46)
-- src/app/api/scrape/batch/route.ts - Batch endpoint processing up to 20 URLs concurrently
+- src/app/api/scrape/stream/route.ts - SSE endpoint for queued multi-URL scraping
+- src/app/api/crawl/start/route.ts - Starts Firecrawl crawl jobs
+- src/app/api/crawl/[jobId]/status/route.ts - Polls Firecrawl crawl jobs and streams page results
 
 **Processing Core**
 
@@ -54,6 +58,7 @@ llm.codes is a Next.js application that converts JavaScript-heavy documentation 
 **Infrastructure Components**
 
 - src/lib/cache/redis-cache.ts - RedisCache class with stats tracking, compression, dual-layer caching
+- src/lib/firecrawl.ts - Shared Firecrawl adapter for scrape/crawl/status calls
 - src/lib/http2-client.ts - HTTP/2 connection with 10 pipelined requests, 2 connections per origin
 - src/constants.ts - Central configuration for domains, processing limits, retry strategies
 
@@ -80,12 +85,12 @@ POST /api/scrape → Check L1/L2 cache (lines 31-46)
 → Response validation → Cache storage → Return markdown
 ```
 
-**3. Batch Processing Flow** (src/app/api/scrape/batch/route.ts)
+**3. Multi-URL Processing Flow** (src/app/page.tsx and src/app/api/scrape/stream/route.ts)
 
 ```typescript
-Frontend extracts links → Batches of 20 URLs → POST /api/scrape/batch
-→ Parallel processing with Promise.all (line 165)
-→ Individual URL caching → Aggregate results
+Root URL scrape → Shared link extraction → Bounded queue/concurrency
+→ Individual /api/scrape calls or SSE stream route
+→ Cache each page → Aggregate results
 ```
 
 **4. Content Processing Pipeline** (src/utils/content-processing.ts + documentation-filter.ts)

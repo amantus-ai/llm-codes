@@ -29,9 +29,13 @@
     "start": "next start",
     "lint": "pnpm run format:check && oxlint --deny-warnings --allow eslint/no-useless-escape --allow jest/no-conditional-expect --allow jest/require-to-throw-message --allow unicorn/prefer-string-starts-ends-with --allow vitest/no-conditional-expect --allow vitest/require-mock-type-parameters --import-plugin --react-plugin --nextjs-plugin --vitest-plugin src",
     "test": "vitest",
+    "test:run": "vitest run",
+    "test:api": "vitest run src/app/api src/lib/__tests__/firecrawl.test.ts src/lib/__tests__/http2-client.test.ts",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "type-check": "tsgo --noEmit",
+    "verify": "pnpm run lint && pnpm run type-check && pnpm run test:run && pnpm run test:coverage && pnpm run build",
+    "verify:firecrawl:live": "node scripts/verify-firecrawl.mjs",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check ."
   },

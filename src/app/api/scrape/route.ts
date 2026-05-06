@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isValidDocumentationUrl } from "@/utils/url-utils";
+import { getSupportedDomainsText, isValidDocumentationUrl } from "@/utils/url-utils";
 import { PROCESSING_CONFIG } from "@/constants";
 import { cacheService } from "@/lib/cache/redis-cache";
-import { http2Fetch } from "@/lib/http2-client";
-
-const FIRECRAWL_API_URL = "https://api.firecrawl.dev/v1";
+import {
+  FirecrawlRequestError,
+  getIncompleteContentReason,
+  isCacheableFirecrawlContent,
+  readFirecrawlMarkdown,
+  scrapeFirecrawlUrl,
+} from "@/lib/firecrawl";
 
 export async function POST(request: NextRequest) {
   let action: string | undefined;
@@ -23,8 +27,7 @@ export async function POST(request: NextRequest) {
     if (!isValidDocumentationUrl(url)) {
       return NextResponse.json(
         {
-          error:
-            "Invalid URL. Must be from developer.apple.com, swiftpackageindex.com, or *.github.io",
+          error: `Invalid URL. Must be from a supported documentation site. ${getSupportedDomainsText()}.`,
         },
         { status: 400 },
       );
@@ -34,9 +37,7 @@ export async function POST(request: NextRequest) {
       // Check cache first
       const cached = await cacheService.get(url);
       if (cached) {
-        // Validate cached content isn't truncated
-        if (cached.length < 200 && cached.trim().startsWith("[Skip Navigation]")) {
-          // Remove invalid cached entry
+        if (getIncompleteContentReason(cached)) {
           await cacheService.delete(url);
           console.warn(`Removed truncated cached content for ${url} (${cached.length} chars)`);
         } else {
@@ -94,7 +95,6 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // Retry configuration from constants
         const { MAX_RETRIES, INITIAL_RETRY_DELAY, MAX_RETRY_DELAY, RETRY_STATUS_CODES } =
           PROCESSING_CONFIG;
 
@@ -113,102 +113,24 @@ export async function POST(request: NextRequest) {
           }
 
           try {
-            const response = await http2Fetch(`${FIRECRAWL_API_URL}/scrape`, {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                url,
-                formats: ["markdown"],
-                onlyMainContent: true,
-                waitFor: PROCESSING_CONFIG.FIRECRAWL_WAIT_TIME,
-                timeout: PROCESSING_CONFIG.FIRECRAWL_TIMEOUT,
-                headers: {
-                  "User-Agent": "Mozilla/5.0 (compatible; Documentation-Scraper/1.0)",
-                },
-              }),
-              // Add fetch-level timeout (90s to give Firecrawl time to complete)
-              signal: AbortSignal.timeout(PROCESSING_CONFIG.FETCH_TIMEOUT),
+            const data = await scrapeFirecrawlUrl(FIRECRAWL_API_KEY, url, {
+              formats: ["markdown"],
+              onlyMainContent: true,
+              waitFor: PROCESSING_CONFIG.FIRECRAWL_WAIT_TIME,
+              timeout: PROCESSING_CONFIG.FIRECRAWL_TIMEOUT,
             });
 
-            lastStatus = response.status;
+            const markdown = readFirecrawlMarkdown(data);
+            const incompleteReason = getIncompleteContentReason(markdown);
 
-            if (response.ok) {
-              // Success! Process the response
-              const data = await response.json();
+            if (incompleteReason) {
+              lastError = `Truncated content detected: ${incompleteReason}`;
+              console.error(`Received suspicious content for ${url}: ${incompleteReason}`);
+              console.error(`Attempt ${attempt + 1}/${MAX_RETRIES + 1}`);
+              continue;
+            }
 
-              // Log the response structure for debugging (using console.error for production builds)
-              if (!data.data?.markdown) {
-                console.error(`Firecrawl response for ${url}:`, {
-                  success: data.success,
-                  hasData: !!data.data,
-                  hasMarkdown: !!data.data?.markdown,
-                  markdownLength: data.data?.markdown?.length || 0,
-                  dataKeys: data.data ? Object.keys(data.data) : [],
-                });
-              }
-
-              if (data.success && data.data && typeof data.data.markdown === "string") {
-                const markdown = data.data.markdown;
-
-                // Detect various types of truncated/incomplete content
-                const contentLength = markdown.length;
-                const trimmedContent = markdown.trim();
-
-                // Check for known truncated patterns
-                const isTruncated =
-                  // Only navigation link (exactly 82 chars is the common case)
-                  (contentLength === 82 && trimmedContent.startsWith("[Skip Navigation]")) ||
-                  // Very short content that's likely incomplete
-                  (contentLength < 200 &&
-                    (trimmedContent.startsWith("[Skip Navigation]") ||
-                      trimmedContent === "Skip Navigation" ||
-                      trimmedContent.endsWith("...") ||
-                      trimmedContent.includes("Loading") ||
-                      trimmedContent.includes("Please wait"))) ||
-                  // No actual content headers or paragraphs
-                  (!trimmedContent.includes("#") && contentLength < 500);
-
-                if (isTruncated) {
-                  const warningMsg = `Received suspicious/truncated content for ${url}: ${contentLength} chars`;
-                  console.error(warningMsg);
-                  console.error(`First 100 chars: ${trimmedContent.substring(0, 100)}`);
-                  console.error(`Attempt ${attempt + 1}/${MAX_RETRIES + 1}`);
-
-                  lastError = `Truncated content detected (${contentLength} chars)`;
-
-                  // Don't cache truncated content, continue retrying
-                  continue;
-                }
-
-                // Only cache valid content (at least 200 chars)
-                if (contentLength >= 200) {
-                  await cacheService.set(url, markdown);
-                } else {
-                  console.warn(
-                    `Content for ${url} is short (${contentLength} chars) but proceeding`,
-                  );
-                }
-
-                // Record success in circuit breaker and stats
-                await cacheService.firecrawlCircuitBreaker.recordSuccess();
-                cacheService.incrementFirecrawlFetches();
-
-                // Success logged via circuit breaker and stats
-
-                return NextResponse.json({
-                  success: true,
-                  data: { markdown },
-                  cached: false,
-                  retriesUsed: attempt,
-                  contentLength, // Include length in response for debugging
-                  codeBlocksOnly, // Pass through the parameter
-                });
-              }
-
-              // API returned success but no valid data
+            if (!markdown) {
               lastError =
                 data.error ||
                 (!data.success
@@ -216,59 +138,40 @@ export async function POST(request: NextRequest) {
                   : !data.data
                     ? "No data object in response"
                     : "No markdown content in response");
-
-              // Don't retry for data structure issues
               break;
             }
 
-            // Handle error response
-            let errorMessage = `Firecrawl API error (${response.status})`;
-
-            try {
-              const errorText = await response.text();
-              if (errorText) {
-                try {
-                  const errorData = JSON.parse(errorText);
-                  errorMessage = errorData.error || errorData.message || errorText;
-                } catch {
-                  // If not JSON, use the raw text
-                  errorMessage = `Firecrawl API error: ${errorText}`;
-                }
-              }
-            } catch {
-              // If reading response fails, stick with default message
+            if (isCacheableFirecrawlContent(markdown)) {
+              await cacheService.set(url, markdown);
+            } else {
+              console.warn(`Content for ${url} is short (${markdown.length} chars) but proceeding`);
             }
 
-            // Add helpful context based on status code
-            if (response.status === 429) {
-              errorMessage = "Rate limit exceeded. Please try again in a few moments.";
-            } else if (response.status === 403) {
-              errorMessage = "Access forbidden. The API key might be invalid.";
-            } else if (response.status === 500) {
-              errorMessage = "Firecrawl server error. Please try again later.";
-            } else if (response.status === 502) {
-              errorMessage = "Server temporarily unavailable. Please try again.";
-            } else if (response.status === 503) {
-              errorMessage = "Service unavailable. Please try again.";
-            } else if (response.status === 504) {
-              errorMessage = "Gateway timeout. Please try again.";
-            } else if (response.status === 404) {
-              errorMessage = "Page not found. Please check the URL.";
-            }
+            await cacheService.firecrawlCircuitBreaker.recordSuccess();
+            cacheService.incrementFirecrawlFetches();
 
-            lastError = errorMessage;
-
-            // Check if we should retry
-            if (!RETRY_STATUS_CODES.includes(response.status) || attempt === MAX_RETRIES) {
-              // Record failure in circuit breaker for server errors
-              if (RETRY_STATUS_CODES.includes(response.status)) {
-                await cacheService.firecrawlCircuitBreaker.recordFailure();
-              }
-              // Don't retry for non-retryable errors or if we've exhausted retries
-              return NextResponse.json({ error: errorMessage }, { status: response.status });
-            }
+            return NextResponse.json({
+              success: true,
+              data: { markdown },
+              cached: false,
+              retriesUsed: attempt,
+              contentLength: markdown.length,
+              codeBlocksOnly,
+            });
           } catch (error) {
-            // Network or other error
+            if (error instanceof FirecrawlRequestError) {
+              lastError = error.message;
+              lastStatus = error.status;
+
+              if (!RETRY_STATUS_CODES.includes(error.status) || attempt === MAX_RETRIES) {
+                if (RETRY_STATUS_CODES.includes(error.status)) {
+                  await cacheService.firecrawlCircuitBreaker.recordFailure();
+                }
+                return NextResponse.json({ error: error.message }, { status: error.status });
+              }
+              continue;
+            }
+
             lastError = error instanceof Error ? error.message : "Unknown error occurred";
             lastStatus = 500;
 

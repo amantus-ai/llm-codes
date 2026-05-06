@@ -19,9 +19,11 @@ Testing approach: Unit tests for utilities and components, integration tests for
 
 **Integration Tests** - API routes with mocked external dependencies
 
-- Main scrape endpoint: **src/app/api/scrape/**tests**/route.test.ts** (303 lines)
-- Batch processing: **src/app/api/scrape/batch/**tests**/route.test.ts**
-- Redis cache: **src/lib/cache/**tests**/redis-cache.test.ts**
+- Main scrape endpoint: `src/app/api/scrape/__tests__/route.test.ts`
+- Streaming scrape endpoint: `src/app/api/scrape/stream/__tests__/route.test.ts`
+- Crawl endpoints: `src/app/api/crawl/**/__tests__/route.test.ts`
+- Firecrawl client: `src/lib/__tests__/firecrawl.test.ts`
+- Redis cache: `src/lib/cache/__tests__/redis-cache.test.ts`
 
 **Component Tests** - React components using Testing Library (when present)
 
@@ -33,10 +35,18 @@ Testing approach: Unit tests for utilities and components, integration tests for
 **Basic Commands**:
 
 ```bash
-pnpm test             # Run all tests in watch mode
-pnpm run test:ui      # Interactive UI mode for debugging
-pnpm run test:coverage # Generate coverage report
+pnpm test                       # Run tests in watch mode
+pnpm run test:run               # Run all tests once, no browser
+pnpm run test:api               # Run Firecrawl/API route tests once
+pnpm run test:coverage          # Generate coverage report
+pnpm run verify                 # Full local gate: lint, types, tests, coverage, build
+pnpm run verify:firecrawl:live  # Optional live Firecrawl smoke, requires FIRECRAWL_API_KEY
 ```
+
+`verify:firecrawl:live` starts the production Next server locally, posts to `/api/scrape`,
+checks that the root scrape returns meaningful markdown, verifies follow-up link discovery, and
+scrapes `/llms.txt` when discovered. It is the CLI replacement for manually opening the browser to
+prove Firecrawl processing still works.
 
 **Test Environment Setup** - Global configuration in **src/test/setup.ts**:
 
