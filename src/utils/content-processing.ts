@@ -5,6 +5,7 @@ import {
   filterAvailabilityStrings as filterAvailabilityBase,
   deduplicateMarkdown as deduplicateBase,
 } from "./documentation-filter";
+import { normalizeUrl } from "./url-utils";
 
 export function is404Page(content: string): boolean {
   return is404PageFromFilter(content);
@@ -41,94 +42,175 @@ export function deduplicateMarkdown(markdown: string, deduplicateContent: boolea
 }
 
 export function extractLinks(markdown: string, baseUrl: string): string[] {
-  const links = new Set<string>();
   const baseUrlObj = new URL(baseUrl);
   const isAppleDocs = baseUrlObj.hostname === "developer.apple.com";
+  const potentialLinks: string[] = [];
 
-  // Extract URLs from markdown links: [text](url)
-  // Handle URLs with parentheses by matching balanced parentheses
-  const markdownLinkRegex = /\[([^\]]+)\]\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g;
-  let match;
-  while ((match = markdownLinkRegex.exec(markdown)) !== null) {
-    const url = match[2];
-    if (url.startsWith("http://") || url.startsWith("https://")) {
-      links.add(url);
+  const patterns = [
+    /\[([^\]]+)\]\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g,
+    /href="([^"]+)"/g,
+    /href='([^']+)'/g,
+    /https?:\/\/[^\s<>"{}|\\^\[\]`]+/g,
+  ];
+
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(markdown)) !== null) {
+      const url = match[2] || match[1] || match[0];
+      if (
+        url &&
+        !url.startsWith("#") &&
+        !url.startsWith("mailto:") &&
+        !url.startsWith("javascript:")
+      ) {
+        potentialLinks.push(url);
+      }
     }
   }
 
-  // Extract URLs from HTML links: <a href="url">
-  const htmlLinkRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi;
-  while ((match = htmlLinkRegex.exec(markdown)) !== null) {
-    const url = match[1];
-    if (url.startsWith("http://") || url.startsWith("https://")) {
-      links.add(url);
+  const resolvedLinks = potentialLinks.flatMap((href) => resolveLink(href, baseUrlObj));
+  const allowedOrigins = inferAllowedOrigins(resolvedLinks, baseUrlObj);
+  const links = new Set<string>();
+
+  for (const linkUrl of resolvedLinks) {
+    if (!allowedOrigins.has(linkUrl.origin)) {
+      continue;
     }
+
+    if (!isAllowedDocumentationPath(linkUrl, baseUrlObj, isAppleDocs)) {
+      continue;
+    }
+
+    links.add(normalizeUrl(linkUrl.href));
   }
 
-  // Extract plain URLs that might appear in the text
-  const plainUrlRegex = /https?:\/\/[^\s<>\[\]()]+(?:\([^\s<>\[\]()]*\))?[^\s<>\[\]()]*/g;
-  while ((match = plainUrlRegex.exec(markdown)) !== null) {
-    const url = match[0];
-    // Clean up the URL (remove trailing punctuation)
-    const cleanUrl = url.replace(/[.,;:!?]+$/, "");
-    links.add(cleanUrl);
+  return Array.from(links);
+}
+
+function resolveLink(href: string, baseUrl: URL): URL[] {
+  try {
+    const cleanHref = stripTrailingUrlPunctuation(href);
+    if (!cleanHref) return [];
+    return [new URL(cleanHref, baseUrl)];
+  } catch {
+    return [];
+  }
+}
+
+function stripTrailingUrlPunctuation(href: string): string {
+  let cleanHref = href.replace(/[.,;:!?]+$/, "");
+
+  while (cleanHref.endsWith(")") && hasUnmatchedClosingParen(cleanHref)) {
+    cleanHref = cleanHref.slice(0, -1);
   }
 
-  // Filter and validate links
-  return Array.from(links).filter((link) => {
-    try {
-      const linkUrl = new URL(link);
+  return cleanHref;
+}
 
-      // Must be same domain
-      if (linkUrl.hostname !== baseUrlObj.hostname) {
-        return false;
-      }
+function hasUnmatchedClosingParen(value: string): boolean {
+  const openCount = (value.match(/\(/g) || []).length;
+  const closeCount = (value.match(/\)/g) || []).length;
+  return closeCount > openCount;
+}
 
-      // Filter out non-documentation URLs for Apple
-      if (isAppleDocs) {
-        // Must be in the documentation path
-        if (!linkUrl.pathname.startsWith("/documentation/")) {
-          return false;
-        }
+function inferAllowedOrigins(links: URL[], baseUrl: URL): Set<string> {
+  const allowedOrigins = new Set([baseUrl.origin]);
+  const sameOriginLinks = links.filter((link) => link.origin === baseUrl.origin);
 
-        // Filter out search, login, and other non-content pages
-        const pathLower = linkUrl.pathname.toLowerCase();
-        if (
-          pathLower.includes("/search") ||
-          pathLower.includes("/login") ||
-          pathLower.includes("/download")
-        ) {
-          return false;
-        }
+  if (sameOriginLinks.length > 0) {
+    return allowedOrigins;
+  }
 
-        // Must be deeper than just /documentation/
-        const pathParts = linkUrl.pathname.split("/").filter((p) => p);
-        if (pathParts.length <= 1) {
-          return false;
-        }
-      } else {
-        // For non-Apple sites (Swift Package Index, GitHub Pages)
-        // Be less restrictive about path hierarchy
-        // Just filter out obviously non-content URLs
-        const pathLower = linkUrl.pathname.toLowerCase();
-        if (
-          pathLower.includes("/search") ||
-          pathLower.includes("/login") ||
-          pathLower.includes("/signin") ||
-          pathLower.includes("/signup") ||
-          pathLower.includes("/download") ||
-          pathLower.endsWith(".zip") ||
-          pathLower.endsWith(".tar.gz") ||
-          pathLower.endsWith(".dmg") ||
-          pathLower.endsWith(".pkg")
-        ) {
-          return false;
-        }
-      }
+  const originCounts = new Map<string, number>();
+  for (const link of links) {
+    if (!isDocumentationHost(link.hostname)) {
+      continue;
+    }
+    originCounts.set(link.origin, (originCounts.get(link.origin) || 0) + 1);
+  }
 
-      return true;
-    } catch {
+  const [canonicalOrigin, count] =
+    Array.from(originCounts.entries()).sort((a, b) => b[1] - a[1])[0] || [];
+
+  if (canonicalOrigin && count >= 3) {
+    allowedOrigins.add(canonicalOrigin);
+  }
+
+  return allowedOrigins;
+}
+
+function isDocumentationHost(hostname: string): boolean {
+  return (
+    hostname === "developer.apple.com" ||
+    hostname.endsWith(".github.io") ||
+    hostname.startsWith("docs.") ||
+    hostname.startsWith("doc.") ||
+    hostname.startsWith("developer.") ||
+    hostname.startsWith("learn.") ||
+    hostname.startsWith("help.") ||
+    hostname.startsWith("api.")
+  );
+}
+
+function isAllowedDocumentationPath(linkUrl: URL, baseUrl: URL, isAppleDocs: boolean): boolean {
+  if (isAppleDocs) {
+    if (!linkUrl.pathname.startsWith("/documentation/")) {
       return false;
     }
-  });
+
+    const pathLower = linkUrl.pathname.toLowerCase();
+    if (isNonContentPath(pathLower)) {
+      return false;
+    }
+
+    const pathParts = linkUrl.pathname.split("/").filter((p) => p);
+    return pathParts.length > 1;
+  }
+
+  const pathLower = linkUrl.pathname.toLowerCase();
+  if (isNonContentPath(pathLower) || isAssetPath(pathLower)) {
+    return false;
+  }
+
+  if (baseUrl.hostname.includes("swiftpackageindex.com")) {
+    const basePackageMatch = baseUrl.pathname.match(/\/([^\/]+\/[^\/]+)/);
+    const linkPackageMatch = linkUrl.pathname.match(/\/([^\/]+\/[^\/]+)/);
+
+    if (basePackageMatch && linkPackageMatch && basePackageMatch[1] === linkPackageMatch[1]) {
+      return true;
+    }
+    return linkUrl.pathname.startsWith(baseUrl.pathname);
+  }
+
+  return true;
+}
+
+function isNonContentPath(pathLower: string): boolean {
+  return (
+    pathLower.includes("/search") ||
+    pathLower.includes("/login") ||
+    pathLower.includes("/signin") ||
+    pathLower.includes("/signup") ||
+    pathLower.includes("/download")
+  );
+}
+
+function isAssetPath(pathLower: string): boolean {
+  return [
+    ".zip",
+    ".tar.gz",
+    ".dmg",
+    ".pkg",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".webp",
+    ".svg",
+    ".ico",
+    ".css",
+    ".js",
+    ".woff",
+    ".woff2",
+  ].some((extension) => pathLower.endsWith(extension));
 }

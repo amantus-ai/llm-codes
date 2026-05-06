@@ -195,6 +195,37 @@ describe("content-processing", () => {
       expect(links).toHaveLength(3);
     });
 
+    it("should resolve relative links for documentation sites", () => {
+      const input = `
+        [Install](/install)
+        [Getting started](start/getting-started)
+        <a href="/channels">Channels</a>
+      `;
+      const links = extractLinks(input, "https://docs.example.com/");
+
+      expect(links).toEqual([
+        "https://docs.example.com/install",
+        "https://docs.example.com/start/getting-started",
+        "https://docs.example.com/channels",
+      ]);
+    });
+
+    it("should follow canonical documentation hosts from aliased domains", () => {
+      const input = `
+        [Install](https://docs.openclaw.ai/install)
+        [Channels](https://docs.openclaw.ai/channels)
+        [Gateway](https://docs.openclaw.ai/gateway)
+        [Logo](https://mintcdn.com/openclaw/logo.svg)
+      `;
+      const links = extractLinks(input, "https://docs.clawd.bot/");
+
+      expect(links).toEqual([
+        "https://docs.openclaw.ai/install",
+        "https://docs.openclaw.ai/channels",
+        "https://docs.openclaw.ai/gateway",
+      ]);
+    });
+
     it("should clean up URLs with trailing punctuation", () => {
       const input = "See https://developer.apple.com/documentation/swiftui/view.";
       const links = extractLinks(input, baseUrl);

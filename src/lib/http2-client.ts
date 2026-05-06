@@ -1,4 +1,4 @@
-import { Agent } from "undici";
+import { Agent, fetch as undiciFetch, type RequestInit as UndiciRequestInit } from "undici";
 
 // Create an HTTP/2-enabled agent for improved performance
 const http2Agent = new Agent({
@@ -28,11 +28,10 @@ const http2Agent = new Agent({
  * @returns Promise<Response>
  */
 export async function http2Fetch(url: string, options?: RequestInit): Promise<Response> {
-  return fetch(url, {
-    ...options,
-    // @ts-expect-error - dispatcher is not in the standard fetch types but is supported by undici
+  return (await undiciFetch(url, {
+    ...(options as UndiciRequestInit),
     dispatcher: http2Agent,
-  });
+  })) as unknown as Response;
 }
 
 /**

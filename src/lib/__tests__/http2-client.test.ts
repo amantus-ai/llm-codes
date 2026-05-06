@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const agentStats = { connected: 1 };
+const undiciFetchMock = vi.hoisted(() => vi.fn());
 
 vi.mock("undici", () => ({
   Agent: vi.fn().mockImplementation(function () {
     return { stats: agentStats };
   }),
+  fetch: undiciFetchMock,
 }));
 
 const describeFn = process.env.CI ? describe.skip : describe;
@@ -13,10 +15,10 @@ const describeFn = process.env.CI ? describe.skip : describe;
 describeFn("http2Fetch", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    global.fetch = vi.fn().mockResolvedValue(new Response('{"data":"test"}', { status: 200 }));
+    undiciFetchMock.mockResolvedValue(new Response('{"data":"test"}', { status: 200 }));
   });
 
-  it("should pass requests through fetch with the HTTP/2 dispatcher", async () => {
+  it("should pass requests through Undici fetch with the HTTP/2 dispatcher", async () => {
     const { http2Fetch } = await import("../http2-client");
 
     const response = await http2Fetch("https://example.com/api");
@@ -24,7 +26,7 @@ describeFn("http2Fetch", () => {
     expect(response.status).toBe(200);
     expect(response.ok).toBe(true);
     expect(await response.json()).toEqual({ data: "test" });
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(undiciFetchMock).toHaveBeenCalledWith(
       "https://example.com/api",
       expect.objectContaining({ dispatcher: expect.objectContaining({ stats: agentStats }) }),
     );
@@ -40,7 +42,7 @@ describeFn("http2Fetch", () => {
       body,
     });
 
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(undiciFetchMock).toHaveBeenCalledWith(
       "https://example.com/api",
       expect.objectContaining({
         method: "POST",
