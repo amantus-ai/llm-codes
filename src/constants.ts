@@ -66,6 +66,12 @@ export const ALLOWED_EXCEPTIONS = {
     example: "https://tauri.app/",
     category: "Desktop Frameworks",
   },
+  TELEGRAM: {
+    pattern: 'https://core.telegram.org/',
+    name: 'Telegram Bot API',
+    example: 'https://core.telegram.org/bots',
+    category: 'Messaging Platforms',
+  },
 } as const;
 
 // Legacy support for specific domains that need special handling

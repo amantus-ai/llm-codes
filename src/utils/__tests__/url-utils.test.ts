@@ -165,6 +165,15 @@ describe("url-utils", () => {
         expect(isValidDocumentationUrl("https://tauri.app/")).toBe(true);
         expect(isValidDocumentationUrl("https://tauri.app/v1/guides/")).toBe(true);
       });
+
+      it('should validate Telegram Bot API', () => {
+        expect(isValidDocumentationUrl('https://core.telegram.org/')).toBe(true);
+        expect(isValidDocumentationUrl('https://core.telegram.org/bots')).toBe(true);
+        expect(isValidDocumentationUrl('https://core.telegram.org/bots/api')).toBe(true);
+        // Lookalike domains must not match
+        expect(isValidDocumentationUrl('https://core.telegram.org.evil.com')).toBe(false);
+        expect(isValidDocumentationUrl('https://core.telegram.org.evil.com/bots')).toBe(false);
+      });
     });
 
     describe("Edge Cases", () => {
