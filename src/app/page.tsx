@@ -790,69 +790,58 @@ Code blocks only: ${codeBlocksOnly ? "Yes" : "No"}
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/logo.png"
-              alt="Documentation to llms.txt Generator"
-              width={40}
-              height={40}
-              className="rounded-xl shadow-sm"
-            />
-            <div>
-              <h1 className="text-xl font-semibold text-foreground">
-                Documentation to llms.txt Generator
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Transform developer documentation to clean, LLM-friendly Markdown
-              </p>
-            </div>
-            <div className="ml-auto text-xs text-muted-foreground text-right">
-              <div>
-                made by{" "}
-                <a
-                  href="https://steipete.me"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:text-primary/90 font-medium"
-                >
-                  @steipete
-                </a>
-              </div>
-              <div>
-                powered by{" "}
-                <a
-                  href="https://www.firecrawl.dev/referral?rid=9CG538BE"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-orange-600 hover:text-orange-700 font-medium"
-                >
-                  Firecrawl
-                </a>
-              </div>
-              <div>
-                open-source on{" "}
-                <a
-                  href="https://github.com/amantus-ai/llm-codes"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-green-600 hover:text-green-700 font-medium"
-                >
-                  GitHub
-                </a>
-              </div>
-            </div>
+      <header className="border-b border-border/60 bg-background/80 backdrop-blur sticky top-0 z-10">
+        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-4">
+          <Image src="/logo.png" alt="llm.codes" width={32} height={32} className="rounded-lg" />
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base font-semibold tracking-tight text-foreground">llm.codes</h1>
+            <p className="text-xs text-muted-foreground">Documentation → clean Markdown for LLMs</p>
           </div>
+          <nav className="hidden sm:flex items-center gap-5 text-xs text-muted-foreground">
+            <a
+              href="https://github.com/amantus-ai/llm-codes"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground transition-colors"
+            >
+              GitHub
+            </a>
+            <a
+              href="https://www.firecrawl.dev/referral?rid=9CG538BE"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground transition-colors"
+            >
+              Firecrawl
+            </a>
+            <a
+              href="https://steipete.me"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground transition-colors"
+            >
+              @steipete
+            </a>
+          </nav>
         </div>
       </header>
 
-      <main className="flex-1 w-full px-4 py-8">
-        <div className="max-w-3xl mx-auto space-y-6">
+      <main className="flex-1 w-full px-6 py-16 sm:py-20">
+        <div className="max-w-2xl mx-auto space-y-8">
+          {/* Hero */}
+          <div className="text-center space-y-3">
+            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">
+              Turn docs into clean Markdown
+            </h2>
+            <p className="text-base text-muted-foreground max-w-lg mx-auto">
+              Strip JavaScript-rendered docs down to the parts your AI agent actually needs.
+            </p>
+          </div>
+
           {/* URL Input */}
-          <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
+          <div className="bg-card rounded-xl border border-border p-6">
             <label htmlFor="url" className="block text-sm font-medium text-foreground mb-3">
               Documentation URL
             </label>
@@ -863,10 +852,10 @@ Code blocks only: ${codeBlocksOnly ? "Yes" : "No"}
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://developer.apple.com/documentation/..."
-                className="w-full pl-12 pr-4 py-3 border border-input rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                className="w-full pl-11 pr-4 py-2.5 bg-background border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring transition-all"
               />
               <svg
-                className="absolute left-4 top-3.5 w-5 h-5 text-muted-foreground"
+                className="absolute left-3.5 top-3 w-4 h-4 text-muted-foreground"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -908,7 +897,7 @@ Code blocks only: ${codeBlocksOnly ? "Yes" : "No"}
           </div>
 
           {/* Configuration & Options */}
-          <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
+          <div className="bg-card rounded-xl border border-border p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-medium text-foreground">Processing Configuration</h3>
               {typeof window !== "undefined" &&
@@ -949,7 +938,7 @@ Code blocks only: ${codeBlocksOnly ? "Yes" : "No"}
                       }
                     }}
                     disabled={useCrawlMode}
-                    className="w-full px-4 py-2.5 border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-3.5 py-2 bg-background border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <div className="absolute right-12 top-1/2 -translate-y-1/2 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded pointer-events-none">
                     levels
@@ -976,7 +965,7 @@ Code blocks only: ${codeBlocksOnly ? "Yes" : "No"}
                         setMaxUrls(value);
                       }
                     }}
-                    className="w-full px-4 py-2.5 border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full px-3.5 py-2 bg-background border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring"
                   />
                   <div className="absolute right-12 top-1/2 -translate-y-1/2 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded pointer-events-none">
                     pages
@@ -1084,7 +1073,7 @@ Code blocks only: ${codeBlocksOnly ? "Yes" : "No"}
           <button
             onClick={isProcessing ? (useCrawlMode ? cancelCrawl : undefined) : processUrl}
             disabled={isProcessing && !useCrawlMode}
-            className="w-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground py-3.5 px-6 rounded-xl font-medium hover:from-primary/90 hover:to-primary/70 disabled:from-primary/50 disabled:to-primary/40 disabled:opacity-75 disabled:cursor-not-allowed transition-all duration-300 ease-out shadow-md shadow-primary/10 hover:shadow-2xl hover:shadow-primary/25 hover:-translate-y-0.5"
+            className="w-full bg-primary text-primary-foreground py-3 px-6 rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
           >
             {isProcessing ? (
               <span className="flex items-center justify-center gap-3">
@@ -1114,45 +1103,47 @@ Code blocks only: ${codeBlocksOnly ? "Yes" : "No"}
 
           {/* Help text - shown only when not processing */}
           {!isProcessing && (
-            <p className="mt-4 text-sm text-muted-foreground text-center">
-              Generates a cleaned markdown file (llms.txt), so your agent knows the latest Apple (or
-              3rd-party) API.
-              <br />
-              Store the file in your project and reference the name to load it into the context, and
-              get better code.
-              <br />
-              <a
-                href="https://steipete.me/posts/llm-codes-transform-developer-docs"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:text-primary/90 underline mt-1 inline-block"
-              >
-                Learn how llm.codes transforms documentation for AI agents →
-              </a>
-              <br />
-              <a
-                href="https://github.com/steipete/agent-rules/tree/main/docs"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:text-primary/90 underline mt-1 inline-block"
-              >
-                For more ready-to-use document sets, see steipete/agent-rules on GitHub →
-              </a>
-            </p>
+            <div className="text-sm text-muted-foreground text-center space-y-2 leading-relaxed">
+              <p>
+                Generates a cleaned{" "}
+                <code className="px-1.5 py-0.5 rounded bg-muted text-foreground/80 text-xs font-mono">
+                  llms.txt
+                </code>{" "}
+                you can drop into your project so your agent has the latest API context.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs">
+                <a
+                  href="https://steipete.me/posts/llm-codes-transform-developer-docs"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground/70 hover:text-foreground underline underline-offset-4 decoration-foreground/20 hover:decoration-foreground/60"
+                >
+                  How llm.codes works
+                </a>
+                <a
+                  href="https://github.com/steipete/agent-rules/tree/main/docs"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground/70 hover:text-foreground underline underline-offset-4 decoration-foreground/20 hover:decoration-foreground/60"
+                >
+                  Ready-made document sets
+                </a>
+              </div>
+            </div>
           )}
 
           {/* Progress */}
           {(isProcessing || results.length > 0 || error) && (
-            <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
+            <div className="bg-card rounded-xl border border-border p-6">
               <div className="space-y-4">
                 <div>
                   <div className="flex justify-between text-sm text-muted-foreground mb-2">
                     <span>Processing</span>
-                    <span>{progress}%</span>
+                    <span className="tabular-nums">{progress}%</span>
                   </div>
-                  <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                  <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
                     <div
-                      className="bg-gradient-to-r from-primary to-primary/80 h-2 rounded-full transition-all duration-500 ease-out"
+                      className="bg-primary h-full rounded-full transition-all duration-500 ease-out"
                       style={{ width: `${progress}%` }}
                     ></div>
                   </div>
@@ -1200,29 +1191,42 @@ Code blocks only: ${codeBlocksOnly ? "Yes" : "No"}
 
           {/* Statistics */}
           {stats.urls > 0 && (
-            <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl shadow-sm border border-primary/20 p-6">
-              <h4 className="text-sm font-medium text-foreground mb-4">Statistics</h4>
+            <div className="bg-card rounded-xl border border-border p-6">
               <div
-                className={`grid ${useCrawlMode && crawlCreditsUsed > 0 ? "grid-cols-4" : "grid-cols-3"} gap-4`}
+                className={`grid ${useCrawlMode && crawlCreditsUsed > 0 ? "grid-cols-4" : "grid-cols-3"} gap-4 divide-x divide-border`}
               >
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">{stats.urls}</div>
-                  <div className="text-xs text-muted-foreground mt-1">URLs</div>
+                <div className="text-center px-2">
+                  <div className="text-2xl font-semibold tracking-tight text-foreground tabular-nums">
+                    {stats.urls}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wide">
+                    URLs
+                  </div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">{Math.round(stats.size)}K</div>
-                  <div className="text-xs text-muted-foreground mt-1">Size</div>
+                <div className="text-center px-2">
+                  <div className="text-2xl font-semibold tracking-tight text-foreground tabular-nums">
+                    {Math.round(stats.size)}K
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wide">
+                    Size
+                  </div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">
+                <div className="text-center px-2">
+                  <div className="text-2xl font-semibold tracking-tight text-foreground tabular-nums">
                     {(stats.lines / 1000).toFixed(1)}K
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1">Lines</div>
+                  <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wide">
+                    Lines
+                  </div>
                 </div>
                 {useCrawlMode && crawlCreditsUsed > 0 && (
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">{crawlCreditsUsed}</div>
-                    <div className="text-xs text-muted-foreground mt-1">Credits</div>
+                  <div className="text-center px-2">
+                    <div className="text-2xl font-semibold tracking-tight text-foreground tabular-nums">
+                      {crawlCreditsUsed}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wide">
+                      Credits
+                    </div>
                   </div>
                 )}
               </div>
@@ -1233,9 +1237,9 @@ Code blocks only: ${codeBlocksOnly ? "Yes" : "No"}
           {results.length > 0 && (
             <button
               onClick={downloadMarkdown}
-              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-primary-foreground py-3.5 px-6 rounded-xl font-medium hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 flex items-center justify-center gap-3 animate-splash animate-pulse-ring"
+              className="w-full bg-emerald-600 text-white py-3 px-6 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2.5 animate-in fade-in-0"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -1250,33 +1254,32 @@ Code blocks only: ${codeBlocksOnly ? "Yes" : "No"}
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-card/80 backdrop-blur-sm mt-auto">
-        <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-          <p className="text-sm text-muted-foreground mb-6">
-            This service is being offered and <em>paid</em> for by{" "}
+      <footer className="border-t border-border/60 mt-auto">
+        <div className="max-w-2xl mx-auto px-6 py-12 text-center space-y-6">
+          <p className="text-sm text-muted-foreground">
+            Built and paid for by{" "}
             <a
               href="https://twitter.com/steipete"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary hover:text-primary/90 font-medium"
+              className="text-foreground hover:underline underline-offset-4"
             >
-              Peter Steinberger (@steipete)
+              @steipete
             </a>
-            .<br />
-            For more cool stuff, check out{" "}
+            . More on{" "}
             <a
               href="https://steipete.me"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary hover:text-primary/90 underline"
+              className="text-foreground hover:underline underline-offset-4"
             >
               my blog
-            </a>{" "}
-            and subscribe.
+            </a>
+            .
           </p>
 
           {/* Newsletter Form */}
-          <div className="max-w-md mx-auto">
+          <div className="max-w-md mx-auto space-y-2">
             <form
               action="https://buttondown.email/api/emails/embed-subscribe/steipete"
               method="post"
@@ -1284,7 +1287,7 @@ Code blocks only: ${codeBlocksOnly ? "Yes" : "No"}
               onSubmit={(_e) => {
                 window.open("https://buttondown.email/steipete", "popupwindow");
               }}
-              className="flex gap-3"
+              className="flex gap-2"
             >
               <input type="hidden" value="1" name="embed" />
               <input type="hidden" name="tag" value="llm-tech" />
@@ -1292,20 +1295,18 @@ Code blocks only: ${codeBlocksOnly ? "Yes" : "No"}
                 type="email"
                 name="email"
                 id="bd-email"
-                placeholder="Enter your email"
+                placeholder="you@domain.com"
                 required
-                className="flex-1 px-4 py-3 border border-input rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+                className="flex-1 px-3.5 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring text-sm"
               />
               <button
                 type="submit"
-                className="px-6 py-3 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-xl font-medium hover:from-primary/90 hover:to-primary/70 transition-all text-sm shadow-md hover:shadow-lg"
+                className="px-4 py-2 bg-foreground text-background rounded-lg font-medium hover:bg-foreground/90 transition-colors text-sm"
               >
                 Subscribe
               </button>
             </form>
-            <p className="text-xs text-muted-foreground mt-3">
-              2× per month, pure signal, zero fluff.
-            </p>
+            <p className="text-xs text-muted-foreground">2× per month, pure signal, zero fluff.</p>
           </div>
         </div>
       </footer>

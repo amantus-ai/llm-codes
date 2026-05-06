@@ -72,7 +72,8 @@ describeFn("Home Page", () => {
   it("should render the home page", () => {
     render(<Home />);
 
-    expect(screen.getByText("Documentation to llms.txt Generator")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "llm.codes" })).toBeInTheDocument();
+    expect(screen.getByText("Turn docs into clean Markdown")).toBeInTheDocument();
     expect(
       screen.getByPlaceholderText("https://developer.apple.com/documentation/..."),
     ).toBeInTheDocument();

@@ -41,7 +41,7 @@ describe("progressive timeout", () => {
       expect(mockScrapeFn).toHaveBeenCalledWith("https://example.com/docs", {
         formats: ["markdown"],
         waitFor: 5000,
-        timeout: 10,
+        timeout: 10000,
         removeBase64Images: true,
         skipTlsVerification: false,
       });
@@ -81,7 +81,7 @@ describe("progressive timeout", () => {
       expect(mockScrapeFn).toHaveBeenNthCalledWith(1, "https://example.com/docs", {
         formats: ["markdown"],
         waitFor: 5000,
-        timeout: 10,
+        timeout: 10000,
         removeBase64Images: true,
         skipTlsVerification: false,
       });
@@ -90,7 +90,7 @@ describe("progressive timeout", () => {
       expect(mockScrapeFn).toHaveBeenNthCalledWith(2, "https://example.com/docs", {
         formats: ["markdown"],
         waitFor: 5000,
-        timeout: 20,
+        timeout: 20000,
         removeBase64Images: true,
         skipTlsVerification: false,
       });
@@ -154,7 +154,7 @@ describe("progressive timeout", () => {
 
       await expect(
         scrapeWithProgressiveTimeout(mockScrapeFn, "https://example.com/docs", config),
-      ).rejects.toThrow();
+      ).rejects.toThrow("Progressive timeout after 10000ms");
 
       expect(mockScrapeFn).toHaveBeenCalledTimes(2); // maxRetries = 2
     });
@@ -200,7 +200,7 @@ describe("progressive timeout", () => {
       mockScrapeFn.mockImplementation(async (_url, options) => {
         const timeout = options.timeout ?? 0;
         timeouts.push(timeout);
-        throw new Error("Progressive timeout after " + timeout * 1000 + "ms");
+        throw new Error("Progressive timeout after " + timeout + "ms");
       });
 
       const config = {
@@ -208,14 +208,14 @@ describe("progressive timeout", () => {
         maxTimeout: 20000,
         timeoutIncrement: 5000,
         waitTime: 1000,
-        maxRetries: 4, // Need 4 retries to get [5, 10, 15, 20]
+        maxRetries: 4, // Need 4 retries to get the full timeout progression.
       };
 
       await expect(
         scrapeWithProgressiveTimeout(mockScrapeFn, "https://example.com/docs", config),
       ).rejects.toThrow("Progressive timeout");
 
-      expect(timeouts).toEqual([5, 10, 15, 20]);
+      expect(timeouts).toEqual([5000, 10000, 15000, 20000]);
     });
   });
 });

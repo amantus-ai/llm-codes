@@ -124,7 +124,7 @@ export async function scrapeWithProgressiveTimeout(
       const scrapePromise = scrapeFn(url, {
         formats: ["markdown"],
         waitFor: waitTime,
-        timeout: Math.floor(currentTimeout / 1000), // Firecrawl expects seconds
+        timeout: currentTimeout,
         removeBase64Images: true,
         skipTlsVerification: false,
       });
