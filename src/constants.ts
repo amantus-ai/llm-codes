@@ -2,7 +2,7 @@
 export const DOCUMENTATION_PATTERNS = [
   {
     pattern:
-      /^https:\/\/(docs?|developer|dev|learn|help|api|guide|wiki|devcenter)\.[^\/]+\.[^\/]+\//,
+      /^https:\/\/(docs?|developers?|dev|learn|help|api|guide|wiki|devcenter)\.[^\/]+\.[^\/]+\//,
     name: "Documentation Subdomains",
     description: "Matches documentation subdomains like docs.*, developer.*, learn.*, etc.",
     examples: ["docs.python.org", "developer.apple.com", "learn.microsoft.com", "docs.cypress.io"],
@@ -67,10 +67,10 @@ export const ALLOWED_EXCEPTIONS = {
     category: "Desktop Frameworks",
   },
   TELEGRAM: {
-    pattern: 'https://core.telegram.org/',
-    name: 'Telegram Bot API',
-    example: 'https://core.telegram.org/bots',
-    category: 'Messaging Platforms',
+    pattern: "https://core.telegram.org/",
+    name: "Telegram Bot API",
+    example: "https://core.telegram.org/bots",
+    category: "Messaging Platforms",
   },
 } as const;
 

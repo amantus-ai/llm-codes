@@ -26,6 +26,13 @@ describe("url-utils", () => {
         expect(isValidDocumentationUrl("https://developer.android.com/guide")).toBe(true);
       });
 
+      it("should validate developers.* subdomains", () => {
+        expect(isValidDocumentationUrl("https://developers.cloudflare.com/workers/")).toBe(true);
+        expect(isValidDocumentationUrl("https://developers.google.com/maps/documentation")).toBe(
+          true,
+        );
+      });
+
       it("should validate other documentation subdomains", () => {
         expect(isValidDocumentationUrl("https://learn.microsoft.com/en-us/docs")).toBe(true);
         expect(isValidDocumentationUrl("https://help.github.com/articles")).toBe(true);
@@ -166,13 +173,13 @@ describe("url-utils", () => {
         expect(isValidDocumentationUrl("https://tauri.app/v1/guides/")).toBe(true);
       });
 
-      it('should validate Telegram Bot API', () => {
-        expect(isValidDocumentationUrl('https://core.telegram.org/')).toBe(true);
-        expect(isValidDocumentationUrl('https://core.telegram.org/bots')).toBe(true);
-        expect(isValidDocumentationUrl('https://core.telegram.org/bots/api')).toBe(true);
+      it("should validate Telegram Bot API", () => {
+        expect(isValidDocumentationUrl("https://core.telegram.org/")).toBe(true);
+        expect(isValidDocumentationUrl("https://core.telegram.org/bots")).toBe(true);
+        expect(isValidDocumentationUrl("https://core.telegram.org/bots/api")).toBe(true);
         // Lookalike domains must not match
-        expect(isValidDocumentationUrl('https://core.telegram.org.evil.com')).toBe(false);
-        expect(isValidDocumentationUrl('https://core.telegram.org.evil.com/bots')).toBe(false);
+        expect(isValidDocumentationUrl("https://core.telegram.org.evil.com")).toBe(false);
+        expect(isValidDocumentationUrl("https://core.telegram.org.evil.com/bots")).toBe(false);
       });
     });
 
