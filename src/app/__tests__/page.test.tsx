@@ -2,17 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import Home from "../page";
 
-const describeFn = process.env.CI ? describe.skip : describe;
 const hookMocks = vi.hoisted(() => ({
-  useStreamingScrape: vi.fn(),
   useCrawl: vi.fn(),
 }));
 
 // Mock modules
-vi.mock("@/hooks/useStreamingScrape", () => ({
-  useStreamingScrape: hookMocks.useStreamingScrape,
-}));
-
 vi.mock("@/hooks/useCrawl", () => ({
   useCrawl: hookMocks.useCrawl,
 }));
@@ -36,17 +30,9 @@ vi.mock("next/image", () => ({
 // Mock fetch
 global.fetch = vi.fn();
 
-describeFn("Home Page", () => {
+describe("Home Page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    hookMocks.useStreamingScrape.mockReturnValue({
-      processUrls: vi.fn(),
-      cancel: vi.fn(),
-      isProcessing: false,
-      results: [],
-      progress: 0,
-      error: null,
-    });
     hookMocks.useCrawl.mockReturnValue({
       startCrawl: vi.fn(),
       cancel: vi.fn(),
@@ -229,18 +215,6 @@ describeFn("Home Page", () => {
     // Create a mock for URL.createObjectURL
     global.URL.createObjectURL = vi.fn(() => "blob:http://localhost:3000/test");
     global.URL.revokeObjectURL = vi.fn();
-
-    hookMocks.useStreamingScrape.mockReturnValue({
-      processUrls: vi.fn(),
-      cancel: vi.fn(),
-      isProcessing: false,
-      results: [
-        { url: "https://example.com/1", content: "# Page 1\nContent 1" },
-        { url: "https://example.com/2", content: "# Page 2\nContent 2" },
-      ],
-      progress: 100,
-      error: null,
-    });
 
     render(<Home />);
 

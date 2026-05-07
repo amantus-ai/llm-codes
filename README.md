@@ -24,7 +24,7 @@ Modern documentation sites (especially Apple's) use heavy JavaScript rendering t
 
 ### Key Features
 
-- **Parallel Processing**: Fetches up to 20 URLs concurrently using batched promises
+- **Parallel Processing**: Fetches up to 10 URLs concurrently using bounded promises
 - **Smart Caching**: Redis-backed 30-day cache reduces API calls and improves response times
 - **Content Filtering**: Multiple filtering strategies to remove:
   - Navigation elements and boilerplate
@@ -231,7 +231,7 @@ The core API endpoint that handles documentation conversion.
 
 ## Tech Stack
 
-- **Framework**: [Next.js 15](https://nextjs.org/) with App Router
+- **Framework**: [Next.js 16](https://nextjs.org/) with App Router
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
 - **API**: [Firecrawl](https://firecrawl.dev/) for web scraping
@@ -423,11 +423,10 @@ If you need support for a documentation site that's not listed, please [open an 
 - Built-in markdown conversion with semantic structure preservation
 - Reliable headless browser automation at scale
 
-### Why Next.js 15 + App Router?
+### Why Next.js 16 + App Router?
 
 - Server-side API key security
 - Built-in caching with fetch()
-- Streaming responses for large documentation sets
 - Edge-ready deployment on Vercel
 
 ### Why Client-Side Processing?
@@ -448,7 +447,7 @@ If you need support for a documentation site that's not listed, please [open an 
 
 - Powered by [Firecrawl](https://firecrawl.dev/referral?rid=9CG538BE) for JavaScript rendering
 - Inspired by the challenges of making documentation accessible to AI agents
-- Built with Next.js 15, Tailwind CSS v4, and TypeScript
+- Built with Next.js 16, Tailwind CSS v4, and TypeScript
 
 ---
 

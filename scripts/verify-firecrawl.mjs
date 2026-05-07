@@ -4,29 +4,43 @@ import net from "node:net";
 import process from "node:process";
 
 const args = process.argv.slice(2).filter((arg) => arg !== "--");
-const targetUrl = args[0] || "https://docs.clawd.bot/";
-const port = process.env.PORT ? Number(process.env.PORT) : await findOpenPort(3210);
-const baseUrl = `http://127.0.0.1:${port}`;
+const baseUrlArgIndex = args.indexOf("--base-url");
+const configuredBaseUrl =
+  process.env.VERIFY_BASE_URL || (baseUrlArgIndex >= 0 ? args[baseUrlArgIndex + 1] : undefined);
+const targetUrl =
+  args.find((arg, index) => {
+    return arg !== "--base-url" && index !== baseUrlArgIndex + 1 && arg.startsWith("http");
+  }) || "https://docs.clawd.bot/";
+const port = configuredBaseUrl
+  ? undefined
+  : process.env.PORT
+    ? Number(process.env.PORT)
+    : await findOpenPort(3210);
+const baseUrl = configuredBaseUrl?.replace(/\/$/, "") || `http://127.0.0.1:${port}`;
 
-if (!process.env.FIRECRAWL_API_KEY) {
+if (!configuredBaseUrl && !process.env.FIRECRAWL_API_KEY) {
   console.error("FIRECRAWL_API_KEY is required for live Firecrawl verification.");
   process.exit(2);
 }
 
-await run("pnpm", ["run", "build"]);
-
-const server = spawn("pnpm", ["exec", "next", "start", "-p", String(port)], {
-  stdio: ["ignore", "pipe", "pipe"],
-  env: { ...process.env, PORT: String(port) },
-});
-
+let server;
 let serverOutput = "";
-server.stdout.on("data", (chunk) => {
-  serverOutput += chunk.toString();
-});
-server.stderr.on("data", (chunk) => {
-  serverOutput += chunk.toString();
-});
+
+if (!configuredBaseUrl) {
+  await run("pnpm", ["run", "build"]);
+
+  server = spawn("pnpm", ["exec", "next", "start", "-p", String(port)], {
+    stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, PORT: String(port) },
+  });
+
+  server.stdout.on("data", (chunk) => {
+    serverOutput += chunk.toString();
+  });
+  server.stderr.on("data", (chunk) => {
+    serverOutput += chunk.toString();
+  });
+}
 
 try {
   await waitForServer(`${baseUrl}/api/cache/stats`);
@@ -77,7 +91,7 @@ try {
     }
   }
 } finally {
-  server.kill("SIGTERM");
+  server?.kill("SIGTERM");
 }
 
 async function run(command, args) {
@@ -111,7 +125,7 @@ async function isPortOpen(port) {
 async function waitForServer(url) {
   const deadline = Date.now() + 30000;
   while (Date.now() < deadline) {
-    if (server.exitCode !== null) {
+    if (server && server.exitCode !== null) {
       throw new Error(`next start exited early:\n${serverOutput}`);
     }
 

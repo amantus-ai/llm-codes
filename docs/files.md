@@ -27,7 +27,6 @@ File organization follows Next.js App Router conventions with `src/app` for rout
 **Scraping Endpoints**
 
 - `src/app/api/scrape/route.ts` - Main scraping endpoint with caching, retries, and Firecrawl integration
-- `src/app/api/scrape/stream/route.ts` - SSE URL processing for multi-page documentation
 - `src/app/api/crawl/start/route.ts` - Starts Firecrawl crawl jobs
 - `src/app/api/crawl/[jobId]/status/route.ts` - Streams Firecrawl crawl status and page results
 - `src/app/api/cache/stats/route.ts` - Cache statistics endpoint for monitoring
@@ -96,7 +95,7 @@ File organization follows Next.js App Router conventions with `src/app` for rout
 
 ## Dependencies
 
-**Core Framework**: Next.js 15 with App Router, React 19, TypeScript 5
+**Core Framework**: Next.js 16 with App Router, React 19, TypeScript 6
 **Styling**: Tailwind CSS v4, Radix UI components
 **Testing**: Vitest with happy-dom, 95%+ coverage target
 **External APIs**: Firecrawl for JavaScript rendering

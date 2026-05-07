@@ -19,7 +19,7 @@
 
 ## Executive Summary
 
-llm.codes is a high-performance web service that solves a critical problem in AI-assisted development: modern documentation sites, particularly Apple's, use heavy JavaScript rendering that makes content invisible to AI agents like Claude Code. Built with Next.js 15 and powered by Firecrawl, the service converts JavaScript-rendered documentation from 69+ sites into clean, AI-optimized Markdown. This enables developers to provide current API documentation to AI coding assistants, dramatically improving code generation quality.
+llm.codes is a high-performance web service that solves a critical problem in AI-assisted development: modern documentation sites, particularly Apple's, use heavy JavaScript rendering that makes content invisible to AI agents like Claude Code. Built with Next.js 16 and powered by Firecrawl, the service converts JavaScript-rendered documentation from 69+ sites into clean, AI-optimized Markdown. This enables developers to provide current API documentation to AI coding assistants, dramatically improving code generation quality.
 
 **Read the full story**: [How llm.codes Transforms Developer Documentation for AI Agents](https://steipete.me/posts/llm-codes-transform-developer-docs)
 
@@ -56,7 +56,7 @@ llm.codes solves the JavaScript rendering problem through:
 1. **Headless Browser Execution**: Uses Firecrawl's infrastructure to fully render JavaScript
 2. **Semantic Markdown Conversion**: Preserves documentation structure in AI-friendly format
 3. **Intelligent Content Filtering**: Multiple passes to remove noise while preserving signal
-4. **Parallel Processing**: Fetches up to 20 URLs concurrently for 10x performance
+4. **Parallel Processing**: Fetches up to 10 URLs concurrently with bounded request pressure
 5. **Smart Caching**: 30-day cache reduces API calls by 70%+
 
 ### Key Innovations
@@ -177,8 +177,8 @@ The Web Documentation to Markdown Converter supports 69 documentation sites acro
 ### Frontend Stack
 
 ```
-- Framework: Next.js 15.3.3 (App Router)
-- Language: TypeScript 5.8 (strict mode)
+- Framework: Next.js 16 (App Router)
+- Language: TypeScript 6 (strict mode)
 - Styling: Tailwind CSS v4.0 (semantic color system)
 - UI Library: React 19.1.0
 - Build Tool: Turbopack (lightning-fast HMR)
@@ -192,9 +192,9 @@ The Web Documentation to Markdown Converter supports 69 documentation sites acro
 - Runtime: Next.js Edge Runtime (global deployment)
 - API Service: Firecrawl (headless browser infrastructure)
 - Caching Strategy: In-memory Map with 30-day TTL
-- Concurrency: Batched promises (20 URLs parallel)
+- Concurrency: Bounded promises (10 URLs parallel)
 - Error Handling: Graceful degradation with retry logic
-- Response Streaming: Chunked transfers for large docs
+- Progress Updates: Client-side progress during bounded parallel processing
 ```
 
 ### Performance Stack
@@ -687,14 +687,14 @@ Firecrawl was chosen after evaluating multiple scraping solutions:
 - **Scale**: Handles enterprise-level traffic without rate limiting
 - **Reliability**: 99.9% uptime with global infrastructure
 
-### Why Next.js 15 + App Router?
+### Why Next.js 16 + App Router?
 
 The latest Next.js provides critical features:
 
 - **Edge Runtime**: Global deployment with <50ms latency
 - **Server Components**: Secure API key handling
 - **Built-in Caching**: Automatic fetch() caching
-- **Streaming**: Progressive content loading for large docs
+- **App Router**: Simple API routes for secure Firecrawl access
 - **Turbopack**: 10x faster development experience
 
 ### Why Client-Side Filtering?
@@ -706,14 +706,13 @@ A hybrid approach optimizes performance:
 - **Real-time Updates**: Instant feedback during processing
 - **Token Optimization**: Users control output size
 
-### Why 20 Parallel Requests?
+### Why 10 Parallel Requests?
 
 Extensive testing revealed optimal concurrency:
 
-- **10 requests**: 5.2s average per batch
-- **20 requests**: 3.1s average per batch (40% faster)
-- **30 requests**: 3.0s average (diminishing returns)
-- **API Limits**: Firecrawl throttles beyond 20
+- **10 requests**: current bounded concurrency setting
+- **Higher values**: more likely to hit Firecrawl/API timeout pressure
+- **API Limits**: Firecrawl throttling still applies
 
 ## Known Limitations
 
@@ -754,11 +753,11 @@ for (let i = 0; i < urlsToProcess.length; i += BATCH_SIZE) {
 - **Initial Page Load**: < 1.2s (Turbopack optimized)
 - **Time to Interactive**: < 2s
 - **Per-URL Processing**: 1-3s (down from 5-10s)
-- **Batch Processing**: 20 URLs in ~3s
+- **Batch Processing**: up to 10 URLs concurrently
 - **Cache Hit Latency**: < 10ms
 - **API Response Time**: 200-500ms (cached)
 - **Memory Usage**: O(n) where n = processed URLs
-- **Max Concurrent Requests**: 20 (Firecrawl limit)
+- **Max Concurrent Requests**: 10
 
 ## Browser Support
 
@@ -806,7 +805,6 @@ for (let i = 0; i < urlsToProcess.length; i += BATCH_SIZE) {
 
 - **WebSocket Progress**: Real-time updates without polling
 - **Redis Cache**: Persistent storage across deployments
-- **Streaming Responses**: Progressive markdown delivery
 - **Worker Threads**: True parallel processing in Node.js
 
 ### Technical Enhancements
@@ -892,7 +890,7 @@ The project maintains 95%+ test coverage using Vitest:
 ```typescript
 // Example: Parallel processing test
 describe("processUrlsWithDepth", () => {
-  it("should process 20 URLs concurrently", async () => {
+  it("should process URLs concurrently", async () => {
     const urls = Array.from({ length: 50 }, (_, i) => `https://react.dev/learn/page-${i}`);
 
     const startTime = Date.now();

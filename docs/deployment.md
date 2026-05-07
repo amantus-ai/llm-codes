@@ -2,7 +2,7 @@
 
 # Deployment
 
-llm-codes is a Next.js 15 application optimized for serverless deployment with built-in support for Vercel, Netlify, and standalone Node.js environments.
+llm-codes is a Next.js 16 application optimized for serverless deployment with built-in support for Vercel, Netlify, and standalone Node.js environments.
 
 ## Overview
 
@@ -125,7 +125,7 @@ VERCEL_URL=https://your-deployment.vercel.app
 ### Performance Settings
 
 **Caching Strategy** - 30-day Redis cache with LZ-string compression (redis-cache.ts lines 76-88)
-**Batch Processing** - 20 concurrent URLs per batch (constants.ts line 448)
+**Batch Processing** - 10 concurrent URLs per batch (constants.ts)
 **Function Timeouts** - 60 seconds for Firecrawl API calls (vercel.json line 4)
 **Compression** - Automatic for content >5KB (redis-cache.ts line 26)
 

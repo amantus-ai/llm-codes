@@ -25,9 +25,9 @@ llm.codes is a high-performance web service that converts JavaScript-heavy docum
 
 **Framework & Language**:
 
-- Next.js 15 with App Router - `next.config.js`, `src/app/` directory structure
-- TypeScript 5.8 with strict mode - `tsconfig.json` (lines 7: `"strict": true`)
-- React 19 - `package.json` (line 54: `"react": "^19.1.0"`)
+- Next.js 16 with App Router - `next.config.js`, `src/app/` directory structure
+- TypeScript 6 with strict mode - `tsconfig.json` (lines 7: `"strict": true`)
+- React 19 - `package.json`
 
 **UI & Styling**:
 
@@ -45,7 +45,7 @@ llm.codes is a high-performance web service that converts JavaScript-heavy docum
 
 - Upstash Redis with LZ compression - `src/lib/cache/redis-cache.ts` (lines 1-323)
 - Two-tier caching (L1 memory + L2 Redis) - `src/lib/cache/redis-cache.ts` (lines 104-134)
-- Batch processing (20 URLs concurrent) - `src/constants.ts` (line 442)
+- Batch processing (10 URLs concurrent) - `src/constants.ts`
 
 **Testing & Quality**:
 

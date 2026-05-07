@@ -2,7 +2,7 @@
 
 # Build System
 
-llm.codes uses Next.js 15 with Turbopack for development and TypeScript for type safety. The build system is optimized for fast development iterations and production deployment on Vercel.
+llm.codes uses Next.js 16 with Turbopack for development and TypeScript for type safety. The build system is optimized for fast development iterations and production deployment on Vercel.
 
 ## Build Configuration
 
@@ -127,8 +127,8 @@ UPSTASH_REDIS_REST_TOKEN=your_redis_token
 
 **Core Build Tools**
 
-- Next.js 15.3.3 - React framework with app router
-- TypeScript 5.8.3 - Type safety
+- Next.js 16 - React framework with app router
+- TypeScript 6 - Type safety
 - Tailwind CSS 4.0.0 - Styling with PostCSS
 - Vitest 3.2.3 - Test runner
 

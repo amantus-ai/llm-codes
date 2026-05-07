@@ -4,7 +4,7 @@
 
 ## Overview
 
-This guide covers the development environment setup, coding conventions, implementation patterns, and workflows for the llm.codes project. The codebase follows strict TypeScript practices with comprehensive testing and emphasizes performance through parallel processing and multi-tier caching. Development uses Next.js 15 with Turbopack for fast iteration, Vitest for testing, and follows a consistent pattern-based architecture.
+This guide covers the development environment setup, coding conventions, implementation patterns, and workflows for the llm.codes project. The codebase follows strict TypeScript practices with comprehensive testing and emphasizes performance through parallel processing and multi-tier caching. Development uses Next.js 16 with Turbopack for fast iteration, Vitest for testing, and follows a consistent pattern-based architecture.
 
 ## Development Environment
 
@@ -461,7 +461,7 @@ describe("module-name", () => {
 
 **Parallel Processing** (`src/constants.ts` line 442):
 
-- Batch size: 20 concurrent URLs
+- Batch size: 10 concurrent URLs
 - Prevents API rate limiting
 - Optimizes processing time
 

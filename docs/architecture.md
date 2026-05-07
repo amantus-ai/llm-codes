@@ -17,7 +17,6 @@ llm.codes is a Next.js application that converts JavaScript-heavy documentation 
 **API Layer** - Next.js API routes in src/app/api/
 
 - Single URL Scraping: src/app/api/scrape/route.ts (lines 9-164)
-- Streaming Scraping: src/app/api/scrape/stream/route.ts
 - Firecrawl Crawl Mode: src/app/api/crawl/start/route.ts and src/app/api/crawl/[jobId]/status/route.ts
 - Cache Statistics: src/app/api/cache/stats/route.ts
 
@@ -45,7 +44,6 @@ llm.codes is a Next.js application that converts JavaScript-heavy documentation 
 
 - src/app/page.tsx - Main React component handling user interaction, progress tracking, file downloads
 - src/app/api/scrape/route.ts - Primary API endpoint with retry logic (lines 56-123), cache checking (lines 31-46)
-- src/app/api/scrape/stream/route.ts - SSE endpoint for queued multi-URL scraping
 - src/app/api/crawl/start/route.ts - Starts Firecrawl crawl jobs
 - src/app/api/crawl/[jobId]/status/route.ts - Polls Firecrawl crawl jobs and streams page results
 
@@ -85,11 +83,11 @@ POST /api/scrape → Check L1/L2 cache (lines 31-46)
 → Response validation → Cache storage → Return markdown
 ```
 
-**3. Multi-URL Processing Flow** (src/app/page.tsx and src/app/api/scrape/stream/route.ts)
+**3. Multi-URL Processing Flow** (src/app/page.tsx)
 
 ```typescript
 Root URL scrape → Shared link extraction → Bounded queue/concurrency
-→ Individual /api/scrape calls or SSE stream route
+→ Individual /api/scrape calls
 → Cache each page → Aggregate results
 ```
 
@@ -138,7 +136,7 @@ API errors → Exponential backoff retry (max 5 attempts)
 
 **Performance Optimizations**
 
-- Parallel batch processing (20 concurrent requests)
+- Parallel batch processing (10 concurrent requests)
 - Set-based URL deduplication preventing redundant fetches
 - Progressive UI updates every 100 processed URLs
 - 30-day cache reduces API calls by 70%+

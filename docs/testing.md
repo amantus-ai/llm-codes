@@ -20,7 +20,6 @@ Testing approach: Unit tests for utilities and components, integration tests for
 **Integration Tests** - API routes with mocked external dependencies
 
 - Main scrape endpoint: `src/app/api/scrape/__tests__/route.test.ts`
-- Streaming scrape endpoint: `src/app/api/scrape/stream/__tests__/route.test.ts`
 - Crawl endpoints: `src/app/api/crawl/**/__tests__/route.test.ts`
 - Firecrawl client: `src/lib/__tests__/firecrawl.test.ts`
 - Redis cache: `src/lib/cache/__tests__/redis-cache.test.ts`
