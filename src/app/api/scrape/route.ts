@@ -115,7 +115,6 @@ export async function POST(request: NextRequest) {
           try {
             const data = await scrapeFirecrawlUrl(FIRECRAWL_API_KEY, url, {
               formats: ["markdown"],
-              onlyMainContent: true,
               waitFor: PROCESSING_CONFIG.FIRECRAWL_WAIT_TIME,
               timeout: PROCESSING_CONFIG.FIRECRAWL_TIMEOUT,
             });

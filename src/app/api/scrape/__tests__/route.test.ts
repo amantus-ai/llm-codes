@@ -122,6 +122,24 @@ describe("POST /api/scrape", () => {
     expect(cacheService.firecrawlCircuitBreaker.recordSuccess).toHaveBeenCalled();
   });
 
+  it("lets the Firecrawl client choose main-content behavior by URL", async () => {
+    vi.mocked(scrapeFirecrawlUrl).mockResolvedValue({
+      success: true,
+      data: { markdown: "# Tailwind\n\n" + "content ".repeat(80) },
+    });
+
+    const response = await POST(
+      scrapeRequest({ url: "https://tailwindcss.com/docs/installation/using-vite" }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(scrapeFirecrawlUrl).toHaveBeenCalledWith(
+      "test-api-key",
+      "https://tailwindcss.com/docs/installation/using-vite",
+      expect.not.objectContaining({ onlyMainContent: true }),
+    );
+  });
+
   it("fails fast when the circuit breaker is open", async () => {
     vi.mocked(cacheService.firecrawlCircuitBreaker.canRequest).mockResolvedValue(false);
 
