@@ -77,7 +77,7 @@ describe("Home Page", () => {
     expect(input).toHaveValue("https://developer.apple.com/documentation/swiftui");
   });
 
-  it("should validate URLs", () => {
+  it("should validate URLs", async () => {
     render(<Home />);
 
     const input = screen.getByPlaceholderText("https://developer.apple.com/documentation/...");
@@ -90,7 +90,29 @@ describe("Home Page", () => {
     // Test invalid URL format
     fireEvent.change(input, { target: { value: "not-a-url" } });
     fireEvent.click(button);
-    expect(screen.getByText("URL must start with https:// or http://")).toBeInTheDocument();
+    expect(screen.getByText(/Enter a documentation URL/)).toBeInTheDocument();
+
+    // Test bare host normalization
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: true,
+        data: { markdown: "# OpenClaw\n\n" + "content ".repeat(80) },
+        contentLength: 650,
+      }),
+    } as Response);
+
+    fireEvent.change(input, { target: { value: "docs.openclaw.ai" } });
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        "/api/scrape",
+        expect.objectContaining({
+          body: expect.stringContaining('"url":"https://docs.openclaw.ai/"'),
+        }),
+      );
+    });
 
     // Test invalid domain
     fireEvent.change(input, { target: { value: "https://invalid-domain.com" } });

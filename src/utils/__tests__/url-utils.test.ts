@@ -3,6 +3,7 @@ import {
   isValidDocumentationUrl,
   getSupportedDomainsText,
   extractUrlFromQueryString,
+  normalizeDocumentationInput,
   updateUrlWithDocumentation,
   generateFilename,
 } from "../url-utils";
@@ -224,6 +225,29 @@ describe("url-utils", () => {
       expect(extractUrlFromQueryString("")).toBe(null);
       expect(extractUrlFromQueryString("random-string")).toBe(null);
       expect(extractUrlFromQueryString("key=value")).toBe(null);
+    });
+  });
+
+  describe("normalizeDocumentationInput", () => {
+    it("should keep full URLs intact", () => {
+      expect(normalizeDocumentationInput("https://docs.openclaw.ai/")).toBe(
+        "https://docs.openclaw.ai/",
+      );
+      expect(normalizeDocumentationInput("http://docs.example.com/")).toBe(
+        "http://docs.example.com/",
+      );
+    });
+
+    it("should add https to bare documentation hosts", () => {
+      expect(normalizeDocumentationInput("docs.openclaw.ai")).toBe("https://docs.openclaw.ai/");
+      expect(normalizeDocumentationInput(" docs.openclaw.ai/llms.txt ")).toBe(
+        "https://docs.openclaw.ai/llms.txt",
+      );
+    });
+
+    it("should not turn arbitrary text into a URL", () => {
+      expect(normalizeDocumentationInput("not a url")).toBe("not a url");
+      expect(normalizeDocumentationInput("localhost")).toBe("localhost");
     });
   });
 

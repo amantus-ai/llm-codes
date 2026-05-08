@@ -20,11 +20,26 @@ export function getSupportedDomainsText(): string {
   return "Most documentation pages are supported";
 }
 
+export function normalizeDocumentationInput(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed) return "";
+
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (trimmed.includes(".") && !trimmed.includes(" ")) {
+    return new URL(`https://${trimmed}`).toString();
+  }
+
+  return trimmed;
+}
+
 export function extractUrlFromQueryString(queryString: string): string | null {
   if (!queryString) return null;
 
   // Try to decode first in case it's URL-encoded
-  const decoded = decodeURIComponent(queryString);
+  const decoded = normalizeDocumentationInput(decodeURIComponent(queryString));
 
   // Check if it looks like a URL (starts with http)
   if (decoded.startsWith("http://") || decoded.startsWith("https://")) {

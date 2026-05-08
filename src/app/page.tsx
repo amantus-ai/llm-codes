@@ -7,6 +7,7 @@ import {
   extractUrlFromQueryString,
   getSupportedDomainsText,
   isValidDocumentationUrl,
+  normalizeDocumentationInput,
   updateUrlWithDocumentation,
 } from "@/utils/url-utils";
 import { extractLinks } from "@/utils/content-processing";
@@ -385,32 +386,31 @@ export default function Home() {
       return;
     }
 
-    const trimmedUrl = url.trim();
+    const normalizedUrl = normalizeDocumentationInput(url);
 
-    // Check for common URL mistakes
-    if (!trimmedUrl.startsWith("http://") && !trimmedUrl.startsWith("https://")) {
-      setError("URL must start with https:// or http://");
+    if (!normalizedUrl.startsWith("http://") && !normalizedUrl.startsWith("https://")) {
+      setError("Enter a documentation URL, like docs.openclaw.ai or https://docs.openclaw.ai/");
       return;
     }
 
-    if (!isValidDocumentationUrl(trimmedUrl)) {
+    if (!isValidDocumentationUrl(normalizedUrl)) {
       setError(`URL must be from one of the ${getSupportedDomainsText()}`);
 
       // Provide helpful suggestions
-      if (trimmedUrl.includes("apple.com") && !trimmedUrl.includes("/documentation/")) {
+      if (normalizedUrl.includes("apple.com") && !normalizedUrl.includes("/documentation/")) {
         setError(
           "For Apple documentation, use URLs starting with https://developer.apple.com/documentation/",
         );
-      } else if (trimmedUrl.includes("github.com")) {
+      } else if (normalizedUrl.includes("github.com")) {
         setError("For GitHub documentation, use GitHub Pages URLs (*.github.io), not github.com");
       }
 
       return;
     }
 
-    // Update URL with trimmed version
-    if (trimmedUrl !== url) {
-      setUrl(trimmedUrl);
+    // Update URL with normalized version
+    if (normalizedUrl !== url) {
+      setUrl(normalizedUrl);
     }
 
     setError("");
@@ -424,7 +424,7 @@ export default function Home() {
     setCrawlCreditsUsed(0);
 
     // Update the browser URL to include the documentation URL
-    updateUrlWithDocumentation(trimmedUrl);
+    updateUrlWithDocumentation(normalizedUrl);
 
     // Request notification permission on first use
     await requestNotificationPermission();
@@ -436,7 +436,7 @@ export default function Home() {
     try {
       log(`🚀 Starting documentation processing...`);
       log(`📊 Configuration: Depth ${depth}, Max URLs: ${maxUrls}`);
-      log(`🔗 Starting URL: ${trimmedUrl}`);
+      log(`🔗 Starting URL: ${normalizedUrl}`);
 
       if (useCrawlMode) {
         log(`🕷️ Using crawl mode for faster processing...`);
@@ -446,7 +446,7 @@ export default function Home() {
           crawlCompleteRef.current = { resolve, reject };
         });
 
-        await startCrawl(trimmedUrl, maxUrls);
+        await startCrawl(normalizedUrl, maxUrls);
 
         // Wait for crawl to complete and get results
         try {
@@ -459,12 +459,12 @@ export default function Home() {
         }
       } else {
         processedResults = await processUrlsWithDepth(
-          [trimmedUrl],
+          [normalizedUrl],
           0,
           depth,
           maxUrls,
           new Set(),
-          trimmedUrl,
+          normalizedUrl,
         );
       }
 
