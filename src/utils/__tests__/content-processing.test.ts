@@ -173,6 +173,23 @@ describe("content-processing", () => {
       expect(links[0]).toBe("https://developer.apple.com/documentation/swiftui/view");
     });
 
+    it("should follow Apple Human Interface Guidelines links", () => {
+      const input = `
+        [Foundations](https://developer.apple.com/design/human-interface-guidelines/foundations)
+        [Patterns](/design/human-interface-guidelines/patterns)
+        [SwiftUI](https://developer.apple.com/documentation/swiftui)
+      `;
+      const links = extractLinks(
+        input,
+        "https://developer.apple.com/design/human-interface-guidelines",
+      );
+
+      expect(links).toEqual([
+        "https://developer.apple.com/design/human-interface-guidelines/foundations",
+        "https://developer.apple.com/design/human-interface-guidelines/patterns",
+      ]);
+    });
+
     it("should filter out different domain URLs", () => {
       const input = `
         [Apple](https://developer.apple.com/documentation/uikit)

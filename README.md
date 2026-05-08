@@ -6,9 +6,9 @@ A high-performance web service that converts JavaScript-heavy documentation site
 
 📖 **Read the full story**: [How llm.codes Transforms Developer Documentation for AI Agents](https://steipete.me/posts/llm-codes-transform-developer-docs)
 
-![Web Documentation to Markdown Converter](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=nextdotjs)
+![Web Documentation to Markdown Converter](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=nextdotjs)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=flat-square&logo=tailwind-css)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?style=flat-square&logo=typescript)
+![TypeScript](https://img.shields.io/badge/TypeScript-6-blue?style=flat-square&logo=typescript)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
 ## Technical Architecture
@@ -32,6 +32,8 @@ Modern documentation sites (especially Apple's) use heavy JavaScript rendering t
   - Duplicate content across pages
   - Empty sections and formatting artifacts
 - **Recursive Crawling**: Configurable depth-first crawling with intelligent link extraction
+- **Firecrawl Crawl Mode**: Optional crawl API path with server-side depth/limit enforcement and SSE progress
+- **Code-Only Output**: Extract fenced examples only and skip pages without code blocks
 - **Browser Notifications**: Web Notifications API integration for background processing alerts
 - **URL State Management**: Query parameter-based URL sharing for easy documentation links
 
@@ -124,10 +126,12 @@ The easiest way to deploy is using Vercel:
 
 2. **Configure Options** (click "Show Options"):
    - **Crawl Depth**: How deep to follow links (0 = main page only, max 5)
-   - **Max URLs**: Maximum number of pages to process (1-1000, default 200)
+   - **Max URLs**: Maximum number of pages to process (1-2000, default 200)
    - **Filter URLs**: Remove hyperlinks from content (recommended for LLMs)
    - **Deduplicate Content**: Remove duplicate paragraphs to save tokens
    - **Filter Availability**: Remove platform availability strings (iOS 14.0+, etc.)
+   - **Extract Code Blocks Only**: Include fenced examples only and skip pages without examples
+   - **Use Deep Crawl Mode**: Use Firecrawl's crawl API with the selected depth and page limit
 
 3. **Process**: Click "Process Documentation" and grant notification permissions if prompted
 
@@ -171,6 +175,13 @@ A small number of popular documentation sites don't follow standard patterns and
 - Material-UI (`mui.com/material-ui`)
 - pip (`pip.pypa.io/en/stable`)
 - PHP (`www.php.net/docs.php`)
+- docs.rs (`docs.rs`)
+- Zulip API (`zulip.com/api`)
+- Nutrient API (`www.nutrient.io/api`)
+- Playdate SDK (`sdk.play.date`)
+- MusicKit JS (`js-cdn.music.apple.com/musickit`)
+- React Spring (`react-spring.io`)
+- Valtio (`valtio.pmnd.rs`)
 
 ### Adding New Sites
 
@@ -183,8 +194,8 @@ If you find a documentation site that isn't supported, please [open an issue](ht
 | Option         | Description                          | Default | Range  |
 | -------------- | ------------------------------------ | ------- | ------ |
 | Crawl Depth    | How many levels deep to follow links | 2       | 0-5    |
-| Max URLs       | Maximum number of URLs to process    | 200     | 1-1000 |
-| Batch Size     | URLs processed concurrently          | 20      | N/A    |
+| Max URLs       | Maximum number of URLs to process    | 200     | 1-2000 |
+| Batch Size     | URLs processed concurrently          | 10      | N/A    |
 | Cache Duration | How long results are cached          | 30 days | N/A    |
 
 ## API Architecture
@@ -195,7 +206,7 @@ The core API endpoint that handles documentation conversion.
 
 **Request Flow:**
 
-1. URL validation against allowed domains whitelist
+1. URL validation against documentation URL patterns and explicit exceptions
 2. Cache check (Redis/in-memory with 30-day TTL)
 3. Firecrawl API call with optimized scraping parameters
 4. Content post-processing and filtering
@@ -246,25 +257,27 @@ llm-codes/
 ├── src/
 │   ├── app/
 │   │   ├── api/
-│   │   │   └── scrape/
-│   │   │       ├── route.ts           # API endpoint
-│   │   │       └── __tests__/         # API tests
+│   │   │   ├── scrape/                # Single-page scrape endpoint
+│   │   │   ├── crawl/                 # Firecrawl crawl endpoints
+│   │   │   └── cache/                 # Cache stats endpoint
 │   │   ├── globals.css                # Global styles & Tailwind
 │   │   ├── layout.tsx                 # Root layout
 │   │   ├── page.tsx                   # Main page component
 │   │   └── icon.tsx                   # Dynamic favicon
 │   ├── constants.ts                   # Configuration constants
 │   ├── utils/                         # Utility functions
+│   │   ├── code-extraction.ts         # Code-block extraction
 │   │   ├── content-processing.ts      # Content cleaning logic
 │   │   ├── file-utils.ts              # File handling
-│   │   ├── notifications.ts           # Browser notifications
-│   │   ├── scraping.ts                # Scraping utilities
+│   │   ├── result-processing.ts       # Final output shaping
 │   │   ├── url-utils.ts               # URL validation & handling
 │   │   └── __tests__/                 # Utility tests
+│   ├── lib/                           # Firecrawl, cache, retry, and HTTP clients
 │   └── test/
 │       └── setup.ts                   # Test configuration
 ├── public/
-│   └── favicon.svg                    # Static favicon
+│   ├── logo.png                       # App icon
+│   └── manifest.json                  # PWA manifest
 ├── next.config.js                     # Next.js configuration
 ├── postcss.config.js                  # PostCSS with Tailwind v4
 ├── tsconfig.json                      # TypeScript configuration
@@ -293,8 +306,8 @@ llm-codes/
 ### Testing Strategy
 
 ```bash
-# Run all tests
-pnpm test
+# Run all tests once
+pnpm run test:run
 
 # Run tests with UI
 pnpm run test:ui
@@ -304,6 +317,12 @@ pnpm run test:coverage
 
 # Type checking
 pnpm run type-check
+
+# Full local gate
+pnpm run verify
+
+# Live Firecrawl mode smoke without a browser
+pnpm run verify:modes:live
 ```
 
 Tests cover:
@@ -366,54 +385,6 @@ Benefits:
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Supported Documentation Sites
-
-LLM Codes supports 69 documentation sites across multiple categories:
-
-### Programming Languages
-
-- Python, MDN Web Docs, TypeScript, Rust, Go, Java, Ruby, PHP, Swift, Kotlin
-
-### Web Frameworks
-
-- React, Vue.js, Angular, Next.js, Nuxt, Svelte, Django, Flask, Express.js, Laravel
-
-### Cloud Platforms
-
-- AWS, Google Cloud, Azure, DigitalOcean, Heroku, Vercel, Netlify, Salesforce
-
-### Databases
-
-- PostgreSQL, MongoDB, MySQL, Redis, Elasticsearch, Couchbase, Cassandra
-
-### DevOps & Infrastructure
-
-- Docker, Kubernetes, Terraform, Ansible, GitHub, GitLab
-
-### AI/ML Libraries
-
-- PyTorch, TensorFlow, Hugging Face, scikit-learn, LangChain, pandas, NumPy
-
-### CSS Frameworks
-
-- Tailwind CSS, Bootstrap, Material-UI, Chakra UI
-
-### Build Tools & Package Managers
-
-- npm, webpack, Vite, pip, Cargo, Maven
-
-### Testing Frameworks
-
-- Jest, Cypress, Playwright, pytest, Mocha
-
-### Mobile Development
-
-- React Native, Flutter, Android, Apple Developer
-
-## Missing a Site?
-
-If you need support for a documentation site that's not listed, please [open an issue on GitHub](https://github.com/amantus-ai/llm-codes/issues)!
 
 ## Architecture Decisions
 

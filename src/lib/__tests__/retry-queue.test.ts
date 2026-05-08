@@ -15,15 +15,14 @@ const mockRedis = {
   zcount: vi.fn(),
   zrange: vi.fn(),
   smembers: vi.fn(),
+  sadd: vi.fn(),
 };
 
-const describeFn = process.env.CI ? describe.skip : describe;
-
-describeFn("RetryQueue", () => {
+describe("RetryQueue", () => {
   let retryQueue: RetryQueue;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     retryQueue = new RetryQueue(mockRedis as unknown as Redis, "test");
   });
 
@@ -166,6 +165,24 @@ describeFn("RetryQueue", () => {
       expect(tasks).toHaveLength(1);
       expect(tasks[0].id).toBe("task-2");
       expect(consoleSpy).toHaveBeenCalled();
+      expect(mockRedis.zrem).toHaveBeenCalledWith("test:queue", "task-1", "task-2");
+
+      consoleSpy.mockRestore();
+    });
+
+    it("should remove malformed ready tasks even when none can be parsed", async () => {
+      mockRedis.zrange.mockResolvedValue(["task-1"]);
+      mockRedis.pipeline.mockReturnValue({
+        get: vi.fn().mockReturnThis(),
+        exec: vi.fn().mockResolvedValue(["invalid-json"]),
+      });
+      mockRedis.zrem.mockResolvedValue(1);
+
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const tasks = await retryQueue.dequeue();
+
+      expect(tasks).toEqual([]);
+      expect(mockRedis.zrem).toHaveBeenCalledWith("test:queue", "task-1");
 
       consoleSpy.mockRestore();
     });
@@ -263,7 +280,7 @@ describeFn("RetryQueue", () => {
         { id: "task-2", url: "https://example.com/2", attempt: 1 },
       ];
 
-      mockRedis.zrangebyscore.mockResolvedValue(["task-1", "task-2"]);
+      mockRedis.zrange.mockResolvedValue(["task-1", "task-2"]);
       mockRedis.pipeline.mockReturnValue({
         get: vi.fn().mockReturnThis(),
         exec: vi.fn().mockResolvedValue(tasks.map((t) => JSON.stringify(t))),
@@ -281,7 +298,7 @@ describeFn("RetryQueue", () => {
     it("should re-queue failed tasks", async () => {
       const task = { id: "task-1", url: "https://example.com", attempt: 1 };
 
-      mockRedis.zrangebyscore.mockResolvedValue(["task-1"]);
+      mockRedis.zrange.mockResolvedValue(["task-1"]);
       mockRedis.pipeline.mockReturnValue({
         get: vi.fn().mockReturnThis(),
         exec: vi.fn().mockResolvedValue([JSON.stringify(task)]),
@@ -301,12 +318,22 @@ describeFn("RetryQueue", () => {
     it("should skip tasks that exceeded max attempts", async () => {
       const task = { id: "task-1", url: "https://example.com", attempt: 6 };
 
-      mockRedis.zrangebyscore.mockResolvedValue(["task-1"]);
+      mockRedis.zrange.mockResolvedValue(["task-1"]);
       mockRedis.pipeline.mockReturnValue({
         get: vi.fn().mockReturnThis(),
         exec: vi.fn().mockResolvedValue([JSON.stringify(task)]),
       });
       mockRedis.zrem.mockResolvedValue(1);
+      mockRedis.pipeline.mockReturnValueOnce({
+        get: vi.fn().mockReturnThis(),
+        exec: vi.fn().mockResolvedValue([JSON.stringify(task)]),
+      });
+      const markFailedPipeline = {
+        set: vi.fn().mockReturnThis(),
+        sadd: vi.fn().mockReturnThis(),
+        exec: vi.fn().mockResolvedValue([]),
+      };
+      mockRedis.pipeline.mockReturnValueOnce(markFailedPipeline);
 
       const callback = vi.fn();
       const result = await retryQueue.processReady(callback, { maxAttempts: 5 });
@@ -314,6 +341,33 @@ describeFn("RetryQueue", () => {
       expect(result.processed).toBe(0);
       expect(result.failed).toBe(1);
       expect(callback).not.toHaveBeenCalled();
+      expect(markFailedPipeline.sadd).toHaveBeenCalledWith("test:failed", "task-1");
+    });
+
+    it("should process the final attempt before marking a task failed", async () => {
+      const task = { id: "task-1", url: "https://example.com", attempt: 5 };
+      const dequeuePipeline = {
+        get: vi.fn().mockReturnThis(),
+        exec: vi.fn().mockResolvedValue([JSON.stringify(task)]),
+      };
+      const markFailedPipeline = {
+        set: vi.fn().mockReturnThis(),
+        sadd: vi.fn().mockReturnThis(),
+        exec: vi.fn().mockResolvedValue([]),
+      };
+
+      mockRedis.zrange.mockResolvedValue(["task-1"]);
+      mockRedis.pipeline.mockReturnValueOnce(dequeuePipeline);
+      mockRedis.pipeline.mockReturnValueOnce(markFailedPipeline);
+      mockRedis.zrem.mockResolvedValue(1);
+
+      const callback = vi.fn().mockResolvedValue(false);
+      const result = await retryQueue.processReady(callback, { maxAttempts: 5 });
+
+      expect(callback).toHaveBeenCalledWith(task);
+      expect(result).toEqual({ processed: 0, failed: 1 });
+      expect(mockRedis.zadd).not.toHaveBeenCalled();
+      expect(markFailedPipeline.sadd).toHaveBeenCalledWith("test:failed", "task-1");
     });
   });
 

@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Web Documentation to llms.txt Generator | LLM.codes",
   description:
-    "Convert technical documentation from 69+ major sites to clean, LLM-friendly Markdown format. Support for programming languages, frameworks, cloud platforms, databases, and more. Free tool by @steipete.",
+    "Convert technical documentation from modern docs sites to clean, LLM-friendly Markdown format. Support for programming languages, frameworks, cloud platforms, databases, and more. Free tool by @steipete.",
   keywords:
     "documentation converter, Markdown converter, API documentation, developer tools, React docs, Python docs, AWS documentation, TypeScript docs, documentation export, LLM training data, AI-friendly docs, technical documentation, programming documentation",
   authors: [{ name: "Peter Steinberger", url: "https://steipete.com" }],
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Web Documentation to llms.txt Generator",
     description:
-      "Convert documentation from 69+ technical sites to clean, LLM-friendly Markdown. Support for programming languages, frameworks, cloud platforms, and more.",
+      "Convert documentation from modern technical sites to clean, LLM-friendly Markdown. Support for programming languages, frameworks, cloud platforms, and more.",
     url: "https://llm.codes",
     siteName: "LLM.codes",
     images: [
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Web Documentation to llms.txt Generator",
     description:
-      "Convert documentation from 69+ technical sites to clean, LLM-friendly Markdown. Free tool by @steipete.",
+      "Convert documentation from modern technical sites to clean, LLM-friendly Markdown. Free tool by @steipete.",
     creator: "@steipete",
     images: ["https://llm.codes/og-image.png"],
   },

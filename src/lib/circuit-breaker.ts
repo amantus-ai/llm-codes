@@ -222,15 +222,3 @@ export class CircuitBreaker {
     });
   }
 }
-
-// Export singleton instance for Firecrawl API
-export const firecrawlCircuitBreaker = new CircuitBreaker(
-  null, // Will be initialized with Redis instance
-  "firecrawl",
-  {
-    failureThreshold: 50, // 10x more lenient - was 5
-    successThreshold: 2,
-    timeout: 60000, // 1 minute
-    halfOpenRequests: 3,
-  },
-);

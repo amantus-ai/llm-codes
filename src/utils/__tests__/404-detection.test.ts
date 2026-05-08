@@ -12,6 +12,7 @@ describe("is404Page", () => {
     expect(is404Page("Sorry, we can't find that page")).toBe(true);
     expect(is404Page("Oops! That page can't be found.")).toBe(true);
     expect(is404Page("The page you requested was not found")).toBe(true);
+    expect(is404Page("There isn't a GitHub Pages site here.")).toBe(true);
   });
 
   it("should be case insensitive", () => {

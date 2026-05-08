@@ -16,7 +16,7 @@ const nextConfig = {
 
 **TypeScript Configuration** - Type checking config in `tsconfig.json` (lines 1-28)
 
-- Target: ES5 for broad browser compatibility
+- Target: ES2022
 - Strict mode enabled for type safety
 - Path aliases: `@/*` maps to `./src/*`
 - Next.js plugin for enhanced type checking
@@ -84,15 +84,16 @@ pnpm run lint
 ```
 
 - Uses oxlint and oxfmt
-- Configuration in `.eslintrc.json` (lines 1-13)
+- Rules are passed through the `lint` script in `package.json`
 - Enforces code style and catches common issues
 
 **Testing**
 
 ```bash
-pnpm test          # Run all tests
-pnpm run test:ui   # Interactive test UI
-pnpm run test:coverage  # Generate coverage report
+pnpm run test:run          # Run all tests once
+pnpm run test:ui           # Interactive test UI
+pnpm run test:coverage     # Generate coverage report
+pnpm run verify:modes:live # Live Firecrawl mode smoke
 ```
 
 - Uses Vitest with React Testing Library
@@ -129,14 +130,13 @@ UPSTASH_REDIS_REST_TOKEN=your_redis_token
 
 - Next.js 16 - React framework with app router
 - TypeScript 6 - Type safety
-- Tailwind CSS 4.0.0 - Styling with PostCSS
-- Vitest 3.2.3 - Test runner
+- Tailwind CSS 4 - Styling with PostCSS
+- Vitest 4 - Test runner
 
 **Code Quality Tools**
 
-- ESLint 9.29.0 - JavaScript linting
-- Prettier 3.5.3 - Code formatting
-- @typescript-eslint - TypeScript-specific linting
+- oxlint - JavaScript/TypeScript linting
+- oxfmt - Formatting
 
 ### Installation
 
@@ -144,8 +144,8 @@ UPSTASH_REDIS_REST_TOKEN=your_redis_token
 
 ```bash
 # Clone repository
-git clone https://github.com/amantusai/llm-tech.git
-cd llm-tech
+git clone https://github.com/amantus-ai/llm-codes.git
+cd llm-codes
 
 # Install dependencies
 pnpm install
@@ -198,8 +198,7 @@ pnpm run dev
 - `tsconfig.json` - TypeScript compiler options
 - `postcss.config.js` - PostCSS with Tailwind CSS v4
 - `vitest.config.ts` - Test runner configuration
-- `.eslintrc.json` - Linting rules
-- `.prettierrc` - Code formatting rules
+- `package.json` - Lint and format command configuration
 - `vercel.json` - Deployment configuration
 
 ### Common Build Issues

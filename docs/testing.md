@@ -2,7 +2,7 @@
 
 # Testing
 
-The llm-codes project uses Vitest for comprehensive unit and integration testing, ensuring high code quality and reliability through 95%+ test coverage. Tests are organized by feature and follow consistent patterns for easy maintenance.
+The llm-codes project uses Vitest for unit and integration testing, with focused live smoke scripts for Firecrawl behavior that cannot be proven by mocks alone. Tests are organized by feature and follow consistent patterns for easy maintenance.
 
 ## Overview
 
@@ -40,12 +40,17 @@ pnpm run test:api               # Run Firecrawl/API route tests once
 pnpm run test:coverage          # Generate coverage report
 pnpm run verify                 # Full local gate: lint, types, tests, coverage, build
 pnpm run verify:firecrawl:live  # Optional live Firecrawl smoke, requires FIRECRAWL_API_KEY
+pnpm run verify:modes:live      # Optional live code-only + crawl-mode smoke, no browser needed
 ```
 
 `verify:firecrawl:live` starts the production Next server locally, posts to `/api/scrape`,
 checks that the root scrape returns meaningful markdown, verifies follow-up link discovery, and
-scrapes `/llms.txt` when discovered. It is the CLI replacement for manually opening the browser to
-prove Firecrawl processing still works.
+scrapes `/llms.txt` when discovered.
+
+`verify:modes:live` starts the production Next server locally unless `--base-url` is passed, checks
+code block extraction against several real docs sites, starts a small Firecrawl crawl with
+`limit=3` and `maxDepth=1`, and reads the SSE status stream until completion. It is the CLI
+replacement for manually opening the browser to prove the optional processing modes still work.
 
 **Test Environment Setup** - Global configuration in **src/test/setup.ts**:
 
@@ -126,9 +131,9 @@ for (let i = 0; i < 5; i++) {
 
 **Coverage Configuration**:
 
-- Target: 95%+ coverage maintained
 - Coverage reports: Generated with `pnpm run test:coverage`
 - Output location: **coverage/** directory
+- Current repo-wide coverage is reported by Vitest during the gate; focus new tests on behavior and regression risk rather than chasing a fixed percentage.
 
 **Common Test Utilities**:
 

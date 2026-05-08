@@ -5,6 +5,7 @@ import Image from "next/image";
 import { PROCESSING_CONFIG } from "@/constants";
 import {
   extractUrlFromQueryString,
+  generateDatedFilename,
   getSupportedDomainsText,
   isValidDocumentationUrl,
   normalizeDocumentationInput,
@@ -635,14 +636,9 @@ Code blocks only: ${codeBlocksOnly ? "Yes" : "No"}
     const blob = new Blob([content], { type: "text/markdown" });
     const downloadUrl = URL.createObjectURL(blob);
 
-    // Generate filename from the original URL
-    const urlPath = url.replace("https://developer.apple.com/documentation/", "");
-    const pathParts = urlPath.split("/").filter((part) => part.length > 0);
-    const filename = pathParts.length > 0 ? `${pathParts.join("-")}.md` : "apple-developer-docs.md";
-
     const a = document.createElement("a");
     a.href = downloadUrl;
-    a.download = filename;
+    a.download = generateDatedFilename(url);
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

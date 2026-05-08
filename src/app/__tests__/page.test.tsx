@@ -242,7 +242,7 @@ describe("Home Page", () => {
     });
   });
 
-  it("should handle supported domains popover", () => {
+  it("should render the supported domains help link", () => {
     render(<Home />);
 
     expect(screen.getByText(/Most documentation pages are supported/)).toBeInTheDocument();

@@ -30,7 +30,7 @@ llm.codes is a Next.js application that converts JavaScript-heavy documentation 
 
 - Content Processing: src/utils/content-processing.ts orchestrates filtering stages
 - Documentation Filter: src/utils/documentation-filter.ts (lines 33-80) applies 9 filter types
-- URL Utilities: src/utils/url-utils.ts validates against 69 whitelisted domains
+- URL Utilities: src/utils/url-utils.ts validates pattern-based documentation URLs plus explicit exceptions
 
 **Infrastructure** - Performance optimizations in src/lib/
 
@@ -51,7 +51,7 @@ llm.codes is a Next.js application that converts JavaScript-heavy documentation 
 
 - src/utils/content-processing.ts - Orchestrates multi-stage filtering, extracts links (lines 43-98)
 - src/utils/documentation-filter.ts - Comprehensive filter removing navigation, boilerplate, redundant content
-- src/utils/scraping.ts - Frontend utility for API communication
+- src/hooks/useCrawl.ts - Client hook for Firecrawl crawl-mode start/status/result handling
 
 **Infrastructure Components**
 

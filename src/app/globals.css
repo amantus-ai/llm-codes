@@ -9,8 +9,6 @@
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
     --primary: 217.2 91.2% 59.8%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
@@ -32,8 +30,6 @@
     --foreground: 210 40% 98%;
     --card: 222.2 84% 8%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 8%;
-    --popover-foreground: 210 40% 98%;
     --primary: 217.2 91.2% 59.8%;
     --primary-foreground: 222.2 47.4% 11.2%;
     --secondary: 217.2 32.6% 17.5%;
@@ -105,8 +101,6 @@
   --color-foreground: hsl(var(--foreground));
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
   --color-secondary: hsl(var(--secondary));
@@ -122,7 +116,6 @@
   --color-ring: hsl(var(--ring));
 }
 
-/* Animations for popover */
 @keyframes animate-in {
   from {
     opacity: 0;
@@ -131,17 +124,6 @@
   to {
     opacity: 1;
     transform: scale(1);
-  }
-}
-
-@keyframes animate-out {
-  from {
-    opacity: 1;
-    transform: scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: scale(0.95);
   }
 }
 
@@ -154,108 +136,12 @@
   }
 }
 
-@keyframes fade-out {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes zoom-in {
-  from {
-    transform: scale(0.95);
-  }
-  to {
-    transform: scale(1);
-  }
-}
-
-@keyframes zoom-out {
-  from {
-    transform: scale(1);
-  }
-  to {
-    transform: scale(0.95);
-  }
-}
-
-@keyframes slide-in-from-top {
-  from {
-    transform: translateY(-10px);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-@keyframes slide-in-from-left {
-  from {
-    transform: translateX(-10px);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes slide-in-from-right {
-  from {
-    transform: translateX(10px);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes slide-in-from-bottom {
-  from {
-    transform: translateY(10px);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-/* Utility classes for animations */
 .animate-in {
   animation: animate-in 200ms ease-out;
 }
 
-.animate-out {
-  animation: animate-out 200ms ease-in;
-}
-
 .fade-in-0 {
   animation: fade-in 200ms ease-out;
-}
-
-.fade-out-0 {
-  animation: fade-out 200ms ease-in;
-}
-
-.zoom-in-95 {
-  animation: zoom-in 200ms ease-out;
-}
-
-.zoom-out-95 {
-  animation: zoom-out 200ms ease-in;
-}
-
-.slide-in-from-top-2 {
-  animation: slide-in-from-top 200ms ease-out;
-}
-
-.slide-in-from-left-2 {
-  animation: slide-in-from-left 200ms ease-out;
-}
-
-.slide-in-from-right-2 {
-  animation: slide-in-from-right 200ms ease-out;
-}
-
-.slide-in-from-bottom-2 {
-  animation: slide-in-from-bottom 200ms ease-out;
 }
 
 /* Activity log */

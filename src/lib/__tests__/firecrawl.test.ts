@@ -5,6 +5,7 @@ import {
   getIncompleteContentReason,
   readFirecrawlMarkdown,
   scrapeFirecrawlUrl,
+  shouldUseMainContentOnly,
   startFirecrawlCrawl,
   userFacingFirecrawlError,
 } from "@/lib/firecrawl";
@@ -77,6 +78,41 @@ describe("firecrawl client", () => {
     );
   });
 
+  it("uses full-page content for Tailwind docs so navigation is retained", async () => {
+    vi.mocked(http2Fetch).mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        success: true,
+        data: { markdown: "# Tailwind" },
+      }),
+    } as unknown as Response);
+
+    await scrapeFirecrawlUrl("test-key", "https://tailwindcss.com/docs/installation/using-vite");
+
+    const scrapeBody = JSON.parse(vi.mocked(http2Fetch).mock.calls[0][1]?.body as string);
+    expect(scrapeBody.onlyMainContent).toBe(false);
+
+    vi.mocked(http2Fetch).mockClear();
+    vi.mocked(http2Fetch).mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ success: true, id: "crawl-123" }),
+    } as unknown as Response);
+
+    await startFirecrawlCrawl("test-key", "https://tailwindcss.com/docs/installation/using-vite", {
+      limit: 5,
+      maxDepth: 1,
+    });
+
+    const crawlBody = JSON.parse(vi.mocked(http2Fetch).mock.calls[0][1]?.body as string);
+    expect(crawlBody.scrapeOptions.onlyMainContent).toBe(false);
+  });
+
+  it("uses main-content extraction for normal documentation pages", () => {
+    expect(shouldUseMainContentOnly("https://docs.example.com/")).toBe(true);
+    expect(shouldUseMainContentOnly("https://tailwindcss.com/blog")).toBe(true);
+    expect(shouldUseMainContentOnly("not-a-url")).toBe(true);
+  });
+
   it("maps Firecrawl HTTP errors once", async () => {
     vi.mocked(http2Fetch).mockResolvedValue({
       ok: false,
@@ -113,6 +149,9 @@ describe("firecrawl client", () => {
     expect(getIncompleteContentReason("[Skip Navigation](#main)")).toContain("placeholder");
     expect(getIncompleteContentReason("Loading...")).toContain("placeholder");
     expect(getIncompleteContentReason("plain short text")).toContain("unstructured");
+    expect(getIncompleteContentReason("# 404\n\nThere isn't a GitHub Pages site here.")).toContain(
+      "not-found",
+    );
     expect(getIncompleteContentReason("# Useful docs\n\n" + "content ".repeat(80))).toBeNull();
     expect(userFacingFirecrawlError(504, "raw")).toBe("Gateway timeout. Please try again.");
   });

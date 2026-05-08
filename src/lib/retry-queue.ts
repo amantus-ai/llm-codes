@@ -10,6 +10,8 @@ interface RetryTask {
   metadata?: Record<string, unknown>;
 }
 
+const TASK_TTL_SECONDS = 24 * 60 * 60;
+
 export class RetryQueue {
   private redis: Redis | null;
   private keyPrefix: string;
@@ -56,7 +58,7 @@ export class RetryQueue {
       await this.redis.set(
         `${this.keyPrefix}:task:${task.id}`,
         taskData,
-        { ex: 24 * 60 * 60 }, // Expire after 24 hours
+        { ex: TASK_TTL_SECONDS }, // Expire after 24 hours
       );
 
       console.warn(`Task ${task.id} queued for retry at score ${score} (delay: ${delay}ms)`);
@@ -110,10 +112,8 @@ export class RetryQueue {
         }
       }
 
-      // Remove processed tasks from queue
-      if (tasks.length > 0) {
-        await this.redis.zrem(`${this.keyPrefix}:queue`, ...taskIds);
-      }
+      // Remove every claimed ready task. Invalid/missing task payloads should not poison the queue.
+      await this.redis.zrem(`${this.keyPrefix}:queue`, ...taskIds);
 
       return tasks;
     } catch (error) {
@@ -256,9 +256,10 @@ export class RetryQueue {
 
       for (const task of tasks) {
         try {
-          // Check if max attempts reached
-          if (task.attempt >= maxAttempts) {
+          // Check if max attempts were already exceeded.
+          if (task.attempt > maxAttempts) {
             console.warn(`Task ${task.id} exceeded max attempts (${maxAttempts})`);
+            await this.markFailed(task, `Exceeded max attempts (${maxAttempts})`);
             failed++;
             continue;
           }
@@ -269,22 +270,29 @@ export class RetryQueue {
           if (success) {
             processed++;
           } else {
-            // Re-queue for retry
-            await this.enqueue({
-              ...task,
-              attempt: task.attempt + 1,
-            });
+            if (task.attempt >= maxAttempts) {
+              await this.markFailed(task, `Failed after ${task.attempt} attempts`);
+            } else {
+              await this.enqueue({
+                ...task,
+                attempt: task.attempt + 1,
+              });
+            }
             failed++;
           }
         } catch (error) {
           logError(new Error(`Failed to process retry task: ${error}`), { task });
 
-          // Re-queue for retry
-          await this.enqueue({
-            ...task,
-            attempt: task.attempt + 1,
-            lastError: error instanceof Error ? error.message : "Unknown error",
-          });
+          const lastError = error instanceof Error ? error.message : "Unknown error";
+          if (task.attempt >= maxAttempts) {
+            await this.markFailed(task, lastError);
+          } else {
+            await this.enqueue({
+              ...task,
+              attempt: task.attempt + 1,
+              lastError,
+            });
+          }
           failed++;
         }
       }
@@ -293,6 +301,26 @@ export class RetryQueue {
     }
 
     return { processed, failed };
+  }
+
+  private async markFailed(task: RetryTask, lastError?: string): Promise<void> {
+    if (!this.redis) return;
+
+    const failedTask: RetryTask = {
+      ...task,
+      lastError: lastError || task.lastError,
+    };
+
+    try {
+      const pipeline = this.redis.pipeline();
+      pipeline.set(`${this.keyPrefix}:task:${task.id}`, JSON.stringify(failedTask), {
+        ex: TASK_TTL_SECONDS,
+      });
+      pipeline.sadd(`${this.keyPrefix}:failed`, task.id);
+      await pipeline.exec();
+    } catch (error) {
+      logError(new Error(`Failed to mark retry task as failed: ${error}`), { task });
+    }
   }
 
   /**

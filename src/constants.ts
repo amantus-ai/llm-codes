@@ -2,14 +2,14 @@
 export const DOCUMENTATION_PATTERNS = [
   {
     pattern:
-      /^https:\/\/(docs?|developers?|dev|learn|help|api|guide|wiki|devcenter)\.[^\/]+\.[^\/]+\//,
+      /^https:\/\/(?:[^\/.]+\.)*(docs?|developers?|dev|learn|help|api|guide|wiki|devcenter)\.[^\/]+\.[^\/]+(\/|$)/,
     name: "Documentation Subdomains",
     description: "Matches documentation subdomains like docs.*, developer.*, learn.*, etc.",
     examples: ["docs.python.org", "developer.apple.com", "learn.microsoft.com", "docs.cypress.io"],
   },
   {
     pattern:
-      /^https:\/\/([^\/]+\.)?[^\/]+\/(docs?|documentation|api[-_]?docs?|guides?|learn|help|stable|latest)(\/|$)/,
+      /^https:\/\/([^\/]+\.)?[^\/]+\/(?:[^\/]+\/)*(docs?|documentation|api[-_]?docs?|guides?|learn|help|stable|latest)(\/|$)/,
     name: "Documentation Paths",
     description: "Matches URLs with documentation paths like /docs, /guide, /learn, etc.",
     examples: ["angular.io/docs", "redis.io/docs", "www.elastic.co/guide", "react.dev/learn"],
@@ -72,6 +72,48 @@ export const ALLOWED_EXCEPTIONS = {
     example: "https://core.telegram.org/bots",
     category: "Messaging Platforms",
   },
+  DOCS_RS: {
+    pattern: "https://docs.rs/",
+    name: "docs.rs",
+    example: "https://docs.rs/serde/latest/serde/",
+    category: "Programming Languages",
+  },
+  ZULIP_API: {
+    pattern: "https://zulip.com/api/",
+    name: "Zulip API",
+    example: "https://zulip.com/api/",
+    category: "Messaging Platforms",
+  },
+  NUTRIENT_API: {
+    pattern: "https://www.nutrient.io/api/",
+    name: "Nutrient API",
+    example: "https://www.nutrient.io/api/reference/public/",
+    category: "API Reference",
+  },
+  PLAYDATE_SDK: {
+    pattern: "https://sdk.play.date/",
+    name: "Playdate SDK",
+    example: "https://sdk.play.date/2.7.5/Inside%20Playdate.html",
+    category: "Game Development",
+  },
+  MUSIC_KIT_JS: {
+    pattern: "https://js-cdn.music.apple.com/musickit/",
+    name: "MusicKit JS",
+    example: "https://js-cdn.music.apple.com/musickit/v3/docs/index.html",
+    category: "Apple Developer",
+  },
+  REACT_SPRING: {
+    pattern: "https://react-spring.io/",
+    name: "React Spring",
+    example: "https://react-spring.io/",
+    category: "Web Frameworks",
+  },
+  VALTIO: {
+    pattern: "https://valtio.pmnd.rs/",
+    name: "Valtio",
+    example: "https://valtio.pmnd.rs/",
+    category: "Web Frameworks",
+  },
 } as const;
 
 // Legacy support for specific domains that need special handling
@@ -114,16 +156,3 @@ export const PROCESSING_CONFIG = {
   // Content validation
   MIN_CONTENT_LENGTH: 200 as number, // Minimum valid content length
 };
-
-// UI configuration
-export const UI_CONFIG = {
-  LOG_SCROLL_THRESHOLD: 10, // Pixels from bottom to consider "at bottom"
-  PROGRESS_UPDATE_INTERVAL: 100, // Update progress every N processed URLs
-} as const;
-
-// File configuration
-export const FILE_CONFIG = {
-  DEFAULT_FILENAME: "documentation.md",
-  APPLE_DEFAULT_FILENAME: "apple-docs.md",
-  SWIFT_PACKAGE_DEFAULT_FILENAME: "swift-package-docs.md",
-} as const;

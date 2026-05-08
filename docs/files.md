@@ -18,10 +18,6 @@ File organization follows Next.js App Router conventions with `src/app` for rout
 - `src/app/theme-script.tsx` - Client-side theme initialization script
 - `src/app/globals.css` - Tailwind CSS v4 imports and custom styles
 
-**Components**
-
-- `src/components/ui/popover.tsx` - Radix UI popover wrapper for domain tooltip
-
 ## API Routes
 
 **Scraping Endpoints**
@@ -39,18 +35,18 @@ File organization follows Next.js App Router conventions with `src/app` for rout
 - `src/utils/documentation-filter.ts` - Comprehensive content filters (navigation, ads, code blocks)
 - `src/utils/url-utils.ts` - URL validation, normalization, and domain whitelisting
 - `src/utils/file-utils.ts` - File download handling with proper naming
-- `src/utils/notifications.ts` - Browser notification API wrapper
+- `src/utils/code-extraction.ts` - Fenced code block extraction and formatting
+- `src/utils/result-processing.ts` - Final output shaping for filtered and code-only downloads
 
 **Libraries**
 
-- `src/lib/utils.ts` - Utility functions for className merging
 - `src/lib/firecrawl.ts` - Shared Firecrawl client, error mapping, and content validation helpers
 - `src/lib/http2-client.ts` - HTTP/2 client wrapper used by the Firecrawl client
 - `src/lib/cache/redis-cache.ts` - Redis cache implementation with TTL support
 
 **Constants**
 
-- `src/constants.ts` - Application-wide constants (whitelisted domains, cache TTL)
+- `src/constants.ts` - Documentation URL patterns, explicit exceptions, processing limits, and cache TTL
 
 ## Tests
 
@@ -61,7 +57,7 @@ File organization follows Next.js App Router conventions with `src/app` for rout
 
 **Test Suites**
 
-- `src/utils/__tests__/*.test.ts` - Utility function tests with 95%+ coverage
+- `src/utils/__tests__/*.test.ts` - Utility function tests for URL, filtering, content, code extraction, and output shaping
 - `src/app/api/scrape/__tests__/route.test.ts` - API endpoint integration tests
 - `src/app/api/scrape/batch/__tests__/route.test.ts` - Batch processing tests
 - `src/lib/cache/__tests__/redis-cache.test.ts` - Cache implementation tests
@@ -96,7 +92,7 @@ File organization follows Next.js App Router conventions with `src/app` for rout
 ## Dependencies
 
 **Core Framework**: Next.js 16 with App Router, React 19, TypeScript 6
-**Styling**: Tailwind CSS v4, Radix UI components
-**Testing**: Vitest with happy-dom, 95%+ coverage target
+**Styling**: Tailwind CSS v4 and custom CSS utilities
+**Testing**: Vitest with happy-dom, coverage reporting, and optional live Firecrawl smoke scripts
 **External APIs**: Firecrawl for JavaScript rendering
 **Caching**: In-memory with optional Redis support

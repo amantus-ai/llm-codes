@@ -34,7 +34,7 @@ export interface FirecrawlCrawlOptions {
   maxDepth: number;
 }
 
-export interface FirecrawlCrawlPage {
+interface FirecrawlCrawlPage {
   markdown?: string;
   metadata?: {
     sourceURL?: string;
@@ -107,7 +107,7 @@ export class FirecrawlRequestError extends Error {
   }
 }
 
-export function isRetryableFirecrawlStatus(status: number): boolean {
+function isRetryableFirecrawlStatus(status: number): boolean {
   return PROCESSING_CONFIG.RETRY_STATUS_CODES.includes(status);
 }
 
@@ -141,6 +141,10 @@ export function getIncompleteContentReason(
   const contentLength = markdown.length;
   const trimmed = markdown.trim();
 
+  if (isNotFoundContent(trimmed)) {
+    return `not-found page content (${contentLength} chars)`;
+  }
+
   if (contentLength === 82 && trimmed.startsWith("[Skip Navigation]")) {
     return `navigation-only content (${contentLength} chars)`;
   }
@@ -163,8 +167,38 @@ export function getIncompleteContentReason(
   return null;
 }
 
+function isNotFoundContent(markdown: string): boolean {
+  const notFoundIndicators = [
+    "the page you're looking for can't be found",
+    "page not found",
+    "404 not found",
+    "404 error",
+    "this page doesn't exist",
+    "there isn't a github pages site here",
+  ];
+
+  return notFoundIndicators.some((indicator) => {
+    const regex = new RegExp(`\\b${indicator.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+    return regex.test(markdown);
+  });
+}
+
 export function isCacheableFirecrawlContent(markdown: string): boolean {
   return markdown.length >= PROCESSING_CONFIG.MIN_CONTENT_LENGTH;
+}
+
+export function shouldUseMainContentOnly(url: string): boolean {
+  try {
+    const parsedUrl = new URL(url);
+
+    if (parsedUrl.hostname === "tailwindcss.com" && parsedUrl.pathname.startsWith("/docs/")) {
+      return false;
+    }
+  } catch {
+    return true;
+  }
+
+  return true;
 }
 
 export async function scrapeFirecrawlUrl(
@@ -177,7 +211,7 @@ export async function scrapeFirecrawlUrl(
     body: JSON.stringify({
       url,
       formats: options.formats || ["markdown"],
-      onlyMainContent: options.onlyMainContent ?? true,
+      onlyMainContent: options.onlyMainContent ?? shouldUseMainContentOnly(url),
       waitFor: options.waitFor ?? PROCESSING_CONFIG.FIRECRAWL_WAIT_TIME,
       timeout: options.timeout ?? PROCESSING_CONFIG.FIRECRAWL_TIMEOUT,
       removeBase64Images: options.removeBase64Images,
@@ -204,7 +238,7 @@ export async function startFirecrawlCrawl(
       maxDepth: options.maxDepth,
       scrapeOptions: {
         formats: ["markdown"],
-        onlyMainContent: true,
+        onlyMainContent: shouldUseMainContentOnly(url),
         waitFor: PROCESSING_CONFIG.FIRECRAWL_WAIT_TIME,
         timeout: PROCESSING_CONFIG.FIRECRAWL_TIMEOUT,
         headers: {

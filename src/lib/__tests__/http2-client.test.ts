@@ -10,9 +10,7 @@ vi.mock("undici", () => ({
   fetch: undiciFetchMock,
 }));
 
-const describeFn = process.env.CI ? describe.skip : describe;
-
-describeFn("http2Fetch", () => {
+describe("http2Fetch", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     undiciFetchMock.mockResolvedValue(new Response('{"data":"test"}', { status: 200 }));

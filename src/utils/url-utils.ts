@@ -12,8 +12,26 @@ export function isValidDocumentationUrl(url: string): boolean {
 
   // Then check against explicit exceptions
   return Object.values(ALLOWED_EXCEPTIONS).some((exception) => {
-    return url.startsWith(exception.pattern);
+    return matchesAllowedException(url, exception.pattern);
   });
+}
+
+function matchesAllowedException(url: string, exceptionPattern: string): boolean {
+  try {
+    const urlObj = new URL(url);
+    const exceptionUrl = new URL(exceptionPattern);
+
+    if (urlObj.origin !== exceptionUrl.origin) return false;
+
+    const exceptionPath = exceptionUrl.pathname;
+    if (exceptionPath === "/") return true;
+    if (urlObj.pathname === exceptionPath) return true;
+
+    const pathPrefix = exceptionPath.endsWith("/") ? exceptionPath : `${exceptionPath}/`;
+    return urlObj.pathname.startsWith(pathPrefix);
+  } catch {
+    return false;
+  }
 }
 
 export function getSupportedDomainsText(): string {
@@ -123,4 +141,12 @@ export function generateFilename(url: string): string {
   } catch {
     return "documentation.md";
   }
+}
+
+export function generateDatedFilename(url: string, date = new Date()): string {
+  return `${formatDatePrefix(date)}_${generateFilename(url)}`;
+}
+
+function formatDatePrefix(date: Date): string {
+  return date.toISOString().slice(0, 10);
 }

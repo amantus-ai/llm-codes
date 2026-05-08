@@ -479,6 +479,7 @@ export function is404Page(content: string): boolean {
     "sorry, we can't find that page",
     "oops! that page can't be found",
     "the page you requested was not found",
+    "there isn't a github pages site here",
   ];
 
   // Check for exact phrases, not partial matches

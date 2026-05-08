@@ -19,8 +19,8 @@ This guide covers the development environment setup, coding conventions, impleme
 
 ```bash
 # Clone repository
-git clone https://github.com/amantusai/llm-tech.git
-cd llm-tech
+git clone https://github.com/amantus-ai/llm-codes.git
+cd llm-codes
 
 # Install dependencies
 pnpm install
@@ -59,30 +59,22 @@ cp .env.example .env.local
 }
 ```
 
-**ESLint Rules** (`.eslintrc.json` lines 5-12):
+**Linting**:
 
-```json
-{
-  "rules": {
-    "prettier/prettier": "error",
-    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
-    "@typescript-eslint/no-explicit-any": "warn",
-    "no-console": ["warn", { "allow": ["warn", "error"] }]
-  }
-}
+```bash
+pnpm run lint
 ```
 
-**Prettier Configuration** (`.prettierrc` lines 2-8):
+The lint script runs `oxfmt --check` and `oxlint` with React, Next.js, import, and Vitest rules.
 
-```javascript
-{
-  "semi": true,
-  "trailingComma": "es5",
-  "singleQuote": true,
-  "printWidth": 100,
-  "tabWidth": 2
-}
+**Formatting**:
+
+```bash
+pnpm run format
+pnpm run format:check
 ```
+
+Formatting is handled by `oxfmt`; `.prettierrc` is legacy project metadata and is not used by the current gate.
 
 **Import Organization Pattern** (from `src/app/api/scrape/route.ts` lines 1-7):
 

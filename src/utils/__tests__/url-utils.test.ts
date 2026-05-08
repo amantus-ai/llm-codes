@@ -3,6 +3,7 @@ import {
   isValidDocumentationUrl,
   getSupportedDomainsText,
   extractUrlFromQueryString,
+  generateDatedFilename,
   normalizeDocumentationInput,
   updateUrlWithDocumentation,
   generateFilename,
@@ -17,6 +18,8 @@ describe("url-utils", () => {
         expect(isValidDocumentationUrl("https://docs.example.com/")).toBe(true);
         expect(isValidDocumentationUrl("https://docs.foo.bar.com/")).toBe(true);
         expect(isValidDocumentationUrl("https://docs.cypress.io/guides")).toBe(true);
+        expect(isValidDocumentationUrl("https://r3f.docs.pmnd.rs/")).toBe(true);
+        expect(isValidDocumentationUrl("https://r3f.docs.pmnd.rs")).toBe(true);
       });
 
       it("should validate developer.* subdomains", () => {
@@ -56,11 +59,17 @@ describe("url-utils", () => {
         expect(isValidDocumentationUrl("https://redis.io/docs/getting-started")).toBe(true);
         expect(isValidDocumentationUrl("https://example.com/docs")).toBe(true);
         expect(isValidDocumentationUrl("https://playwright.dev/docs/intro")).toBe(true);
+        expect(
+          isValidDocumentationUrl("https://www.radix-ui.com/primitives/docs/components/form"),
+        ).toBe(true);
       });
 
       it("should validate /documentation paths", () => {
         expect(isValidDocumentationUrl("https://example.com/documentation")).toBe(true);
         expect(isValidDocumentationUrl("https://example.com/documentation/v2")).toBe(true);
+        expect(
+          isValidDocumentationUrl("https://surveyjs.io/form-library/documentation/overview"),
+        ).toBe(true);
       });
 
       it("should validate /api-docs and /api_docs paths", () => {
@@ -181,6 +190,33 @@ describe("url-utils", () => {
         // Lookalike domains must not match
         expect(isValidDocumentationUrl("https://core.telegram.org.evil.com")).toBe(false);
         expect(isValidDocumentationUrl("https://core.telegram.org.evil.com/bots")).toBe(false);
+      });
+
+      it("should validate reported documentation exceptions", () => {
+        expect(isValidDocumentationUrl("https://docs.rs/serde/latest/serde/")).toBe(true);
+        expect(isValidDocumentationUrl("https://zulip.com/api/")).toBe(true);
+        expect(isValidDocumentationUrl("https://www.nutrient.io/api/documentation/")).toBe(true);
+        expect(isValidDocumentationUrl("https://www.nutrient.io/api/reference/public/")).toBe(true);
+        expect(isValidDocumentationUrl("https://sdk.play.date/2.7.5/Inside%20Playdate.html")).toBe(
+          true,
+        );
+        expect(
+          isValidDocumentationUrl("https://js-cdn.music.apple.com/musickit/v3/docs/index.html"),
+        ).toBe(true);
+        expect(isValidDocumentationUrl("https://react-spring.io/")).toBe(true);
+        expect(isValidDocumentationUrl("https://valtio.pmnd.rs/")).toBe(true);
+      });
+
+      it("should reject lookalike exception domains", () => {
+        expect(isValidDocumentationUrl("https://zulip.com.evil.com/api/")).toBe(false);
+        expect(isValidDocumentationUrl("https://www.nutrient.io.evil.com/api/reference/")).toBe(
+          false,
+        );
+        expect(isValidDocumentationUrl("https://js-cdn.music.apple.com.evil.com/musickit/")).toBe(
+          false,
+        );
+        expect(isValidDocumentationUrl("https://react-spring.io.evil.com/")).toBe(false);
+        expect(isValidDocumentationUrl("https://valtio.pmnd.rs.evil.com/")).toBe(false);
       });
     });
 
@@ -316,6 +352,17 @@ describe("url-utils", () => {
     it("should handle URLs without paths", () => {
       expect(generateFilename("https://example.com/")).toBe("example-com-docs.md");
       expect(generateFilename("https://docs.example.com/")).toBe("docs-example-com-docs.md");
+    });
+  });
+
+  describe("generateDatedFilename", () => {
+    it("should prefix generated filenames with an ISO date", () => {
+      expect(
+        generateDatedFilename(
+          "https://developer.apple.com/documentation/swiftui",
+          new Date("2025-06-14T12:00:00Z"),
+        ),
+      ).toBe("2025-06-14_apple-developer-documentation-swiftui-docs.md");
     });
   });
 });

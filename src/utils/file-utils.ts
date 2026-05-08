@@ -1,4 +1,4 @@
-import { generateFilename } from "./url-utils";
+import { generateDatedFilename } from "./url-utils";
 import { is404Page } from "./content-processing";
 import { filterDocumentation } from "./documentation-filter";
 
@@ -76,7 +76,7 @@ Availability strings filtered: ${filterAvailability ? "Yes" : "No"}
   const downloadUrl = URL.createObjectURL(blob);
 
   // Generate filename from the original URL
-  const filename = generateFilename(url);
+  const filename = generateDatedFilename(url);
 
   // Create and trigger download
   const a = document.createElement("a");

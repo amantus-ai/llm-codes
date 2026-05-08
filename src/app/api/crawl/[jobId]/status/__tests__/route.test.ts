@@ -69,7 +69,7 @@ describe("GET /api/crawl/[jobId]/status", () => {
           },
         ],
       }),
-    } as any);
+    } as unknown as Response);
 
     vi.mocked(cacheService.updateCrawlJobStatus).mockResolvedValue();
     vi.mocked(cacheService.setCrawlResults).mockResolvedValue();
@@ -108,7 +108,7 @@ describe("GET /api/crawl/[jobId]/status", () => {
       ok: false,
       status: 502,
       json: vi.fn(),
-    } as any);
+    } as unknown as Response);
 
     const response = await GET(mockRequest, { params: mockParams });
 

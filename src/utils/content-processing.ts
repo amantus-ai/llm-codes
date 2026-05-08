@@ -154,17 +154,21 @@ function isDocumentationHost(hostname: string): boolean {
 
 function isAllowedDocumentationPath(linkUrl: URL, baseUrl: URL, isAppleDocs: boolean): boolean {
   if (isAppleDocs) {
-    if (!linkUrl.pathname.startsWith("/documentation/")) {
-      return false;
-    }
-
     const pathLower = linkUrl.pathname.toLowerCase();
     if (isNonContentPath(pathLower)) {
       return false;
     }
 
-    const pathParts = linkUrl.pathname.split("/").filter((p) => p);
-    return pathParts.length > 1;
+    if (baseUrl.pathname.startsWith("/design/human-interface-guidelines")) {
+      return linkUrl.pathname.startsWith("/design/human-interface-guidelines");
+    }
+
+    if (linkUrl.pathname.startsWith("/documentation/")) {
+      const pathParts = linkUrl.pathname.split("/").filter((p) => p);
+      return pathParts.length > 1;
+    }
+
+    return false;
   }
 
   const pathLower = linkUrl.pathname.toLowerCase();

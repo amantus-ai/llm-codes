@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { filterDocumentation } from "@/utils/documentation-filter";
 
 interface CrawlStatusMessage {
@@ -42,6 +42,162 @@ export function useCrawl(options: UseCrawlOptions = {}) {
   const [creditsUsed, setCreditsUsed] = useState(0);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  const optionsRef = useRef(options);
+
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
+
+  const monitorCrawlStatus = useCallback(async (crawlJobId: string) => {
+    const collectedResults: ProcessingResult[] = [];
+    abortControllerRef.current = new AbortController();
+
+    try {
+      const response = await fetch(`/api/crawl/${crawlJobId}/status`, {
+        signal: abortControllerRef.current.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error("No response body");
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const jsonStr = line.slice(6);
+            if (jsonStr.trim()) {
+              try {
+                const message: CrawlStatusMessage = JSON.parse(jsonStr);
+                const currentOptions = optionsRef.current;
+
+                switch (message.type) {
+                  case "status":
+                    if (message.status) {
+                      setStatus(message.status);
+                      if (currentOptions.onStatusChange) {
+                        currentOptions.onStatusChange(message.status);
+                      }
+                    }
+                    break;
+
+                  case "progress":
+                    if (message.progress !== undefined && message.total !== undefined) {
+                      const progressPercent =
+                        message.total > 0
+                          ? Math.round((message.progress / message.total) * 100)
+                          : 0;
+                      setProgress(progressPercent);
+
+                      if (message.creditsUsed !== undefined) {
+                        setCreditsUsed(message.creditsUsed);
+                      }
+
+                      if (currentOptions.onProgress) {
+                        currentOptions.onProgress(
+                          message.progress,
+                          message.total,
+                          message.creditsUsed,
+                        );
+                      }
+                    }
+                    break;
+
+                  case "url_complete":
+                    if (message.url && message.content) {
+                      let filteredContent = message.content;
+
+                      // Apply filtering if options are provided
+                      if (currentOptions.filterOptions?.useComprehensiveFilter) {
+                        filteredContent = filterDocumentation(filteredContent, {
+                          filterUrls: currentOptions.filterOptions.filterUrls,
+                          filterAvailability: currentOptions.filterOptions.filterAvailability,
+                          filterNavigation: true,
+                          filterLegalBoilerplate: true,
+                          filterEmptyContent: true,
+                          filterRedundantTypeAliases: true,
+                          filterExcessivePlatformNotices: true,
+                          filterFormattingArtifacts: true,
+                          deduplicateContent: currentOptions.filterOptions.deduplicateContent,
+                        });
+                      }
+
+                      const result = { url: message.url, content: filteredContent };
+                      collectedResults.push(result);
+                      setResults([...collectedResults]);
+
+                      if (currentOptions.onUrlComplete) {
+                        currentOptions.onUrlComplete(
+                          message.url,
+                          filteredContent,
+                          message.cached || false,
+                        );
+                      }
+                    }
+                    break;
+
+                  case "error":
+                    if (message.error) {
+                      setError(message.error);
+                      if (currentOptions.onError) {
+                        currentOptions.onError(message.error);
+                      }
+                    }
+                    break;
+
+                  case "complete":
+                    setProgress(100);
+                    setStatus("completed");
+                    if (message.creditsUsed !== undefined) {
+                      setCreditsUsed(message.creditsUsed);
+                    }
+                    // Ensure results are set before calling onComplete
+                    setResults(collectedResults);
+                    if (currentOptions.onComplete) {
+                      currentOptions.onComplete(collectedResults, message.creditsUsed || 0);
+                    }
+                    break;
+                }
+              } catch (e) {
+                console.error("Error parsing stream message:", e);
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      if (err instanceof Error) {
+        if (err.name !== "AbortError") {
+          setError(err.message);
+          if (optionsRef.current.onError) {
+            optionsRef.current.onError(err.message);
+          }
+        }
+      } else {
+        const errorMessage = "Unknown error occurred";
+        setError(errorMessage);
+        if (optionsRef.current.onError) {
+          optionsRef.current.onError(errorMessage);
+        }
+      }
+    } finally {
+      abortControllerRef.current = null;
+    }
+  }, []);
 
   const startCrawl = useCallback(
     async (url: string, limit: number = 10, maxDepth: number = 2) => {
@@ -73,164 +229,14 @@ export function useCrawl(options: UseCrawlOptions = {}) {
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
         setError(errorMessage);
-        if (options.onError) {
-          options.onError(errorMessage);
+        if (optionsRef.current.onError) {
+          optionsRef.current.onError(errorMessage);
         }
       } finally {
         setIsProcessing(false);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [options],
-  );
-
-  const monitorCrawlStatus = useCallback(
-    async (crawlJobId: string) => {
-      const collectedResults: ProcessingResult[] = [];
-      abortControllerRef.current = new AbortController();
-
-      try {
-        const response = await fetch(`/api/crawl/${crawlJobId}/status`, {
-          signal: abortControllerRef.current.signal,
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const reader = response.body?.getReader();
-        if (!reader) {
-          throw new Error("No response body");
-        }
-
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const jsonStr = line.slice(6);
-              if (jsonStr.trim()) {
-                try {
-                  const message: CrawlStatusMessage = JSON.parse(jsonStr);
-
-                  switch (message.type) {
-                    case "status":
-                      if (message.status) {
-                        setStatus(message.status);
-                        if (options.onStatusChange) {
-                          options.onStatusChange(message.status);
-                        }
-                      }
-                      break;
-
-                    case "progress":
-                      if (message.progress !== undefined && message.total !== undefined) {
-                        const progressPercent =
-                          message.total > 0
-                            ? Math.round((message.progress / message.total) * 100)
-                            : 0;
-                        setProgress(progressPercent);
-
-                        if (message.creditsUsed !== undefined) {
-                          setCreditsUsed(message.creditsUsed);
-                        }
-
-                        if (options.onProgress) {
-                          options.onProgress(message.progress, message.total, message.creditsUsed);
-                        }
-                      }
-                      break;
-
-                    case "url_complete":
-                      if (message.url && message.content) {
-                        let filteredContent = message.content;
-
-                        // Apply filtering if options are provided
-                        if (options.filterOptions?.useComprehensiveFilter) {
-                          filteredContent = filterDocumentation(filteredContent, {
-                            filterUrls: options.filterOptions.filterUrls,
-                            filterAvailability: options.filterOptions.filterAvailability,
-                            filterNavigation: true,
-                            filterLegalBoilerplate: true,
-                            filterEmptyContent: true,
-                            filterRedundantTypeAliases: true,
-                            filterExcessivePlatformNotices: true,
-                            filterFormattingArtifacts: true,
-                            deduplicateContent: options.filterOptions.deduplicateContent,
-                          });
-                        }
-
-                        const result = { url: message.url, content: filteredContent };
-                        collectedResults.push(result);
-                        setResults([...collectedResults]);
-
-                        if (options.onUrlComplete) {
-                          options.onUrlComplete(
-                            message.url,
-                            filteredContent,
-                            message.cached || false,
-                          );
-                        }
-                      }
-                      break;
-
-                    case "error":
-                      if (message.error) {
-                        setError(message.error);
-                        if (options.onError) {
-                          options.onError(message.error);
-                        }
-                      }
-                      break;
-
-                    case "complete":
-                      setProgress(100);
-                      setStatus("completed");
-                      if (message.creditsUsed !== undefined) {
-                        setCreditsUsed(message.creditsUsed);
-                      }
-                      // Ensure results are set before calling onComplete
-                      setResults(collectedResults);
-                      if (options.onComplete) {
-                        options.onComplete(collectedResults, message.creditsUsed || 0);
-                      }
-                      break;
-                  }
-                } catch (e) {
-                  console.error("Error parsing stream message:", e);
-                }
-              }
-            }
-          }
-        }
-      } catch (err) {
-        if (err instanceof Error) {
-          if (err.name !== "AbortError") {
-            setError(err.message);
-            if (options.onError) {
-              options.onError(err.message);
-            }
-          }
-        } else {
-          const errorMessage = "Unknown error occurred";
-          setError(errorMessage);
-          if (options.onError) {
-            options.onError(errorMessage);
-          }
-        }
-      } finally {
-        abortControllerRef.current = null;
-      }
-    },
-    [options],
+    [monitorCrawlStatus],
   );
 
   const cancel = useCallback(() => {
