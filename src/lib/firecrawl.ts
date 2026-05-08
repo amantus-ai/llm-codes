@@ -29,6 +29,11 @@ export interface FirecrawlCrawlStartResponse {
   creditsUsed?: number;
 }
 
+export interface FirecrawlCrawlOptions {
+  limit: number;
+  maxDepth: number;
+}
+
 export interface FirecrawlCrawlPage {
   markdown?: string;
   metadata?: {
@@ -189,13 +194,14 @@ export async function scrapeFirecrawlUrl(
 export async function startFirecrawlCrawl(
   apiKey: string,
   url: string,
-  limit: number,
+  options: FirecrawlCrawlOptions,
 ): Promise<FirecrawlCrawlStartResponse> {
   const response = await firecrawlFetch(apiKey, "/crawl", {
     method: "POST",
     body: JSON.stringify({
       url,
-      limit,
+      limit: options.limit,
+      maxDepth: options.maxDepth,
       scrapeOptions: {
         formats: ["markdown"],
         onlyMainContent: true,

@@ -174,5 +174,43 @@ describe("RedisCache", () => {
       expect(result).toBe("test content");
       expect(cache.isRedisAvailable()).toBe(false);
     });
+
+    it("keeps crawl jobs and results available in local memory", async () => {
+      await cache.setCrawlJob("job-1", {
+        id: "job-1",
+        url: "https://docs.example.com/",
+        limit: 3,
+        maxDepth: 1,
+        status: "crawling",
+        startedAt: "2026-05-08T00:00:00.000Z",
+        totalPages: 0,
+        completedPages: 0,
+        creditsUsed: 0,
+      });
+
+      await cache.updateCrawlJobStatus("job-1", {
+        status: "completed",
+        totalPages: 1,
+        completedPages: 1,
+        lastPageNumber: 1,
+      });
+      await cache.setCrawlResults("job-1", 0, [
+        {
+          markdown: "# Docs",
+          metadata: { sourceURL: "https://docs.example.com/" },
+        },
+      ]);
+
+      await expect(cache.getCrawlJob("job-1")).resolves.toMatchObject({
+        status: "completed",
+        lastPageNumber: 1,
+      });
+      await expect(cache.getAllCrawlResults("job-1")).resolves.toEqual([
+        {
+          markdown: "# Docs",
+          metadata: { sourceURL: "https://docs.example.com/" },
+        },
+      ]);
+    });
   });
 });

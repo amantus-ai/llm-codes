@@ -60,11 +60,15 @@ describe("firecrawl client", () => {
       json: vi.fn().mockResolvedValue({ success: true, id: "crawl-123" }),
     } as unknown as Response);
 
-    const result = await startFirecrawlCrawl("test-key", "https://docs.example.com/", 25);
+    const result = await startFirecrawlCrawl("test-key", "https://docs.example.com/", {
+      limit: 25,
+      maxDepth: 3,
+    });
 
     expect(result.id).toBe("crawl-123");
     const body = JSON.parse(vi.mocked(http2Fetch).mock.calls[0][1]?.body as string);
     expect(body.limit).toBe(25);
+    expect(body.maxDepth).toBe(3);
     expect(body.scrapeOptions).toEqual(
       expect.objectContaining({
         formats: ["markdown"],

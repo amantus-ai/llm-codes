@@ -11,8 +11,7 @@ import {
   updateUrlWithDocumentation,
 } from "@/utils/url-utils";
 import { extractLinks } from "@/utils/content-processing";
-import { filterDocumentation } from "@/utils/documentation-filter";
-import { extractOnlyCodeBlocks } from "@/utils/code-extraction";
+import { prepareOutputResults } from "@/utils/result-processing";
 import { useCrawl } from "@/hooks/useCrawl";
 
 interface ProcessingResult {
@@ -439,14 +438,14 @@ export default function Home() {
       log(`🔗 Starting URL: ${normalizedUrl}`);
 
       if (useCrawlMode) {
-        log(`🕷️ Using crawl mode for faster processing...`);
+        log(`🕷️ Using Firecrawl crawl mode with depth ${depth}...`);
 
         // Create a promise that will resolve when crawl completes
         const crawlCompletePromise = new Promise<ProcessingResult[]>((resolve, reject) => {
           crawlCompleteRef.current = { resolve, reject };
         });
 
-        await startCrawl(normalizedUrl, maxUrls);
+        await startCrawl(normalizedUrl, maxUrls, depth);
 
         // Wait for crawl to complete and get results
         try {
@@ -470,8 +469,6 @@ export default function Home() {
 
       setResults(processedResults);
 
-      // Calculate stats
-      const successfulResults = processedResults.filter((r) => r.content);
       const failedResults = processedResults.filter((r) => !r.content);
 
       // Calculate size before filtering (for crawl mode, content is already filtered)
@@ -480,32 +477,17 @@ export default function Home() {
         .join("");
       const unfilteredSizeKB = new Blob([unfilteredContent]).size / 1024;
 
-      // Apply the same filters as in download function
-      const filteredResultsData = processedResults.map((r) => {
-        let content = r.content;
-
-        // Skip filtering for crawl mode results as they're already filtered in useCrawl hook
-        if (!useCrawlMode) {
-          content = filterDocumentation(content, {
-            filterUrls,
-            filterAvailability,
-            filterNavigation: true,
-            filterLegalBoilerplate: true,
-            filterEmptyContent: true,
-            filterRedundantTypeAliases: true,
-            filterExcessivePlatformNotices: true,
-            filterFormattingArtifacts: true,
-            deduplicateContent,
-          });
-        }
-
-        // Apply code blocks extraction if enabled
-        if (codeBlocksOnly) {
-          content = extractOnlyCodeBlocks(content);
-        }
-
-        return { url: r.url, content };
+      const filteredResultsData = prepareOutputResults(processedResults, {
+        useCrawlMode,
+        filterUrls,
+        filterAvailability,
+        deduplicateContent,
+        codeBlocksOnly,
       });
+      const successfulResults = filteredResultsData.filter((r) => r.content);
+      const codeOnlySkippedCount = codeBlocksOnly
+        ? processedResults.filter((r) => r.content).length - filteredResultsData.length
+        : 0;
 
       // Store filtered results for download
       setFilteredResults(filteredResultsData);
@@ -526,11 +508,14 @@ export default function Home() {
           `📏 Size after filtering: ${Math.round(filteredSizeKB)}K (${Math.round((1 - filteredSizeKB / unfilteredSizeKB) * 100)}% reduction)`,
         );
       }
+      if (codeOnlySkippedCount > 0) {
+        log(`🧩 Code-only mode skipped ${codeOnlySkippedCount} page(s) without code blocks`);
+      }
 
       setStats({
         lines,
         size: filteredSizeKB,
-        urls: processedResults.length,
+        urls: filteredResultsData.length,
       });
 
       setProgress(100);
@@ -538,7 +523,7 @@ export default function Home() {
       // Provide summary
       log(`✅ Processing complete!`);
       log(
-        `📈 Summary: ${successfulResults.length} successful, ${failedResults.length} failed, ${processedResults.length} total URLs`,
+        `📈 Summary: ${successfulResults.length} included, ${failedResults.length} failed, ${processedResults.length} total URLs`,
       );
 
       if (failedResults.length > 0) {
@@ -547,6 +532,14 @@ export default function Home() {
       }
 
       if (successfulResults.length === 0) {
+        if (codeBlocksOnly && processedResults.some((r) => r.content)) {
+          log(`❌ No code blocks were found in the processed pages.`);
+          setError("No code blocks were found in the processed pages");
+          hasError = true;
+          setShowLogs(true);
+          return;
+        }
+
         log(`❌ No content was successfully scraped. Please check:`);
         log(`  - Is the URL accessible?`);
         log(`  - Does the site require authentication?`);
@@ -786,8 +779,7 @@ Code blocks only: ${codeBlocksOnly ? "Yes" : "No"}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="depth" className="block text-sm text-muted-foreground mb-2">
-                  Crawl Depth{" "}
-                  {useCrawlMode && <span className="text-xs">(ignored in crawl mode)</span>}
+                  Crawl Depth
                 </label>
                 <div className="relative">
                   <input
@@ -801,11 +793,10 @@ Code blocks only: ${codeBlocksOnly ? "Yes" : "No"}
                       if (value > PROCESSING_CONFIG.MAX_CRAWL_DEPTH) {
                         setDepth(PROCESSING_CONFIG.MAX_CRAWL_DEPTH);
                       } else {
-                        setDepth(value);
+                        setDepth(Number.isNaN(value) ? 0 : Math.max(0, value));
                       }
                     }}
-                    disabled={useCrawlMode}
-                    className="w-full px-3.5 py-2 bg-background border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-3.5 py-2 bg-background border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring"
                   />
                   <div className="absolute right-12 top-1/2 -translate-y-1/2 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded pointer-events-none">
                     levels
@@ -914,7 +905,7 @@ Code blocks only: ${codeBlocksOnly ? "Yes" : "No"}
                     <span className="text-sm text-muted-foreground">Extract code blocks only</span>
                   </label>
                   <p className="text-xs text-muted-foreground ml-7 -mt-2">
-                    Only include code blocks from the documentation, removing all other content
+                    Include fenced code examples only; pages without code are skipped
                   </p>
                   <label className="flex items-center gap-3 cursor-pointer mt-4">
                     <input
@@ -928,8 +919,7 @@ Code blocks only: ${codeBlocksOnly ? "Yes" : "No"}
                     </span>
                   </label>
                   <p className="text-xs text-muted-foreground ml-7 -mt-2">
-                    Use Firecrawl&apos;s crawl API for faster processing of multiple pages with
-                    real-time progress
+                    Use Firecrawl&apos;s crawl API with the selected depth and max page count
                   </p>
                 </div>
               )}

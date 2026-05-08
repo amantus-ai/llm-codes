@@ -36,6 +36,7 @@
     "type-check": "tsgo --noEmit",
     "verify": "pnpm run lint && pnpm run type-check && pnpm run test:run && pnpm run test:coverage && pnpm run build",
     "verify:firecrawl:live": "node scripts/verify-firecrawl.mjs",
+    "verify:modes:live": "node scripts/verify-modes.mjs",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check ."
   },
@@ -43,7 +44,7 @@
     "@radix-ui/react-popover": "^1.1.15",
     "@tailwindcss/postcss": "^4.2.4",
     "@tailwindcss/vite": "^4.2.4",
-    "@types/node": "^25.6.0",
+    "@types/node": "^25.6.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@upstash/redis": "^1.38.0",
@@ -51,7 +52,7 @@
     "autoprefixer": "^10.5.0",
     "clsx": "^2.1.1",
     "lz-string": "^1.5.0",
-    "next": "16.2.5",
+    "next": "16.2.6",
     "postcss": "^8.5.14",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
@@ -63,14 +64,14 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
-    "@typescript/native-preview": "7.0.0-dev.20260506.1",
+    "@typescript/native-preview": "7.0.0-dev.20260507.1",
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.5",
     "@vitest/ui": "^4.1.5",
     "happy-dom": "^20.9.0",
     "oxfmt": "^0.48.0",
     "oxlint": "^1.63.0",
-    "vite": "^8.0.10",
+    "vite": "^8.0.11",
     "vitest": "^4.1.5"
   },
   "engines": {

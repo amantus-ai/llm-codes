@@ -44,7 +44,7 @@ export function useCrawl(options: UseCrawlOptions = {}) {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const startCrawl = useCallback(
-    async (url: string, limit: number = 10) => {
+    async (url: string, limit: number = 10, maxDepth: number = 2) => {
       setIsProcessing(true);
       setError(null);
       setProgress(0);
@@ -57,7 +57,7 @@ export function useCrawl(options: UseCrawlOptions = {}) {
         const startResponse = await fetch("/api/crawl/start", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url, limit }),
+          body: JSON.stringify({ url, limit, maxDepth }),
         });
 
         if (!startResponse.ok) {

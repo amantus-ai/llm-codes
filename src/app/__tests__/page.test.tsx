@@ -6,6 +6,10 @@ const hookMocks = vi.hoisted(() => ({
   useCrawl: vi.fn(),
 }));
 
+type UseCrawlOptions = {
+  onComplete?: (results: { url: string; content: string }[], creditsUsed: number) => void;
+};
+
 // Mock modules
 vi.mock("@/hooks/useCrawl", () => ({
   useCrawl: hookMocks.useCrawl,
@@ -157,6 +161,51 @@ describe("Home Page", () => {
     const filterUrlsCheckbox = screen.getByLabelText("Filter out all URLs");
     fireEvent.click(filterUrlsCheckbox);
     expect(filterUrlsCheckbox).not.toBeChecked();
+  });
+
+  it("uses selected depth when starting Firecrawl crawl mode", async () => {
+    const startCrawl = vi.fn(async () => {
+      const options = hookMocks.useCrawl.mock.calls[0][0] as UseCrawlOptions;
+      options.onComplete?.(
+        [
+          {
+            url: "https://docs.openclaw.ai/",
+            content: "# Docs\n\n```ts\nconst ok = true;\n```",
+          },
+        ],
+        1,
+      );
+    });
+
+    hookMocks.useCrawl.mockImplementation((options: UseCrawlOptions) => ({
+      startCrawl,
+      cancel: vi.fn(),
+      getResults: vi.fn(),
+      isProcessing: false,
+      results: [],
+      progress: 0,
+      error: null,
+      status: "idle",
+      jobId: null,
+      creditsUsed: 0,
+      options,
+    }));
+
+    render(<Home />);
+
+    fireEvent.change(screen.getByLabelText("Crawl Depth"), { target: { value: "3" } });
+    fireEvent.change(screen.getByLabelText("Max URLs"), { target: { value: "25" } });
+    fireEvent.click(screen.getByText("Options"));
+    fireEvent.click(screen.getByLabelText("Use deep crawl mode (Beta)"));
+    fireEvent.change(screen.getByPlaceholderText("https://developer.apple.com/documentation/..."), {
+      target: { value: "docs.openclaw.ai" },
+    });
+    fireEvent.click(screen.getByText("Process Documentation"));
+
+    await waitFor(() => {
+      expect(startCrawl).toHaveBeenCalledWith("https://docs.openclaw.ai/", 25, 3);
+    });
+    expect(screen.getByLabelText("Crawl Depth")).not.toBeDisabled();
   });
 
   it("should handle URL from query parameters", () => {

@@ -54,6 +54,8 @@ interface CrawlResult {
 export class RedisCache {
   private redis: Redis | null = null;
   private localCache: Map<string, CacheEntry> = new Map();
+  private localCrawlJobs: Map<string, { value: CrawlJobMetadata; expiresAt: number }> = new Map();
+  private localCrawlResults: Map<string, { value: CrawlResult[]; expiresAt: number }> = new Map();
   private stats: CacheStats = {
     hits: 0,
     misses: 0,
@@ -562,6 +564,10 @@ export class RedisCache {
    */
   async setCrawlJob(jobId: string, data: CrawlJobMetadata, ttl: number = 86400): Promise<void> {
     const key = `crawl:job:${jobId}`;
+    this.localCrawlJobs.set(key, {
+      value: data,
+      expiresAt: Date.now() + ttl * 1000,
+    });
 
     if (this.redis) {
       try {
@@ -577,6 +583,11 @@ export class RedisCache {
    */
   async getCrawlJob(jobId: string): Promise<CrawlJobMetadata | null> {
     const key = `crawl:job:${jobId}`;
+    const local = this.localCrawlJobs.get(key);
+    if (local) {
+      if (local.expiresAt > Date.now()) return local.value;
+      this.localCrawlJobs.delete(key);
+    }
 
     if (this.redis) {
       try {
@@ -594,6 +605,13 @@ export class RedisCache {
    */
   async updateCrawlJobStatus(jobId: string, status: Partial<CrawlJobMetadata>): Promise<void> {
     const key = `crawl:job:${jobId}`;
+    const local = this.localCrawlJobs.get(key);
+    if (local && local.expiresAt > Date.now()) {
+      this.localCrawlJobs.set(key, {
+        ...local,
+        value: { ...local.value, ...status },
+      });
+    }
 
     if (this.redis) {
       try {
@@ -617,6 +635,10 @@ export class RedisCache {
     ttl: number = 86400,
   ): Promise<void> {
     const key = `crawl:results:${jobId}:page:${pageNumber}`;
+    this.localCrawlResults.set(key, {
+      value: results,
+      expiresAt: Date.now() + ttl * 1000,
+    });
 
     if (this.redis) {
       try {
@@ -632,6 +654,11 @@ export class RedisCache {
    */
   async getCrawlResults(jobId: string, pageNumber: number): Promise<CrawlResult[] | null> {
     const key = `crawl:results:${jobId}:page:${pageNumber}`;
+    const local = this.localCrawlResults.get(key);
+    if (local) {
+      if (local.expiresAt > Date.now()) return local.value;
+      this.localCrawlResults.delete(key);
+    }
 
     if (this.redis) {
       try {
@@ -648,15 +675,14 @@ export class RedisCache {
    * Get all crawl result pages for a job
    */
   async getAllCrawlResults(jobId: string): Promise<CrawlResult[]> {
-    if (!this.redis) return [];
-
     const results: CrawlResult[] = [];
 
     try {
       // Note: Upstash Redis doesn't support SCAN, so we need to track page numbers separately
       const job = await this.getCrawlJob(jobId);
-      if (job && job.totalPages) {
-        for (let i = 0; i < job.totalPages; i++) {
+      if (job) {
+        const pageCount = job.lastPageNumber || job.totalPages;
+        for (let i = 0; i < pageCount; i++) {
           const pageResults = await this.getCrawlResults(jobId, i);
           if (pageResults) {
             results.push(...pageResults);

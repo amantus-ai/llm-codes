@@ -5,9 +5,7 @@ import { useCrawl } from "../useCrawl";
 // Mock fetch
 global.fetch = vi.fn() as Mock;
 
-const describeFn = process.env.CI ? describe.skip : describe;
-
-describeFn("useCrawl", () => {
+describe("useCrawl", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (global.fetch as Mock).mockReset();
@@ -25,6 +23,43 @@ describeFn("useCrawl", () => {
     expect(result.current.isProcessing).toBe(false);
     expect(result.current.error).toBeNull();
     expect(result.current.jobId).toBeNull();
+  });
+
+  it("passes max depth to the crawl start endpoint", async () => {
+    const mockStartResponse = {
+      ok: true,
+      json: async () => ({ success: true, jobId: "test-job-123" }),
+    };
+    const mockStatusResponse = {
+      ok: true,
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('data: {"type":"complete"}\n\n'));
+          controller.close();
+        },
+      }),
+    };
+
+    (global.fetch as Mock)
+      .mockResolvedValueOnce(mockStartResponse)
+      .mockResolvedValueOnce(mockStatusResponse);
+
+    const { result } = renderHook(() => useCrawl());
+
+    await act(async () => {
+      await result.current.startCrawl("https://example.com", 25, 3);
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/api/crawl/start",
+      expect.objectContaining({
+        body: JSON.stringify({
+          url: "https://example.com",
+          limit: 25,
+          maxDepth: 3,
+        }),
+      }),
+    );
   });
 
   it("should handle crawl start errors", async () => {

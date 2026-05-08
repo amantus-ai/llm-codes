@@ -4,6 +4,12 @@ import { PROCESSING_CONFIG } from "@/constants";
 import { cacheService } from "@/lib/cache/redis-cache";
 import { FirecrawlRequestError, startFirecrawlCrawl } from "@/lib/firecrawl";
 
+function clampInteger(value: unknown, fallback: number, min: number, max: number): number {
+  const parsed = typeof value === "number" ? value : Number.parseInt(String(value), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(Math.max(Math.trunc(parsed), min), max);
+}
+
 export async function POST(request: NextRequest) {
   try {
     const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
@@ -13,10 +19,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { url, limit = 10 } = body;
+    const { url } = body;
 
-    // Enforce hard limit on max URLs
-    const enforcedLimit = Math.min(limit, PROCESSING_CONFIG.MAX_ALLOWED_URLS);
+    const enforcedLimit = clampInteger(body.limit, 10, 1, PROCESSING_CONFIG.MAX_ALLOWED_URLS);
+    const enforcedMaxDepth = clampInteger(
+      body.maxDepth,
+      PROCESSING_CONFIG.DEFAULT_CRAWL_DEPTH,
+      0,
+      PROCESSING_CONFIG.MAX_CRAWL_DEPTH,
+    );
 
     if (!isValidDocumentationUrl(url)) {
       return NextResponse.json(
@@ -43,13 +54,17 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const data = await startFirecrawlCrawl(FIRECRAWL_API_KEY, url, enforcedLimit);
+      const data = await startFirecrawlCrawl(FIRECRAWL_API_KEY, url, {
+        limit: enforcedLimit,
+        maxDepth: enforcedMaxDepth,
+      });
 
       if (data.success && data.id) {
         const jobMetadata = {
           id: data.id,
           url,
           limit: enforcedLimit,
+          maxDepth: enforcedMaxDepth,
           status: "crawling",
           startedAt: new Date().toISOString(),
           totalPages: 0,
@@ -66,6 +81,7 @@ export async function POST(request: NextRequest) {
           jobId: data.id,
           url,
           limit: enforcedLimit,
+          maxDepth: enforcedMaxDepth,
         });
       }
 

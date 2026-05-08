@@ -48,6 +48,7 @@ describe("POST /api/crawl/start", () => {
       body: JSON.stringify({
         url: "https://docs.example.com",
         limit: 10,
+        maxDepth: 3,
       }),
     });
 
@@ -60,15 +61,59 @@ describe("POST /api/crawl/start", () => {
       jobId: "test-job-123",
       url: "https://docs.example.com",
       limit: 10,
+      maxDepth: 3,
     });
+    const firecrawlBody = JSON.parse((http2Fetch as Mock).mock.calls[0][1].body);
+    expect(firecrawlBody).toEqual(
+      expect.objectContaining({
+        url: "https://docs.example.com",
+        limit: 10,
+        maxDepth: 3,
+      }),
+    );
     expect(cacheService.setCrawlJob).toHaveBeenCalledWith(
       "test-job-123",
       expect.objectContaining({
         id: "test-job-123",
         url: "https://docs.example.com",
+        limit: 10,
+        maxDepth: 3,
         status: "crawling",
       }),
     );
+  });
+
+  it("clamps crawl limits and depth before calling Firecrawl", async () => {
+    const { isValidDocumentationUrl } = await import("@/utils/url-utils");
+    const { http2Fetch } = await import("@/lib/http2-client");
+
+    (isValidDocumentationUrl as Mock).mockReturnValue(true);
+    (http2Fetch as Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        id: "test-job-123",
+      }),
+    });
+
+    const request = new NextRequest("http://localhost:3000/api/crawl/start", {
+      method: "POST",
+      body: JSON.stringify({
+        url: "https://docs.example.com",
+        limit: 999999,
+        maxDepth: 99,
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+    const firecrawlBody = JSON.parse((http2Fetch as Mock).mock.calls[0][1].body);
+
+    expect(response.status).toBe(200);
+    expect(data.limit).toBe(2000);
+    expect(data.maxDepth).toBe(5);
+    expect(firecrawlBody.limit).toBe(2000);
+    expect(firecrawlBody.maxDepth).toBe(5);
   });
 
   it("should reject invalid URLs", async () => {
