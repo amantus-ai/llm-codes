@@ -117,7 +117,7 @@ export class RedisCache {
     const normalized = normalizeUrl(url);
     // Use 32 characters (128 bits) for better collision resistance
     const hash = crypto.createHash("sha256").update(normalized).digest("hex").substring(0, 32);
-    return `page:${hash}:v3`; // Bump version to v3 to invalidate old cache entries
+    return `page:${hash}:v4`; // Bump version when scrape policy changes invalidate old content.
   }
 
   /**
