@@ -9,20 +9,38 @@ import {
   readFirecrawlMarkdown,
   scrapeFirecrawlUrl,
 } from "@/lib/firecrawl";
+import { PlaywrightRequestError, scrapePlaywrightUrl } from "@/lib/playwright-scraper";
+import {
+  getProviderCacheKey,
+  getProviderName,
+  resolveScrapeProvider,
+  ScrapeProvider,
+  ScrapeProviderConfigError,
+} from "@/lib/scrape-provider";
+
+interface CachedScrapePayload {
+  cacheVersion: 1;
+  markdown: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface DecodedCachedScrape {
+  markdown: string;
+  metadata: Record<string, unknown>;
+}
+
+const SCRAPE_CACHE_VERSION = 1;
 
 export async function POST(request: NextRequest) {
   let action: string | undefined;
 
   try {
-    const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
-
-    if (!FIRECRAWL_API_KEY) {
-      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
-    }
-
     const body = await request.json();
     const { url, codeBlocksOnly = false } = body;
     action = body.action;
+    const provider = resolveScrapeProvider();
+    const providerName = getProviderName(provider);
+    const cacheKey = getProviderCacheKey(provider, url);
 
     if (!isValidDocumentationUrl(url)) {
       return NextResponse.json(
@@ -35,42 +53,68 @@ export async function POST(request: NextRequest) {
 
     if (action === "scrape") {
       // Check cache first
-      const cached = await cacheService.get(url);
+      const cached = await cacheService.get(cacheKey);
       if (cached) {
-        if (getIncompleteContentReason(cached)) {
-          await cacheService.delete(url);
-          console.warn(`Removed truncated cached content for ${url} (${cached.length} chars)`);
+        const cachedScrape =
+          provider === "playwright"
+            ? decodeCachedScrape(cached, provider, url)
+            : decodeLegacyCachedScrape(cached, provider, url);
+
+        if (getIncompleteContentReason(cachedScrape.markdown)) {
+          await cacheService.delete(cacheKey);
+          console.warn(
+            `Removed truncated cached content for ${url} (${cachedScrape.markdown.length} chars)`,
+          );
         } else {
           return NextResponse.json({
             success: true,
-            data: { markdown: cached },
+            data: {
+              markdown: cachedScrape.markdown,
+              metadata: cachedScrape.metadata,
+            },
             cached: true,
+            provider,
             codeBlocksOnly, // Pass through the parameter
           });
         }
       }
 
       // Try to acquire lock for this URL
-      const lockId = await cacheService.acquireLock(url);
+      const lockId = await cacheService.acquireLock(cacheKey);
 
       if (!lockId) {
         // Another process is already scraping this URL
         console.warn(`URL ${url} is already being processed, waiting for completion...`);
 
         // Wait for the lock to be released
-        const lockReleased = await cacheService.waitForLock(url);
+        const lockReleased = await cacheService.waitForLock(cacheKey);
 
         if (lockReleased) {
           // Check cache again - the other process should have populated it
-          const cachedAfterWait = await cacheService.get(url);
+          const cachedAfterWait = await cacheService.get(cacheKey);
           if (cachedAfterWait) {
-            return NextResponse.json({
-              success: true,
-              data: { markdown: cachedAfterWait },
-              cached: true,
-              waitedForLock: true,
-              codeBlocksOnly, // Pass through the parameter
-            });
+            const cachedScrape =
+              provider === "playwright"
+                ? decodeCachedScrape(cachedAfterWait, provider, url)
+                : decodeLegacyCachedScrape(cachedAfterWait, provider, url);
+            if (getIncompleteContentReason(cachedScrape.markdown)) {
+              await cacheService.delete(cacheKey);
+              console.warn(
+                `Removed truncated cached content for ${url} after lock wait (${cachedScrape.markdown.length} chars)`,
+              );
+            } else {
+              return NextResponse.json({
+                success: true,
+                data: {
+                  markdown: cachedScrape.markdown,
+                  metadata: cachedScrape.metadata,
+                },
+                cached: true,
+                waitedForLock: true,
+                provider,
+                codeBlocksOnly, // Pass through the parameter
+              });
+            }
           }
         }
 
@@ -79,20 +123,35 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        // Check circuit breaker before attempting to scrape
-        const canRequest = await cacheService.firecrawlCircuitBreaker.canRequest();
+        const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY?.trim();
 
-        if (!canRequest) {
-          console.error(`Circuit breaker is OPEN for Firecrawl API, failing fast for ${url}`);
-          return NextResponse.json(
-            {
-              error: "Documentation service is temporarily unavailable",
-              details:
-                "The service is experiencing high failure rates. Please try again in a minute.",
-              circuitBreaker: "open",
-            },
-            { status: 503 },
-          );
+        if (provider === "firecrawl") {
+          if (!FIRECRAWL_API_KEY) {
+            return NextResponse.json(
+              {
+                error:
+                  "Server configuration error: FIRECRAWL_API_KEY is required when SCRAPE_PROVIDER=firecrawl.",
+              },
+              { status: 500 },
+            );
+          }
+
+          // Check circuit breaker before attempting to scrape
+          const canRequest = await cacheService.firecrawlCircuitBreaker.canRequest();
+
+          if (!canRequest) {
+            console.error(`Circuit breaker is OPEN for Firecrawl API, failing fast for ${url}`);
+            return NextResponse.json(
+              {
+                error: "Documentation service is temporarily unavailable",
+                details:
+                  "The service is experiencing high failure rates. Please try again in a minute.",
+                provider,
+                circuitBreaker: "open",
+              },
+              { status: 503 },
+            );
+          }
         }
 
         const { MAX_RETRIES, INITIAL_RETRY_DELAY, MAX_RETRY_DELAY, RETRY_STATUS_CODES } =
@@ -113,11 +172,17 @@ export async function POST(request: NextRequest) {
           }
 
           try {
-            const data = await scrapeFirecrawlUrl(FIRECRAWL_API_KEY, url, {
-              formats: ["markdown"],
-              waitFor: PROCESSING_CONFIG.FIRECRAWL_WAIT_TIME,
-              timeout: PROCESSING_CONFIG.FIRECRAWL_TIMEOUT,
-            });
+            const data =
+              provider === "firecrawl"
+                ? await scrapeFirecrawlUrl(FIRECRAWL_API_KEY!, url, {
+                    formats: ["markdown"],
+                    waitFor: PROCESSING_CONFIG.FIRECRAWL_WAIT_TIME,
+                    timeout: PROCESSING_CONFIG.FIRECRAWL_TIMEOUT,
+                  })
+                : await scrapePlaywrightUrl(url, {
+                    waitFor: PROCESSING_CONFIG.FIRECRAWL_WAIT_TIME,
+                    timeout: PROCESSING_CONFIG.FIRECRAWL_TIMEOUT,
+                  });
 
             const markdown = readFirecrawlMarkdown(data);
             const incompleteReason = getIncompleteContentReason(markdown);
@@ -141,32 +206,55 @@ export async function POST(request: NextRequest) {
             }
 
             if (isCacheableFirecrawlContent(markdown)) {
-              await cacheService.set(url, markdown);
+              await cacheService.set(
+                cacheKey,
+                provider === "playwright"
+                  ? encodeCachedScrape(
+                      markdown,
+                      buildScrapeMetadata(data.data?.metadata, provider, url, false),
+                    )
+                  : markdown,
+              );
             } else {
               console.warn(`Content for ${url} is short (${markdown.length} chars) but proceeding`);
             }
 
-            await cacheService.firecrawlCircuitBreaker.recordSuccess();
-            cacheService.incrementFirecrawlFetches();
+            if (provider === "firecrawl") {
+              await cacheService.firecrawlCircuitBreaker.recordSuccess();
+              cacheService.incrementFirecrawlFetches();
+            }
 
             return NextResponse.json({
               success: true,
-              data: { markdown },
+              data: {
+                markdown,
+                metadata: buildScrapeMetadata(data.data?.metadata, provider, url, false),
+              },
               cached: false,
+              provider,
               retriesUsed: attempt,
               contentLength: markdown.length,
               codeBlocksOnly,
             });
           } catch (error) {
-            if (error instanceof FirecrawlRequestError) {
+            if (error instanceof FirecrawlRequestError || error instanceof PlaywrightRequestError) {
               lastError = error.message;
               lastStatus = error.status;
+              const retryable =
+                error instanceof FirecrawlRequestError
+                  ? RETRY_STATUS_CODES.includes(error.status)
+                  : error.retryable;
 
-              if (!RETRY_STATUS_CODES.includes(error.status) || attempt === MAX_RETRIES) {
-                if (RETRY_STATUS_CODES.includes(error.status)) {
+              if (!retryable || attempt === MAX_RETRIES) {
+                if (provider === "firecrawl" && retryable) {
                   await cacheService.firecrawlCircuitBreaker.recordFailure();
                 }
-                return NextResponse.json({ error: error.message }, { status: error.status });
+                const errorResponse: { error: string; provider: string; details?: unknown } = {
+                  error: error.message,
+                  provider,
+                };
+                if (error.details) errorResponse.details = error.details;
+                return NextResponse.json(errorResponse, { status: error.status });
               }
               continue;
             }
@@ -176,10 +264,18 @@ export async function POST(request: NextRequest) {
 
             if (attempt === MAX_RETRIES) {
               // Record failure in circuit breaker
-              await cacheService.firecrawlCircuitBreaker.recordFailure();
-              console.error(`Failed to scrape ${url} after ${MAX_RETRIES + 1} attempts:`, error);
+              if (provider === "firecrawl") {
+                await cacheService.firecrawlCircuitBreaker.recordFailure();
+              }
+              console.error(
+                `Failed to scrape ${url} with ${providerName} after ${MAX_RETRIES + 1} attempts:`,
+                error,
+              );
               return NextResponse.json(
-                { error: `Network error after ${MAX_RETRIES + 1} attempts: ${lastError}` },
+                {
+                  error: `Network error after ${MAX_RETRIES + 1} attempts: ${lastError}`,
+                  provider,
+                },
                 { status: 500 },
               );
             }
@@ -188,7 +284,9 @@ export async function POST(request: NextRequest) {
 
         // If we got here, all retries failed
         // Record failure in circuit breaker
-        await cacheService.firecrawlCircuitBreaker.recordFailure();
+        if (provider === "firecrawl") {
+          await cacheService.firecrawlCircuitBreaker.recordFailure();
+        }
 
         // Provide helpful error message for truncated content
         if (lastError?.includes("Truncated content")) {
@@ -200,25 +298,30 @@ export async function POST(request: NextRequest) {
               suggestion:
                 "Please try again in a few moments. The server may be experiencing high load.",
               attempts: MAX_RETRIES + 1,
+              provider,
             },
             { status: 500 },
           );
         }
 
         return NextResponse.json(
-          { error: lastError || "Failed to scrape after multiple attempts" },
+          { error: lastError || "Failed to scrape after multiple attempts", provider },
           { status: lastStatus || 500 },
         );
       } finally {
         // Always release the lock if we acquired one
         if (lockId) {
-          await cacheService.releaseLock(url, lockId);
+          await cacheService.releaseLock(cacheKey, lockId);
         }
       }
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (error) {
+    if (error instanceof ScrapeProviderConfigError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
     console.error("API Error:", error);
     // Cache statistics logged even on error
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -228,4 +331,62 @@ export async function POST(request: NextRequest) {
       // Stats available via cacheService.getStats()
     }
   }
+}
+
+function encodeCachedScrape(markdown: string, metadata: Record<string, unknown>): string {
+  const payload: CachedScrapePayload = {
+    cacheVersion: SCRAPE_CACHE_VERSION,
+    markdown,
+    metadata,
+  };
+  return JSON.stringify(payload);
+}
+
+function decodeCachedScrape(
+  cached: string,
+  provider: ScrapeProvider,
+  requestedUrl: string,
+): DecodedCachedScrape {
+  try {
+    const parsed = JSON.parse(cached) as Partial<CachedScrapePayload>;
+    if (parsed.cacheVersion === SCRAPE_CACHE_VERSION && typeof parsed.markdown === "string") {
+      return {
+        markdown: parsed.markdown,
+        metadata: buildScrapeMetadata(parsed.metadata, provider, requestedUrl, true),
+      };
+    }
+  } catch {
+    // Legacy cache entries are raw markdown strings.
+  }
+
+  return {
+    markdown: cached,
+    metadata: buildScrapeMetadata(undefined, provider, requestedUrl, true),
+  };
+}
+
+function decodeLegacyCachedScrape(
+  cached: string,
+  provider: ScrapeProvider,
+  requestedUrl: string,
+): DecodedCachedScrape {
+  return {
+    markdown: cached,
+    metadata: buildScrapeMetadata(undefined, provider, requestedUrl, true),
+  };
+}
+
+function buildScrapeMetadata(
+  metadata: Record<string, unknown> | undefined,
+  provider: ScrapeProvider,
+  requestedUrl: string,
+  cached: boolean,
+): Record<string, unknown> {
+  return {
+    sourceURL: requestedUrl,
+    url: requestedUrl,
+    ...metadata,
+    provider,
+    cached,
+  };
 }

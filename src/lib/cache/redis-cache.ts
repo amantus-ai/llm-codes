@@ -219,7 +219,7 @@ export class RedisCache {
     }
 
     this.stats.misses++;
-    console.log(`[CACHE MISS] ${url} (will need Firecrawl)`);
+    console.log(`[CACHE MISS] ${url} (will need provider fetch)`);
     return null;
   }
 

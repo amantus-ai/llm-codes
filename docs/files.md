@@ -22,7 +22,7 @@ File organization follows Next.js App Router conventions with `src/app` for rout
 
 **Scraping Endpoints**
 
-- `src/app/api/scrape/route.ts` - Main scraping endpoint with caching, retries, and Firecrawl integration
+- `src/app/api/scrape/route.ts` - Main scraping endpoint with caching, retries, and provider selection
 - `src/app/api/crawl/start/route.ts` - Starts Firecrawl crawl jobs
 - `src/app/api/crawl/[jobId]/status/route.ts` - Streams Firecrawl crawl status and page results
 - `src/app/api/cache/stats/route.ts` - Cache statistics endpoint for monitoring
@@ -41,6 +41,8 @@ File organization follows Next.js App Router conventions with `src/app` for rout
 **Libraries**
 
 - `src/lib/firecrawl.ts` - Shared Firecrawl client, error mapping, and content validation helpers
+- `src/lib/playwright-scraper.ts` - Opt-in self-hosted Playwright renderer and Markdown extraction
+- `src/lib/scrape-provider.ts` - Provider selection, provider errors, and cache key scoping
 - `src/lib/http2-client.ts` - HTTP/2 client wrapper used by the Firecrawl client
 - `src/lib/cache/redis-cache.ts` - Redis cache implementation with TTL support
 
@@ -94,5 +96,5 @@ File organization follows Next.js App Router conventions with `src/app` for rout
 **Core Framework**: Next.js 16 with App Router, React 19, TypeScript 6
 **Styling**: Tailwind CSS v4 and custom CSS utilities
 **Testing**: Vitest with happy-dom, coverage reporting, and optional live Firecrawl smoke scripts
-**External APIs**: Firecrawl for JavaScript rendering
+**External APIs**: Firecrawl by default; optional self-hosted Playwright browser extraction
 **Caching**: In-memory with optional Redis support

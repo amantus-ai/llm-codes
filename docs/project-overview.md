@@ -36,7 +36,7 @@ llm.codes is a high-performance web service that converts JavaScript-heavy docum
 
 **API & Processing**:
 
-- Firecrawl API for JavaScript rendering - `src/app/api/scrape/route.ts` (lines 65-83)
+- Firecrawl API by default, or opt-in self-hosted Playwright browser extraction - `src/app/api/scrape/route.ts`
 - HTTP/2 client for performance - `src/lib/http2-client.ts`
 - Content filtering pipeline - `src/utils/content-processing.ts`, `src/utils/documentation-filter.ts`
 
@@ -58,7 +58,8 @@ llm.codes is a high-performance web service that converts JavaScript-heavy docum
 
 - Node.js 24.0+ - `package.json` (`"engines": { "node": ">=24.0.0" }`)
 - Modern browsers with Notification API support
-- Firecrawl API key (required) - Environment variable `FIRECRAWL_API_KEY`
+- Firecrawl API key for the default provider - Environment variable `FIRECRAWL_API_KEY`
+- Self-hosted Playwright provider - Environment variable `SCRAPE_PROVIDER=playwright`; install Chromium with `pnpm exec playwright install chromium`
 - Upstash Redis (optional) - Environment variables `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
 
 **Deployment Platforms**:

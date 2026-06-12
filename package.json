@@ -46,6 +46,7 @@
     "@vercel/analytics": "^2.0.1",
     "lz-string": "^1.5.0",
     "next": "16.2.6",
+    "playwright": "^1.60.0",
     "postcss": "^8.5.14",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",

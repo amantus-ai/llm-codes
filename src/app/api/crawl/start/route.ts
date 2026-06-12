@@ -3,6 +3,7 @@ import { isValidDocumentationUrl } from "@/utils/url-utils";
 import { PROCESSING_CONFIG } from "@/constants";
 import { cacheService } from "@/lib/cache/redis-cache";
 import { FirecrawlRequestError, startFirecrawlCrawl } from "@/lib/firecrawl";
+import { resolveScrapeProvider, ScrapeProviderConfigError } from "@/lib/scrape-provider";
 
 function clampInteger(value: unknown, fallback: number, min: number, max: number): number {
   const parsed = typeof value === "number" ? value : Number.parseInt(String(value), 10);
@@ -12,14 +13,9 @@ function clampInteger(value: unknown, fallback: number, min: number, max: number
 
 export async function POST(request: NextRequest) {
   try {
-    const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
-
-    if (!FIRECRAWL_API_KEY) {
-      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
-    }
-
     const body = await request.json();
     const { url } = body;
+    const provider = resolveScrapeProvider();
 
     const enforcedLimit = clampInteger(body.limit, 10, 1, PROCESSING_CONFIG.MAX_ALLOWED_URLS);
     const enforcedMaxDepth = clampInteger(
@@ -35,6 +31,29 @@ export async function POST(request: NextRequest) {
           error: "Invalid URL. Must be from an allowed documentation domain",
         },
         { status: 400 },
+      );
+    }
+
+    if (provider !== "firecrawl") {
+      return NextResponse.json(
+        {
+          error:
+            "Deep crawl mode requires SCRAPE_PROVIDER=firecrawl. Turn off deep crawl mode to use the Playwright scrape provider.",
+          provider,
+        },
+        { status: 501 },
+      );
+    }
+
+    const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY?.trim();
+
+    if (!FIRECRAWL_API_KEY) {
+      return NextResponse.json(
+        {
+          error:
+            "Server configuration error: FIRECRAWL_API_KEY is required when SCRAPE_PROVIDER=firecrawl.",
+        },
+        { status: 500 },
       );
     }
 
@@ -111,6 +130,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Network error: ${errorMessage}` }, { status: 500 });
     }
   } catch (error) {
+    if (error instanceof ScrapeProviderConfigError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
     console.error("Crawl Start API Error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

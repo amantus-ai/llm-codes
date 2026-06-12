@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { POST } from "../route";
 import { cacheService } from "@/lib/cache/redis-cache";
 import { scrapeFirecrawlUrl } from "@/lib/firecrawl";
+import { scrapePlaywrightUrl } from "@/lib/playwright-scraper";
 
 vi.mock("@/lib/cache/redis-cache", () => ({
   cacheService: {
@@ -29,6 +30,14 @@ vi.mock("@/lib/firecrawl", async (importOriginal) => {
   };
 });
 
+vi.mock("@/lib/playwright-scraper", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/playwright-scraper")>();
+  return {
+    ...actual,
+    scrapePlaywrightUrl: vi.fn(),
+  };
+});
+
 function scrapeRequest(body: Record<string, unknown>) {
   return new NextRequest("http://localhost:3000/api/scrape", {
     method: "POST",
@@ -39,6 +48,8 @@ function scrapeRequest(body: Record<string, unknown>) {
 describe("POST /api/scrape", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    delete process.env.SCRAPE_PROVIDER;
+    delete process.env.PLAYWRIGHT_WS_ENDPOINT;
     process.env.FIRECRAWL_API_KEY = "test-api-key";
     vi.mocked(cacheService.get).mockResolvedValue(null);
     vi.mocked(cacheService.acquireLock).mockResolvedValue("lock-1");
@@ -60,6 +71,122 @@ describe("POST /api/scrape", () => {
     expect(response.status).toBe(200);
     expect(data.cached).toBe(true);
     expect(scrapeFirecrawlUrl).not.toHaveBeenCalled();
+  });
+
+  it("returns stored metadata on cache hits", async () => {
+    vi.mocked(cacheService.get).mockResolvedValue(
+      JSON.stringify({
+        cacheVersion: 1,
+        markdown: "# Cached\n\n" + "content ".repeat(80),
+        metadata: {
+          sourceURL: "https://developer.apple.com/documentation/swiftui/view",
+          url: "https://developer.apple.com/documentation/swiftui/view",
+          title: "View | Apple Developer Documentation",
+          provider: "playwright",
+          status: 200,
+        },
+      }),
+    );
+
+    process.env.SCRAPE_PROVIDER = "playwright";
+
+    const response = await POST(
+      scrapeRequest({ url: "https://developer.apple.com/documentation/swiftui" }),
+    );
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.cached).toBe(true);
+    expect(data.data.markdown).toContain("# Cached");
+    expect(data.data.metadata).toEqual(
+      expect.objectContaining({
+        sourceURL: "https://developer.apple.com/documentation/swiftui/view",
+        url: "https://developer.apple.com/documentation/swiftui/view",
+        title: "View | Apple Developer Documentation",
+        provider: "playwright",
+        status: 200,
+        cached: true,
+      }),
+    );
+    expect(scrapePlaywrightUrl).not.toHaveBeenCalled();
+  });
+
+  it("keeps Firecrawl cache hits as raw markdown even when they look like JSON payloads", async () => {
+    const rawMarkdown = JSON.stringify({
+      cacheVersion: 1,
+      markdown: "# Inner markdown that should not replace the raw Firecrawl cache",
+    });
+    vi.mocked(cacheService.get).mockResolvedValue(rawMarkdown);
+
+    const response = await POST(
+      scrapeRequest({ url: "https://developer.apple.com/documentation/swiftui" }),
+    );
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.cached).toBe(true);
+    expect(data.data.markdown).toBe(rawMarkdown);
+    expect(scrapeFirecrawlUrl).not.toHaveBeenCalled();
+  });
+
+  it("uses Playwright without a Firecrawl key when configured", async () => {
+    process.env.SCRAPE_PROVIDER = "playwright";
+    delete process.env.FIRECRAWL_API_KEY;
+    vi.mocked(scrapePlaywrightUrl).mockResolvedValue({
+      success: true,
+      data: {
+        markdown: "# Playwright Docs\n\n" + "rendered content ".repeat(40),
+        metadata: {
+          sourceURL: "https://developer.apple.com/documentation/swiftui",
+          provider: "playwright",
+        },
+      },
+    });
+
+    const response = await POST(
+      scrapeRequest({ url: "https://developer.apple.com/documentation/swiftui" }),
+    );
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.provider).toBe("playwright");
+    expect(scrapePlaywrightUrl).toHaveBeenCalledWith(
+      "https://developer.apple.com/documentation/swiftui",
+      expect.objectContaining({ waitFor: expect.any(Number), timeout: expect.any(Number) }),
+    );
+    expect(scrapeFirecrawlUrl).not.toHaveBeenCalled();
+    expect(cacheService.firecrawlCircuitBreaker.canRequest).not.toHaveBeenCalled();
+  });
+
+  it("uses provider-scoped cache keys for Playwright", async () => {
+    process.env.SCRAPE_PROVIDER = "playwright";
+    vi.mocked(cacheService.get).mockResolvedValue("# Cached\n\n" + "content ".repeat(80));
+
+    const response = await POST(
+      scrapeRequest({ url: "https://developer.apple.com/documentation/swiftui" }),
+    );
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.cached).toBe(true);
+    expect(cacheService.get).toHaveBeenCalledWith(
+      "playwright:https://developer.apple.com/documentation/swiftui",
+    );
+    expect(scrapePlaywrightUrl).not.toHaveBeenCalled();
+  });
+
+  it("returns a clear error for an unsupported scrape provider", async () => {
+    process.env.SCRAPE_PROVIDER = "crawl4ai";
+
+    const response = await POST(
+      scrapeRequest({ url: "https://developer.apple.com/documentation/swiftui" }),
+    );
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data.error).toContain('Unsupported SCRAPE_PROVIDER "crawl4ai"');
+    expect(scrapeFirecrawlUrl).not.toHaveBeenCalled();
+    expect(scrapePlaywrightUrl).not.toHaveBeenCalled();
   });
 
   it("deletes incomplete cached content and refreshes it", async () => {
@@ -103,6 +230,31 @@ describe("POST /api/scrape", () => {
     expect(scrapeFirecrawlUrl).not.toHaveBeenCalled();
   });
 
+  it("deletes incomplete cache after lock wait and scrapes fresh content", async () => {
+    vi.mocked(cacheService.acquireLock).mockResolvedValue(null);
+    vi.mocked(cacheService.waitForLock).mockResolvedValue(true);
+    vi.mocked(cacheService.get)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce("[Skip Navigation](#main)");
+    vi.mocked(scrapeFirecrawlUrl).mockResolvedValue({
+      success: true,
+      data: { markdown: "# Fresh after wait\n\n" + "content ".repeat(80) },
+    });
+
+    const response = await POST(
+      scrapeRequest({ url: "https://developer.apple.com/documentation/swiftui" }),
+    );
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.cached).toBe(false);
+    expect(data.data.markdown).toContain("# Fresh after wait");
+    expect(cacheService.delete).toHaveBeenCalledWith(
+      "https://developer.apple.com/documentation/swiftui",
+    );
+    expect(scrapeFirecrawlUrl).toHaveBeenCalledTimes(1);
+  });
+
   it("retries incomplete Firecrawl content before succeeding", async () => {
     vi.mocked(scrapeFirecrawlUrl)
       .mockResolvedValueOnce({ success: true, data: { markdown: "Loading..." } })
@@ -119,6 +271,10 @@ describe("POST /api/scrape", () => {
     expect(response.status).toBe(200);
     expect(data.retriesUsed).toBe(1);
     expect(scrapeFirecrawlUrl).toHaveBeenCalledTimes(2);
+    expect(cacheService.set).toHaveBeenCalledWith(
+      "https://developer.apple.com/documentation/swiftui",
+      "# Complete\n\n" + "content ".repeat(80),
+    );
     expect(cacheService.firecrawlCircuitBreaker.recordSuccess).toHaveBeenCalled();
   });
 
@@ -140,6 +296,25 @@ describe("POST /api/scrape", () => {
     );
   });
 
+  it("trims the Firecrawl API key before scraping", async () => {
+    process.env.FIRECRAWL_API_KEY = "  test-api-key  ";
+    vi.mocked(scrapeFirecrawlUrl).mockResolvedValue({
+      success: true,
+      data: { markdown: "# Complete\n\n" + "content ".repeat(80) },
+    });
+
+    const response = await POST(
+      scrapeRequest({ url: "https://developer.apple.com/documentation/swiftui" }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(scrapeFirecrawlUrl).toHaveBeenCalledWith(
+      "test-api-key",
+      "https://developer.apple.com/documentation/swiftui",
+      expect.any(Object),
+    );
+  });
+
   it("fails fast when the circuit breaker is open", async () => {
     vi.mocked(cacheService.firecrawlCircuitBreaker.canRequest).mockResolvedValue(false);
 
@@ -150,6 +325,7 @@ describe("POST /api/scrape", () => {
 
     expect(response.status).toBe(503);
     expect(data.circuitBreaker).toBe("open");
+    expect(data.provider).toBe("firecrawl");
     expect(scrapeFirecrawlUrl).not.toHaveBeenCalled();
   });
 
