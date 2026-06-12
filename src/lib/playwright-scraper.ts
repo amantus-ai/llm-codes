@@ -526,6 +526,7 @@ function extractMarkdownFromPage(requestedURL) {
 
   const bodyText = (document.body && document.body.innerText) || '';
   const lowerBodyText = bodyText.toLowerCase();
+  const titleText = (document.title || '').toLowerCase();
   const verificationIndicators = [
     'verify you are human',
     'checking your browser',
@@ -533,7 +534,27 @@ function extractMarkdownFromPage(requestedURL) {
     'attention required',
     'access denied',
   ];
-  const blockedIndicator = verificationIndicators.find((indicator) => lowerBodyText.includes(indicator));
+  function looksLikeVerificationWall() {
+    const shortBody = lowerBodyText.length < 2000;
+    const hasChallengeContainer = Boolean(
+      document.querySelector('[id*="challenge"],[class*="challenge"],[id*="captcha"],[class*="captcha"],.cf-browser-verification'),
+    );
+    const strongBodySignals = [
+      'verify you are human',
+      'checking your browser',
+      'enable javascript and cookies',
+    ];
+    const weakBodySignals = ['attention required', 'access denied'];
+    const hasStrongTitle = strongBodySignals.some((indicator) => titleText.includes(indicator));
+    const hasWeakTitle = weakBodySignals.some((indicator) => titleText.includes(indicator));
+    return (
+      hasStrongTitle ||
+      hasChallengeContainer ||
+      strongBodySignals.some((indicator) => lowerBodyText.includes(indicator)) ||
+      (shortBody && hasWeakTitle) ||
+      (shortBody && weakBodySignals.some((indicator) => lowerBodyText.includes(indicator)))
+    );
+  }
   const metadata = {
     sourceURL: window.location.href,
     url: window.location.href,
@@ -542,7 +563,7 @@ function extractMarkdownFromPage(requestedURL) {
     provider: 'playwright',
   };
 
-  if (blockedIndicator) {
+  if (looksLikeVerificationWall()) {
     return {
       markdown: '',
       blockedReason: 'Page appears to be behind a verification wall. Playwright cannot extract it honestly.',

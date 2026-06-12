@@ -230,6 +230,31 @@ describe("POST /api/scrape", () => {
     expect(scrapeFirecrawlUrl).not.toHaveBeenCalled();
   });
 
+  it("deletes incomplete cache after lock wait and scrapes fresh content", async () => {
+    vi.mocked(cacheService.acquireLock).mockResolvedValue(null);
+    vi.mocked(cacheService.waitForLock).mockResolvedValue(true);
+    vi.mocked(cacheService.get)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce("[Skip Navigation](#main)");
+    vi.mocked(scrapeFirecrawlUrl).mockResolvedValue({
+      success: true,
+      data: { markdown: "# Fresh after wait\n\n" + "content ".repeat(80) },
+    });
+
+    const response = await POST(
+      scrapeRequest({ url: "https://developer.apple.com/documentation/swiftui" }),
+    );
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.cached).toBe(false);
+    expect(data.data.markdown).toContain("# Fresh after wait");
+    expect(cacheService.delete).toHaveBeenCalledWith(
+      "https://developer.apple.com/documentation/swiftui",
+    );
+    expect(scrapeFirecrawlUrl).toHaveBeenCalledTimes(1);
+  });
+
   it("retries incomplete Firecrawl content before succeeding", async () => {
     vi.mocked(scrapeFirecrawlUrl)
       .mockResolvedValueOnce({ success: true, data: { markdown: "Loading..." } })

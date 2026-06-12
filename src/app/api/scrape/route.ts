@@ -97,17 +97,24 @@ export async function POST(request: NextRequest) {
               provider === "playwright"
                 ? decodeCachedScrape(cachedAfterWait, provider, url)
                 : decodeLegacyCachedScrape(cachedAfterWait, provider, url);
-            return NextResponse.json({
-              success: true,
-              data: {
-                markdown: cachedScrape.markdown,
-                metadata: cachedScrape.metadata,
-              },
-              cached: true,
-              waitedForLock: true,
-              provider,
-              codeBlocksOnly, // Pass through the parameter
-            });
+            if (getIncompleteContentReason(cachedScrape.markdown)) {
+              await cacheService.delete(cacheKey);
+              console.warn(
+                `Removed truncated cached content for ${url} after lock wait (${cachedScrape.markdown.length} chars)`,
+              );
+            } else {
+              return NextResponse.json({
+                success: true,
+                data: {
+                  markdown: cachedScrape.markdown,
+                  metadata: cachedScrape.metadata,
+                },
+                cached: true,
+                waitedForLock: true,
+                provider,
+                codeBlocksOnly, // Pass through the parameter
+              });
+            }
           }
         }
 
@@ -291,6 +298,7 @@ export async function POST(request: NextRequest) {
               suggestion:
                 "Please try again in a few moments. The server may be experiencing high load.",
               attempts: MAX_RETRIES + 1,
+              provider,
             },
             { status: 500 },
           );
