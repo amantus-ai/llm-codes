@@ -4,7 +4,7 @@
 
 ## Overview
 
-llm.codes is a Next.js application that converts JavaScript-heavy documentation sites into clean Markdown for AI consumption. The system employs a multi-layered architecture with client-side React components, server-side API routes, and a sophisticated content processing pipeline. The architecture prioritizes performance through parallel processing, caching strategies, and HTTP/2 connections.
+llm.codes is a Next.js application that converts JavaScript-heavy documentation sites into clean Markdown for AI consumption. The system employs a multi-layered architecture with client-side React components, server-side API routes, and a sophisticated content processing pipeline. The architecture prioritizes performance through parallel processing, caching strategies, HTTP/2 connections, and a small scrape-provider boundary.
 
 ## Component Map
 
@@ -16,7 +16,7 @@ llm.codes is a Next.js application that converts JavaScript-heavy documentation 
 
 **API Layer** - Next.js API routes in src/app/api/
 
-- Single URL Scraping: src/app/api/scrape/route.ts (lines 9-164)
+- Single URL Scraping: src/app/api/scrape/route.ts
 - Firecrawl Crawl Mode: src/app/api/crawl/start/route.ts and src/app/api/crawl/[jobId]/status/route.ts
 - Cache Statistics: src/app/api/cache/stats/route.ts
 
@@ -35,6 +35,8 @@ llm.codes is a Next.js application that converts JavaScript-heavy documentation 
 **Infrastructure** - Performance optimizations in src/lib/
 
 - Firecrawl Client: src/lib/firecrawl.ts owns Firecrawl request shapes, error mapping, and scrape payload validation
+- Playwright Client: src/lib/playwright-scraper.ts owns opt-in self-hosted browser extraction for `SCRAPE_PROVIDER=playwright`
+- Provider Selection: src/lib/scrape-provider.ts resolves `SCRAPE_PROVIDER` and keeps Playwright cache keys separate from Firecrawl cache keys
 - HTTP/2 Client: src/lib/http2-client.ts uses Undici agent with connection pooling
 - Constants: src/constants.ts defines all configuration (lines 1-477)
 
@@ -79,7 +81,7 @@ User enters URL → validateUrl() → isValidDocumentationUrl() checks against A
 
 ```typescript
 POST /api/scrape → Check L1/L2 cache (lines 31-46)
-→ If miss: Firecrawl API call with retries (lines 56-123)
+→ If miss: selected provider call with retries. Firecrawl is default; Playwright launches local Chromium with the requested documentation hostname pinned to a public DNS result.
 → Response validation → Cache storage → Return markdown
 ```
 
@@ -104,7 +106,7 @@ Raw markdown → filterNavigationAndUIChrome() → filterLegalBoilerplate()
 ```typescript
 Request → Check L1 memory cache (5 min TTL)
 → If miss: Check L2 Redis cache (30 day TTL)
-→ If miss: Fetch from source → Compress if >5KB
+→ If miss: Fetch from selected provider → Compress if >5KB
 → Store in both L1 and L2 → Return content
 ```
 

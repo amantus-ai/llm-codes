@@ -22,6 +22,7 @@ Testing approach: Unit tests for utilities and components, integration tests for
 - Main scrape endpoint: `src/app/api/scrape/__tests__/route.test.ts`
 - Crawl endpoints: `src/app/api/crawl/**/__tests__/route.test.ts`
 - Firecrawl client: `src/lib/__tests__/firecrawl.test.ts`
+- Provider selection: `src/lib/__tests__/scrape-provider.test.ts`
 - Redis cache: `src/lib/cache/__tests__/redis-cache.test.ts`
 
 **Component Tests** - React components using Testing Library (when present)
@@ -51,6 +52,10 @@ scrapes `/llms.txt` when discovered.
 code block extraction against several real docs sites, starts a small Firecrawl crawl with
 `limit=3` and `maxDepth=1`, and reads the SSE status stream until completion. It is the CLI
 replacement for manually opening the browser to prove the optional processing modes still work.
+
+For Playwright provider checks, set `SCRAPE_PROVIDER=playwright` and run
+`pnpm exec playwright install chromium` once on the self-hosted machine. Deep crawl mode remains
+Firecrawl-only; use the standard recursive client processing path for Playwright-backed extraction.
 
 **Test Environment Setup** - Global configuration in **src/test/setup.ts**:
 

@@ -17,7 +17,7 @@ A high-performance web service that converts JavaScript-heavy documentation site
 
 Modern documentation sites (especially Apple's) use heavy JavaScript rendering that makes content invisible to AI agents. llm.codes solves this by:
 
-- Using Firecrawl's headless browser to execute JavaScript and capture fully-rendered content
+- Using Firecrawl's hosted browser, or opt-in self-hosted Playwright, to execute JavaScript and capture fully-rendered content
 - Converting dynamic HTML to clean, semantic Markdown
 - Removing noise (navigation, footers, duplicate content) that wastes AI context tokens
 - Providing parallel URL processing for efficient multi-page documentation crawling
@@ -49,7 +49,7 @@ Experience the tool instantly without any setup required.
 
 - Node.js 24+
 - pnpm 10+
-- [Firecrawl API key](https://firecrawl.dev)
+- [Firecrawl API key](https://firecrawl.dev) for the default provider, or self-hosted Chromium for the Playwright provider
 
 ### Installation
 
@@ -72,11 +72,16 @@ pnpm install
 cp .env.local.example .env.local
 ```
 
-4. Add your Firecrawl API key to `.env.local`:
+4. Add your scrape provider configuration to `.env.local`:
 
 ```env
-# Required
+# Default hosted provider
+SCRAPE_PROVIDER=firecrawl
 FIRECRAWL_API_KEY=your_api_key_here
+
+# Self-hosted alternative
+# SCRAPE_PROVIDER=playwright
+# Run once: pnpm exec playwright install chromium
 
 # Optional - Redis Cache (Recommended for production)
 UPSTASH_REDIS_REST_URL=https://your-redis-instance.upstash.io
@@ -112,7 +117,8 @@ The easiest way to deploy is using Vercel:
 1. Push to your GitHub repository
 2. Import project on [Vercel](https://vercel.com/new)
 3. Add environment variables:
-   - `FIRECRAWL_API_KEY`: Your Firecrawl API key (required)
+   - `SCRAPE_PROVIDER`: `firecrawl` by default, or `playwright` for self-hosted Node/Docker deployments
+   - `FIRECRAWL_API_KEY`: Your Firecrawl API key (required when `SCRAPE_PROVIDER=firecrawl`)
    - `UPSTASH_REDIS_REST_URL`: Your Upstash Redis URL (optional)
    - `UPSTASH_REDIS_REST_TOKEN`: Your Upstash Redis token (optional)
    - `CACHE_ADMIN_KEY`: Admin key for cache endpoints (optional)
@@ -131,7 +137,7 @@ The easiest way to deploy is using Vercel:
    - **Deduplicate Content**: Remove duplicate paragraphs to save tokens
    - **Filter Availability**: Remove platform availability strings (iOS 14.0+, etc.)
    - **Extract Code Blocks Only**: Include fenced examples only and skip pages without examples
-   - **Use Deep Crawl Mode**: Use Firecrawl's crawl API with the selected depth and page limit
+   - **Use Deep Crawl Mode**: Use Firecrawl's crawl API with the selected depth and page limit. Turn this off when using `SCRAPE_PROVIDER=playwright`.
 
 3. **Process**: Click "Process Documentation" and grant notification permissions if prompted
 
@@ -208,7 +214,7 @@ The core API endpoint that handles documentation conversion.
 
 1. URL validation against documentation URL patterns and explicit exceptions
 2. Cache check (Redis/in-memory with 30-day TTL)
-3. Firecrawl API call with optimized scraping parameters
+3. Provider call with optimized scraping parameters. Firecrawl is the default; `SCRAPE_PROVIDER=playwright` launches self-hosted Chromium.
 4. Content post-processing and filtering
 5. Response with markdown and cache status
 
@@ -236,7 +242,7 @@ The core API endpoint that handles documentation conversion.
 **Error Handling:**
 
 - Domain validation errors (400)
-- Firecrawl API errors (500)
+- Provider/API errors (500)
 - Network timeouts (504)
 - Rate limiting (429)
 
@@ -245,7 +251,7 @@ The core API endpoint that handles documentation conversion.
 - **Framework**: [Next.js 16](https://nextjs.org/) with App Router
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
-- **API**: [Firecrawl](https://firecrawl.dev/) for web scraping
+- **API**: [Firecrawl](https://firecrawl.dev/) by default; opt-in self-hosted Playwright extraction for Node/Docker deployments
 - **Cache**: [Upstash Redis](https://upstash.com/) for distributed caching
 - **Deployment**: [Vercel](https://vercel.com/)
 - **Development**: Turbopack for fast refreshes
@@ -272,7 +278,7 @@ llm-codes/
 │   │   ├── result-processing.ts       # Final output shaping
 │   │   ├── url-utils.ts               # URL validation & handling
 │   │   └── __tests__/                 # Utility tests
-│   ├── lib/                           # Firecrawl, cache, retry, and HTTP clients
+│   ├── lib/                           # Scrape providers, cache, retry, and HTTP clients
 │   └── test/
 │       └── setup.ts                   # Test configuration
 ├── public/
@@ -298,7 +304,7 @@ llm-codes/
 
 ### Performance Optimizations
 
-- **Batched API Calls**: Reduces Firecrawl API latency by processing multiple URLs per request
+- **Batched API Calls**: Reduces provider latency by processing multiple URLs per request
 - **Progressive Loading**: UI updates with real-time progress during long crawls
 - **Smart Link Extraction**: Only follows relevant documentation links based on URL patterns
 - **Client-Side Caching**: Browser-based result caching for repeat operations
@@ -321,7 +327,7 @@ pnpm run type-check
 # Full local gate
 pnpm run verify
 
-# Live Firecrawl mode smoke without a browser
+# Live Firecrawl mode smoke without a local browser
 pnpm run verify:modes:live
 ```
 
@@ -374,11 +380,12 @@ Benefits:
 - Cache persists across deployments
 - Shared cache across all instances
 - Automatic compression for large documents
-- ~70% reduction in Firecrawl API calls
+- ~70% reduction in provider calls
 
 ### Deployment Issues?
 
-- Ensure `FIRECRAWL_API_KEY` is set in environment variables
+- Ensure `FIRECRAWL_API_KEY` is set when `SCRAPE_PROVIDER=firecrawl`
+- For `SCRAPE_PROVIDER=playwright`, run `pnpm exec playwright install chromium` on the self-hosted server
 - Check Vercel function logs for errors
 - Verify your API key is valid
 
@@ -388,11 +395,18 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Architecture Decisions
 
-### Why Firecrawl?
+### Why Firecrawl by default?
 
 - Handles JavaScript-heavy sites that traditional scrapers can't parse
 - Built-in markdown conversion with semantic structure preservation
 - Reliable headless browser automation at scale
+- Fits serverless deployments without shipping a browser binary
+
+### Why Playwright as the self-hosted alternative?
+
+- Keeps extraction in the existing Next.js app instead of adding a Python crawler or separate Firecrawl-compatible service
+- Uses a real browser for JavaScript-rendered docs and returns the same Markdown-shaped API response
+- Has one operational prerequisite: local Chromium via `pnpm exec playwright install chromium`
 
 ### Why Next.js 16 + App Router?
 
@@ -416,7 +430,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgments
 
-- Powered by [Firecrawl](https://firecrawl.dev/referral?rid=9CG538BE) for JavaScript rendering
+- Powered by [Firecrawl](https://firecrawl.dev/referral?rid=9CG538BE) by default, with optional self-hosted Playwright rendering
 - Inspired by the challenges of making documentation accessible to AI agents
 - Built with Next.js 16, Tailwind CSS v4, and TypeScript
 

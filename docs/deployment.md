@@ -6,10 +6,10 @@ llm-codes is a Next.js 16 application optimized for serverless deployment with b
 
 ## Overview
 
-The application uses Next.js App Router with server-side rendering and API routes. Key deployment considerations include environment variables for Firecrawl API access, optional Redis caching, and function timeout configurations for long-running scraping operations.
+The application uses Next.js App Router with server-side rendering and API routes. Key deployment considerations include scrape provider selection, optional Redis caching, and function timeout configurations for long-running scraping operations.
 
 **Build Output** - Production bundle in .next/ directory, static assets in public/
-**Key Dependencies** - Node.js 24+, pnpm 10+, Firecrawl API key, optional Upstash Redis
+**Key Dependencies** - Node.js 24+, pnpm 10+, Firecrawl API key for the default provider, optional Chromium/Playwright for self-hosted extraction, optional Upstash Redis
 **Function Limits** - 60-second timeout for scraping API, configurable in vercel.json
 
 ## Package Types
@@ -40,7 +40,7 @@ pnpm run type-check
 ### Vercel (Recommended)
 
 **Configuration** - vercel.json sets 60-second timeout for API route
-**Environment** - Set FIRECRAWL_API_KEY in Vercel dashboard
+**Environment** - Set FIRECRAWL_API_KEY in Vercel dashboard. Keep `SCRAPE_PROVIDER=firecrawl` on serverless unless the platform includes a compatible browser runtime.
 **Auto-deploy** - Push to GitHub main branch triggers deployment
 
 ```bash
@@ -55,7 +55,7 @@ pnpm dlx vercel --prod
 
 **Build Settings** - Build command: `pnpm run build`, publish: `.next`
 **Functions** - Requires netlify.toml for API timeout configuration
-**Environment** - Add FIRECRAWL_API_KEY in site settings
+**Environment** - Add FIRECRAWL_API_KEY in site settings for the default provider
 
 ```toml
 # netlify.toml (create if needed)
@@ -103,8 +103,13 @@ CMD ["pnpm", "start"]
 **Required Variables** - Set in .env.local for development, platform dashboard for production
 
 ```bash
-# Firecrawl API (required)
+# Firecrawl API (required when SCRAPE_PROVIDER=firecrawl)
+SCRAPE_PROVIDER=firecrawl
 FIRECRAWL_API_KEY=your_api_key_here
+
+# Self-hosted Playwright provider
+# SCRAPE_PROVIDER=playwright
+# pnpm exec playwright install chromium
 
 # Redis Cache (optional)
 UPSTASH_REDIS_REST_URL=your_redis_url
@@ -126,7 +131,7 @@ VERCEL_URL=https://your-deployment.vercel.app
 
 **Caching Strategy** - 30-day Redis cache with LZ-string compression (redis-cache.ts lines 76-88)
 **Batch Processing** - 10 concurrent URLs per batch (constants.ts)
-**Function Timeouts** - 60 seconds for Firecrawl API calls (vercel.json line 4)
+**Function Timeouts** - 60 seconds for provider calls (vercel.json line 4)
 **Compression** - Automatic for content >5KB (redis-cache.ts line 26)
 
 ### Next.js Optimizations
@@ -184,5 +189,6 @@ curl https://your-app.vercel.app/api/scrape \
 
 **Function Timeouts** - Increase limits in vercel.json or netlify.toml
 **Redis Connection** - Check UPSTASH_REDIS_REST_URL format and token
+**Playwright Browser Missing** - Run `pnpm exec playwright install chromium` on self-hosted servers
 **Memory Issues** - Reduce BATCH_SIZE in constants.ts for large crawls
 **CORS Errors** - API routes handle CORS automatically via Next.js

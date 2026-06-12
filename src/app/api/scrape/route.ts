@@ -9,20 +9,24 @@ import {
   readFirecrawlMarkdown,
   scrapeFirecrawlUrl,
 } from "@/lib/firecrawl";
+import { PlaywrightRequestError, scrapePlaywrightUrl } from "@/lib/playwright-scraper";
+import {
+  getProviderCacheKey,
+  getProviderName,
+  resolveScrapeProvider,
+  ScrapeProviderConfigError,
+} from "@/lib/scrape-provider";
 
 export async function POST(request: NextRequest) {
   let action: string | undefined;
 
   try {
-    const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
-
-    if (!FIRECRAWL_API_KEY) {
-      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
-    }
-
     const body = await request.json();
     const { url, codeBlocksOnly = false } = body;
     action = body.action;
+    const provider = resolveScrapeProvider();
+    const providerName = getProviderName(provider);
+    const cacheKey = getProviderCacheKey(provider, url);
 
     if (!isValidDocumentationUrl(url)) {
       return NextResponse.json(
@@ -35,40 +39,48 @@ export async function POST(request: NextRequest) {
 
     if (action === "scrape") {
       // Check cache first
-      const cached = await cacheService.get(url);
+      const cached = await cacheService.get(cacheKey);
       if (cached) {
         if (getIncompleteContentReason(cached)) {
-          await cacheService.delete(url);
+          await cacheService.delete(cacheKey);
           console.warn(`Removed truncated cached content for ${url} (${cached.length} chars)`);
         } else {
           return NextResponse.json({
             success: true,
-            data: { markdown: cached },
+            data: {
+              markdown: cached,
+              metadata: { sourceURL: url, url, provider, cached: true },
+            },
             cached: true,
+            provider,
             codeBlocksOnly, // Pass through the parameter
           });
         }
       }
 
       // Try to acquire lock for this URL
-      const lockId = await cacheService.acquireLock(url);
+      const lockId = await cacheService.acquireLock(cacheKey);
 
       if (!lockId) {
         // Another process is already scraping this URL
         console.warn(`URL ${url} is already being processed, waiting for completion...`);
 
         // Wait for the lock to be released
-        const lockReleased = await cacheService.waitForLock(url);
+        const lockReleased = await cacheService.waitForLock(cacheKey);
 
         if (lockReleased) {
           // Check cache again - the other process should have populated it
-          const cachedAfterWait = await cacheService.get(url);
+          const cachedAfterWait = await cacheService.get(cacheKey);
           if (cachedAfterWait) {
             return NextResponse.json({
               success: true,
-              data: { markdown: cachedAfterWait },
+              data: {
+                markdown: cachedAfterWait,
+                metadata: { sourceURL: url, url, provider, cached: true },
+              },
               cached: true,
               waitedForLock: true,
+              provider,
               codeBlocksOnly, // Pass through the parameter
             });
           }
@@ -79,20 +91,34 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        // Check circuit breaker before attempting to scrape
-        const canRequest = await cacheService.firecrawlCircuitBreaker.canRequest();
+        const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
 
-        if (!canRequest) {
-          console.error(`Circuit breaker is OPEN for Firecrawl API, failing fast for ${url}`);
-          return NextResponse.json(
-            {
-              error: "Documentation service is temporarily unavailable",
-              details:
-                "The service is experiencing high failure rates. Please try again in a minute.",
-              circuitBreaker: "open",
-            },
-            { status: 503 },
-          );
+        if (provider === "firecrawl") {
+          if (!FIRECRAWL_API_KEY) {
+            return NextResponse.json(
+              {
+                error:
+                  "Server configuration error: FIRECRAWL_API_KEY is required when SCRAPE_PROVIDER=firecrawl.",
+              },
+              { status: 500 },
+            );
+          }
+
+          // Check circuit breaker before attempting to scrape
+          const canRequest = await cacheService.firecrawlCircuitBreaker.canRequest();
+
+          if (!canRequest) {
+            console.error(`Circuit breaker is OPEN for Firecrawl API, failing fast for ${url}`);
+            return NextResponse.json(
+              {
+                error: "Documentation service is temporarily unavailable",
+                details:
+                  "The service is experiencing high failure rates. Please try again in a minute.",
+                circuitBreaker: "open",
+              },
+              { status: 503 },
+            );
+          }
         }
 
         const { MAX_RETRIES, INITIAL_RETRY_DELAY, MAX_RETRY_DELAY, RETRY_STATUS_CODES } =
@@ -113,11 +139,17 @@ export async function POST(request: NextRequest) {
           }
 
           try {
-            const data = await scrapeFirecrawlUrl(FIRECRAWL_API_KEY, url, {
-              formats: ["markdown"],
-              waitFor: PROCESSING_CONFIG.FIRECRAWL_WAIT_TIME,
-              timeout: PROCESSING_CONFIG.FIRECRAWL_TIMEOUT,
-            });
+            const data =
+              provider === "firecrawl"
+                ? await scrapeFirecrawlUrl(FIRECRAWL_API_KEY!, url, {
+                    formats: ["markdown"],
+                    waitFor: PROCESSING_CONFIG.FIRECRAWL_WAIT_TIME,
+                    timeout: PROCESSING_CONFIG.FIRECRAWL_TIMEOUT,
+                  })
+                : await scrapePlaywrightUrl(url, {
+                    waitFor: PROCESSING_CONFIG.FIRECRAWL_WAIT_TIME,
+                    timeout: PROCESSING_CONFIG.FIRECRAWL_TIMEOUT,
+                  });
 
             const markdown = readFirecrawlMarkdown(data);
             const incompleteReason = getIncompleteContentReason(markdown);
@@ -141,32 +173,44 @@ export async function POST(request: NextRequest) {
             }
 
             if (isCacheableFirecrawlContent(markdown)) {
-              await cacheService.set(url, markdown);
+              await cacheService.set(cacheKey, markdown);
             } else {
               console.warn(`Content for ${url} is short (${markdown.length} chars) but proceeding`);
             }
 
-            await cacheService.firecrawlCircuitBreaker.recordSuccess();
-            cacheService.incrementFirecrawlFetches();
+            if (provider === "firecrawl") {
+              await cacheService.firecrawlCircuitBreaker.recordSuccess();
+              cacheService.incrementFirecrawlFetches();
+            }
 
             return NextResponse.json({
               success: true,
-              data: { markdown },
+              data: { markdown, metadata: data.data?.metadata },
               cached: false,
+              provider,
               retriesUsed: attempt,
               contentLength: markdown.length,
               codeBlocksOnly,
             });
           } catch (error) {
-            if (error instanceof FirecrawlRequestError) {
+            if (error instanceof FirecrawlRequestError || error instanceof PlaywrightRequestError) {
               lastError = error.message;
               lastStatus = error.status;
+              const retryable =
+                error instanceof FirecrawlRequestError
+                  ? RETRY_STATUS_CODES.includes(error.status)
+                  : error.retryable;
 
-              if (!RETRY_STATUS_CODES.includes(error.status) || attempt === MAX_RETRIES) {
-                if (RETRY_STATUS_CODES.includes(error.status)) {
+              if (!retryable || attempt === MAX_RETRIES) {
+                if (provider === "firecrawl" && retryable) {
                   await cacheService.firecrawlCircuitBreaker.recordFailure();
                 }
-                return NextResponse.json({ error: error.message }, { status: error.status });
+                const errorResponse: { error: string; provider: string; details?: unknown } = {
+                  error: error.message,
+                  provider,
+                };
+                if (error.details) errorResponse.details = error.details;
+                return NextResponse.json(errorResponse, { status: error.status });
               }
               continue;
             }
@@ -176,10 +220,18 @@ export async function POST(request: NextRequest) {
 
             if (attempt === MAX_RETRIES) {
               // Record failure in circuit breaker
-              await cacheService.firecrawlCircuitBreaker.recordFailure();
-              console.error(`Failed to scrape ${url} after ${MAX_RETRIES + 1} attempts:`, error);
+              if (provider === "firecrawl") {
+                await cacheService.firecrawlCircuitBreaker.recordFailure();
+              }
+              console.error(
+                `Failed to scrape ${url} with ${providerName} after ${MAX_RETRIES + 1} attempts:`,
+                error,
+              );
               return NextResponse.json(
-                { error: `Network error after ${MAX_RETRIES + 1} attempts: ${lastError}` },
+                {
+                  error: `Network error after ${MAX_RETRIES + 1} attempts: ${lastError}`,
+                  provider,
+                },
                 { status: 500 },
               );
             }
@@ -188,7 +240,9 @@ export async function POST(request: NextRequest) {
 
         // If we got here, all retries failed
         // Record failure in circuit breaker
-        await cacheService.firecrawlCircuitBreaker.recordFailure();
+        if (provider === "firecrawl") {
+          await cacheService.firecrawlCircuitBreaker.recordFailure();
+        }
 
         // Provide helpful error message for truncated content
         if (lastError?.includes("Truncated content")) {
@@ -206,19 +260,23 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json(
-          { error: lastError || "Failed to scrape after multiple attempts" },
+          { error: lastError || "Failed to scrape after multiple attempts", provider },
           { status: lastStatus || 500 },
         );
       } finally {
         // Always release the lock if we acquired one
         if (lockId) {
-          await cacheService.releaseLock(url, lockId);
+          await cacheService.releaseLock(cacheKey, lockId);
         }
       }
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (error) {
+    if (error instanceof ScrapeProviderConfigError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
     console.error("API Error:", error);
     // Cache statistics logged even on error
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
