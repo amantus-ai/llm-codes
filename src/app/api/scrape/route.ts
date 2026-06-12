@@ -14,8 +14,22 @@ import {
   getProviderCacheKey,
   getProviderName,
   resolveScrapeProvider,
+  ScrapeProvider,
   ScrapeProviderConfigError,
 } from "@/lib/scrape-provider";
+
+interface CachedScrapePayload {
+  cacheVersion: 1;
+  markdown: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface DecodedCachedScrape {
+  markdown: string;
+  metadata: Record<string, unknown>;
+}
+
+const SCRAPE_CACHE_VERSION = 1;
 
 export async function POST(request: NextRequest) {
   let action: string | undefined;
@@ -41,15 +55,22 @@ export async function POST(request: NextRequest) {
       // Check cache first
       const cached = await cacheService.get(cacheKey);
       if (cached) {
-        if (getIncompleteContentReason(cached)) {
+        const cachedScrape =
+          provider === "playwright"
+            ? decodeCachedScrape(cached, provider, url)
+            : decodeLegacyCachedScrape(cached, provider, url);
+
+        if (getIncompleteContentReason(cachedScrape.markdown)) {
           await cacheService.delete(cacheKey);
-          console.warn(`Removed truncated cached content for ${url} (${cached.length} chars)`);
+          console.warn(
+            `Removed truncated cached content for ${url} (${cachedScrape.markdown.length} chars)`,
+          );
         } else {
           return NextResponse.json({
             success: true,
             data: {
-              markdown: cached,
-              metadata: { sourceURL: url, url, provider, cached: true },
+              markdown: cachedScrape.markdown,
+              metadata: cachedScrape.metadata,
             },
             cached: true,
             provider,
@@ -72,11 +93,15 @@ export async function POST(request: NextRequest) {
           // Check cache again - the other process should have populated it
           const cachedAfterWait = await cacheService.get(cacheKey);
           if (cachedAfterWait) {
+            const cachedScrape =
+              provider === "playwright"
+                ? decodeCachedScrape(cachedAfterWait, provider, url)
+                : decodeLegacyCachedScrape(cachedAfterWait, provider, url);
             return NextResponse.json({
               success: true,
               data: {
-                markdown: cachedAfterWait,
-                metadata: { sourceURL: url, url, provider, cached: true },
+                markdown: cachedScrape.markdown,
+                metadata: cachedScrape.metadata,
               },
               cached: true,
               waitedForLock: true,
@@ -91,7 +116,7 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
+        const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY?.trim();
 
         if (provider === "firecrawl") {
           if (!FIRECRAWL_API_KEY) {
@@ -114,6 +139,7 @@ export async function POST(request: NextRequest) {
                 error: "Documentation service is temporarily unavailable",
                 details:
                   "The service is experiencing high failure rates. Please try again in a minute.",
+                provider,
                 circuitBreaker: "open",
               },
               { status: 503 },
@@ -173,7 +199,15 @@ export async function POST(request: NextRequest) {
             }
 
             if (isCacheableFirecrawlContent(markdown)) {
-              await cacheService.set(cacheKey, markdown);
+              await cacheService.set(
+                cacheKey,
+                provider === "playwright"
+                  ? encodeCachedScrape(
+                      markdown,
+                      buildScrapeMetadata(data.data?.metadata, provider, url, false),
+                    )
+                  : markdown,
+              );
             } else {
               console.warn(`Content for ${url} is short (${markdown.length} chars) but proceeding`);
             }
@@ -185,7 +219,10 @@ export async function POST(request: NextRequest) {
 
             return NextResponse.json({
               success: true,
-              data: { markdown, metadata: data.data?.metadata },
+              data: {
+                markdown,
+                metadata: buildScrapeMetadata(data.data?.metadata, provider, url, false),
+              },
               cached: false,
               provider,
               retriesUsed: attempt,
@@ -286,4 +323,62 @@ export async function POST(request: NextRequest) {
       // Stats available via cacheService.getStats()
     }
   }
+}
+
+function encodeCachedScrape(markdown: string, metadata: Record<string, unknown>): string {
+  const payload: CachedScrapePayload = {
+    cacheVersion: SCRAPE_CACHE_VERSION,
+    markdown,
+    metadata,
+  };
+  return JSON.stringify(payload);
+}
+
+function decodeCachedScrape(
+  cached: string,
+  provider: ScrapeProvider,
+  requestedUrl: string,
+): DecodedCachedScrape {
+  try {
+    const parsed = JSON.parse(cached) as Partial<CachedScrapePayload>;
+    if (parsed.cacheVersion === SCRAPE_CACHE_VERSION && typeof parsed.markdown === "string") {
+      return {
+        markdown: parsed.markdown,
+        metadata: buildScrapeMetadata(parsed.metadata, provider, requestedUrl, true),
+      };
+    }
+  } catch {
+    // Legacy cache entries are raw markdown strings.
+  }
+
+  return {
+    markdown: cached,
+    metadata: buildScrapeMetadata(undefined, provider, requestedUrl, true),
+  };
+}
+
+function decodeLegacyCachedScrape(
+  cached: string,
+  provider: ScrapeProvider,
+  requestedUrl: string,
+): DecodedCachedScrape {
+  return {
+    markdown: cached,
+    metadata: buildScrapeMetadata(undefined, provider, requestedUrl, true),
+  };
+}
+
+function buildScrapeMetadata(
+  metadata: Record<string, unknown> | undefined,
+  provider: ScrapeProvider,
+  requestedUrl: string,
+  cached: boolean,
+): Record<string, unknown> {
+  return {
+    sourceURL: requestedUrl,
+    url: requestedUrl,
+    ...metadata,
+    provider,
+    cached,
+  };
 }

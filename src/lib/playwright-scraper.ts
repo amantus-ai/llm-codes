@@ -47,7 +47,13 @@ export class PlaywrightRequestError extends Error {
   }
 }
 
-const dnsResolutionCache = new Map<string, Promise<string | null>>();
+const DNS_CACHE_TTL_MS = 5 * 60 * 1000;
+const DNS_NEGATIVE_CACHE_TTL_MS = 30 * 1000;
+
+const dnsResolutionCache = new Map<
+  string,
+  { promise: Promise<string | null>; expiresAt: number }
+>();
 
 export async function scrapePlaywrightUrl(
   url: string,
@@ -94,7 +100,9 @@ export async function scrapePlaywrightUrl(
       timeout,
       args: isIP(navigationHost)
         ? []
-        : [`--host-resolver-rules=MAP ${navigationHost} ${pinnedAddress}`],
+        : [
+            `--host-resolver-rules=MAP ${navigationHost} ${formatHostResolverAddress(pinnedAddress)}`,
+          ],
     });
 
     context = await browser.newContext({
@@ -200,8 +208,7 @@ export async function scrapePlaywrightUrl(
     if (error instanceof PlaywrightRequestError) throw error;
 
     const message = stripAnsi(error instanceof Error ? error.message : "Unknown Playwright error");
-    const isBrowserInstallError =
-      message.includes("Executable doesn't exist") || message.includes("browserType.launch");
+    const isBrowserInstallError = message.includes("Executable doesn't exist");
     const isExtractionError = message.includes("page.evaluate");
 
     throw new PlaywrightRequestError(
@@ -311,18 +318,31 @@ async function resolvePublicHostname(hostname: string): Promise<string | null> {
   if (isPrivateOrLocalHostname(host)) return null;
   if (isIP(host)) return host;
 
+  const now = Date.now();
   let cached = dnsResolutionCache.get(host);
-  if (!cached) {
-    cached = lookup(host, { all: true, verbatim: true })
+  if (!cached || cached.expiresAt <= now) {
+    const promise = lookup(host, { all: true, verbatim: true })
       .then((records) => {
         const safeRecord = records.find((record) => !isPrivateOrLocalHostname(record.address));
         return safeRecord?.address || null;
       })
       .catch(() => null);
+    cached = { promise, expiresAt: now + DNS_CACHE_TTL_MS };
     dnsResolutionCache.set(host, cached);
   }
 
-  return cached;
+  const result = await cached.promise;
+  if (result === null) {
+    const current = dnsResolutionCache.get(host);
+    if (current?.promise === cached.promise) {
+      current.expiresAt = Date.now() + DNS_NEGATIVE_CACHE_TTL_MS;
+    }
+  }
+  return result;
+}
+
+function formatHostResolverAddress(address: string): string {
+  return address.includes(":") ? `[${address}]` : address;
 }
 
 function isPrivateOrLocalHostname(hostname: string): boolean {
@@ -473,7 +493,11 @@ function extractMarkdownFromPage(requestedURL) {
       const href = element.getAttribute('href');
       if (!text) return '';
       if (!href || href.startsWith('#') || href.startsWith('javascript:')) return text;
-      return '[' + text + '](' + new URL(href, window.location.href).href + ')';
+      try {
+        return '[' + text + '](' + new URL(href, window.location.href).href + ')';
+      } catch {
+        return text;
+      }
     }
 
     if (tag === 'ul' || tag === 'ol') {

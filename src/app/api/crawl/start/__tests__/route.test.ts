@@ -180,6 +180,28 @@ describe("POST /api/crawl/start", () => {
     expect(http2Fetch).not.toHaveBeenCalled();
   });
 
+  it("surfaces unsupported scrape provider configuration errors", async () => {
+    const { isValidDocumentationUrl } = await import("@/utils/url-utils");
+    const { http2Fetch } = await import("@/lib/http2-client");
+
+    process.env.SCRAPE_PROVIDER = "invalid-provider";
+    (isValidDocumentationUrl as Mock).mockReturnValue(true);
+
+    const request = new NextRequest("http://localhost:3000/api/crawl/start", {
+      method: "POST",
+      body: JSON.stringify({
+        url: "https://docs.example.com",
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data.error).toContain('Unsupported SCRAPE_PROVIDER "invalid-provider"');
+    expect(http2Fetch).not.toHaveBeenCalled();
+  });
+
   it("should handle API errors", async () => {
     const { isValidDocumentationUrl } = await import("@/utils/url-utils");
     const { http2Fetch } = await import("@/lib/http2-client");
@@ -224,5 +246,27 @@ describe("POST /api/crawl/start", () => {
 
     expect(response.status).toBe(500);
     expect(data.error).toContain("Server configuration error");
+  });
+
+  it("rejects whitespace-only API keys before calling Firecrawl", async () => {
+    const { isValidDocumentationUrl } = await import("@/utils/url-utils");
+    const { http2Fetch } = await import("@/lib/http2-client");
+
+    process.env.FIRECRAWL_API_KEY = "   ";
+    (isValidDocumentationUrl as Mock).mockReturnValue(true);
+
+    const request = new NextRequest("http://localhost:3000/api/crawl/start", {
+      method: "POST",
+      body: JSON.stringify({
+        url: "https://docs.example.com",
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data.error).toContain("Server configuration error");
+    expect(http2Fetch).not.toHaveBeenCalled();
   });
 });

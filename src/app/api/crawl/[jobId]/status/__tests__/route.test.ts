@@ -88,6 +88,45 @@ describe("GET /api/crawl/[jobId]/status", () => {
     expect(http2Fetch).toHaveBeenCalled();
   });
 
+  it("trims the Firecrawl API key before polling crawl status", async () => {
+    process.env.FIRECRAWL_API_KEY = "  test-api-key  ";
+    vi.mocked(cacheService.getCrawlJob).mockResolvedValue({
+      id: mockJobId,
+      url: "https://example.com",
+      limit: 10,
+      startedAt: new Date().toISOString(),
+      status: "scraping",
+      totalPages: 0,
+      completedPages: 0,
+      creditsUsed: 0,
+    });
+    vi.mocked(http2Fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue({
+        status: "completed",
+        total: 0,
+        completed: 0,
+        creditsUsed: 0,
+        data: [],
+      }),
+    } as unknown as Response);
+    vi.mocked(cacheService.updateCrawlJobStatus).mockResolvedValue();
+    vi.mocked(cacheService.setCrawlResults).mockResolvedValue();
+
+    const response = await GET(mockRequest, { params: mockParams });
+    await response.body?.getReader().read();
+
+    expect(http2Fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: "Bearer test-api-key",
+        }),
+      }),
+    );
+  });
+
   it("should log 502 errors without sending them to client", async () => {
     const consoleErrorSpy = vi.spyOn(console, "error");
 

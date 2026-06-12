@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
+    const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY?.trim();
 
     if (!FIRECRAWL_API_KEY) {
       return NextResponse.json(

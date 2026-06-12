@@ -15,6 +15,7 @@ vi.mock("node:dns/promises", () => ({
 
 describe("playwright-scraper navigation policy", () => {
   beforeEach(() => {
+    vi.useRealTimers();
     lookupMock.mockReset();
   });
 
@@ -100,5 +101,47 @@ describe("playwright-scraper navigation policy", () => {
     await expect(
       isAllowedPlaywrightNetworkUrl("https://cdn.example.com/app.js", false),
     ).resolves.toBe(true);
+  });
+
+  it("refreshes DNS pinning after the cache TTL", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
+    lookupMock.mockResolvedValue([{ address: "93.184.216.34", family: 4 }]);
+
+    await expect(
+      isAllowedPlaywrightNetworkUrl("https://docs.example-cache-ttl.com/", true),
+    ).resolves.toBe(true);
+    await expect(
+      isAllowedPlaywrightNetworkUrl("https://docs.example-cache-ttl.com/", true),
+    ).resolves.toBe(true);
+    expect(lookupMock).toHaveBeenCalledTimes(1);
+
+    vi.setSystemTime(new Date("2026-01-01T00:05:01Z"));
+
+    await expect(
+      isAllowedPlaywrightNetworkUrl("https://docs.example-cache-ttl.com/", true),
+    ).resolves.toBe(true);
+    expect(lookupMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("negative-caches rejected DNS lookups briefly", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
+    lookupMock.mockRejectedValue(new Error("temporary DNS failure"));
+
+    await expect(
+      isAllowedPlaywrightNetworkUrl("https://docs.example-negative-cache.com/", true),
+    ).resolves.toBe(false);
+    await expect(
+      isAllowedPlaywrightNetworkUrl("https://docs.example-negative-cache.com/", true),
+    ).resolves.toBe(false);
+    expect(lookupMock).toHaveBeenCalledTimes(1);
+
+    vi.setSystemTime(new Date("2026-01-01T00:00:31Z"));
+
+    await expect(
+      isAllowedPlaywrightNetworkUrl("https://docs.example-negative-cache.com/", true),
+    ).resolves.toBe(false);
+    expect(lookupMock).toHaveBeenCalledTimes(2);
   });
 });

@@ -73,6 +73,62 @@ describe("POST /api/scrape", () => {
     expect(scrapeFirecrawlUrl).not.toHaveBeenCalled();
   });
 
+  it("returns stored metadata on cache hits", async () => {
+    vi.mocked(cacheService.get).mockResolvedValue(
+      JSON.stringify({
+        cacheVersion: 1,
+        markdown: "# Cached\n\n" + "content ".repeat(80),
+        metadata: {
+          sourceURL: "https://developer.apple.com/documentation/swiftui/view",
+          url: "https://developer.apple.com/documentation/swiftui/view",
+          title: "View | Apple Developer Documentation",
+          provider: "playwright",
+          status: 200,
+        },
+      }),
+    );
+
+    process.env.SCRAPE_PROVIDER = "playwright";
+
+    const response = await POST(
+      scrapeRequest({ url: "https://developer.apple.com/documentation/swiftui" }),
+    );
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.cached).toBe(true);
+    expect(data.data.markdown).toContain("# Cached");
+    expect(data.data.metadata).toEqual(
+      expect.objectContaining({
+        sourceURL: "https://developer.apple.com/documentation/swiftui/view",
+        url: "https://developer.apple.com/documentation/swiftui/view",
+        title: "View | Apple Developer Documentation",
+        provider: "playwright",
+        status: 200,
+        cached: true,
+      }),
+    );
+    expect(scrapePlaywrightUrl).not.toHaveBeenCalled();
+  });
+
+  it("keeps Firecrawl cache hits as raw markdown even when they look like JSON payloads", async () => {
+    const rawMarkdown = JSON.stringify({
+      cacheVersion: 1,
+      markdown: "# Inner markdown that should not replace the raw Firecrawl cache",
+    });
+    vi.mocked(cacheService.get).mockResolvedValue(rawMarkdown);
+
+    const response = await POST(
+      scrapeRequest({ url: "https://developer.apple.com/documentation/swiftui" }),
+    );
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.cached).toBe(true);
+    expect(data.data.markdown).toBe(rawMarkdown);
+    expect(scrapeFirecrawlUrl).not.toHaveBeenCalled();
+  });
+
   it("uses Playwright without a Firecrawl key when configured", async () => {
     process.env.SCRAPE_PROVIDER = "playwright";
     delete process.env.FIRECRAWL_API_KEY;
@@ -190,6 +246,10 @@ describe("POST /api/scrape", () => {
     expect(response.status).toBe(200);
     expect(data.retriesUsed).toBe(1);
     expect(scrapeFirecrawlUrl).toHaveBeenCalledTimes(2);
+    expect(cacheService.set).toHaveBeenCalledWith(
+      "https://developer.apple.com/documentation/swiftui",
+      "# Complete\n\n" + "content ".repeat(80),
+    );
     expect(cacheService.firecrawlCircuitBreaker.recordSuccess).toHaveBeenCalled();
   });
 
@@ -211,6 +271,25 @@ describe("POST /api/scrape", () => {
     );
   });
 
+  it("trims the Firecrawl API key before scraping", async () => {
+    process.env.FIRECRAWL_API_KEY = "  test-api-key  ";
+    vi.mocked(scrapeFirecrawlUrl).mockResolvedValue({
+      success: true,
+      data: { markdown: "# Complete\n\n" + "content ".repeat(80) },
+    });
+
+    const response = await POST(
+      scrapeRequest({ url: "https://developer.apple.com/documentation/swiftui" }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(scrapeFirecrawlUrl).toHaveBeenCalledWith(
+      "test-api-key",
+      "https://developer.apple.com/documentation/swiftui",
+      expect.any(Object),
+    );
+  });
+
   it("fails fast when the circuit breaker is open", async () => {
     vi.mocked(cacheService.firecrawlCircuitBreaker.canRequest).mockResolvedValue(false);
 
@@ -221,6 +300,7 @@ describe("POST /api/scrape", () => {
 
     expect(response.status).toBe(503);
     expect(data.circuitBreaker).toBe("open");
+    expect(data.provider).toBe("firecrawl");
     expect(scrapeFirecrawlUrl).not.toHaveBeenCalled();
   });
 
