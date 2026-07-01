@@ -90,7 +90,7 @@ pm2 start pnpm --name "llm-codes" -- start
 FROM node:24-alpine
 WORKDIR /app
 RUN corepack enable
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --prod --frozen-lockfile
 COPY . .
 RUN pnpm run build
