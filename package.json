@@ -41,34 +41,34 @@
     "format:check": "oxfmt --check ."
   },
   "dependencies": {
-    "@tailwindcss/postcss": "^4.2.4",
+    "@tailwindcss/postcss": "^4.3.2",
     "@upstash/redis": "^1.38.0",
     "@vercel/analytics": "^2.0.1",
     "lz-string": "^1.5.0",
-    "next": "16.2.6",
-    "playwright": "^1.60.0",
-    "postcss": "^8.5.14",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6",
-    "tailwindcss": "^4.2.4",
-    "undici": "^8.2.0"
+    "next": "16.2.9",
+    "playwright": "^1.61.1",
+    "postcss": "^8.5.16",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tailwindcss": "^4.3.2",
+    "undici": "^8.5.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "25.6.2",
-    "@types/react": "19.2.14",
+    "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "@typescript/native-preview": "7.0.0-dev.20260507.1",
-    "@vitejs/plugin-react": "^6.0.1",
-    "@vitest/coverage-v8": "^4.1.5",
-    "@vitest/ui": "^4.1.5",
-    "happy-dom": "^20.9.0",
-    "oxfmt": "^0.48.0",
-    "oxlint": "^1.63.0",
+    "@vitejs/plugin-react": "^6.0.3",
+    "@vitest/coverage-v8": "^4.1.9",
+    "@vitest/ui": "^4.1.9",
+    "happy-dom": "^20.10.6",
+    "oxfmt": "^0.57.0",
+    "oxlint": "^1.72.0",
     "typescript": "6.0.3",
-    "vite": "^8.0.11",
-    "vitest": "^4.1.5"
+    "vite": "^8.1.2",
+    "vitest": "^4.1.9"
   },
   "engines": {
     "node": ">=24.0.0"
