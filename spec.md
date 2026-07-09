@@ -178,7 +178,7 @@ The Web Documentation to Markdown Converter supports 69 documentation sites acro
 
 ```
 - Framework: Next.js 16 (App Router)
-- Language: TypeScript 6 (strict mode)
+- Language: TypeScript 7 (strict mode)
 - Styling: Tailwind CSS v4.0 (semantic color system)
 - UI Library: React 19.1.0
 - Build Tool: Turbopack (lightning-fast HMR)

@@ -74,7 +74,7 @@ pnpm start
 pnpm run type-check
 ```
 
-- Runs `tsgo --noEmit` to check types without emitting files
+- Runs `tsc --noEmit` to check types without emitting files
 - Configuration from `tsconfig.json`
 
 **Linting**
@@ -129,7 +129,7 @@ UPSTASH_REDIS_REST_TOKEN=your_redis_token
 **Core Build Tools**
 
 - Next.js 16 - React framework with app router
-- TypeScript 6 - Type safety
+- TypeScript 7 - Type safety
 - Tailwind CSS 4 - Styling with PostCSS
 - Vitest 4 - Test runner
 

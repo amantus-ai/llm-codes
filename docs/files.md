@@ -93,7 +93,7 @@ File organization follows Next.js App Router conventions with `src/app` for rout
 
 ## Dependencies
 
-**Core Framework**: Next.js 16 with App Router, React 19, TypeScript 6
+**Core Framework**: Next.js 16 with App Router, React 19, TypeScript 7
 **Styling**: Tailwind CSS v4 and custom CSS utilities
 **Testing**: Vitest with happy-dom, coverage reporting, and optional live Firecrawl smoke scripts
 **External APIs**: Firecrawl by default; optional self-hosted Playwright browser extraction

@@ -26,7 +26,7 @@ llm.codes is a high-performance web service that converts JavaScript-heavy docum
 **Framework & Language**:
 
 - Next.js 16 with App Router - `next.config.js`, `src/app/` directory structure
-- TypeScript 6 with strict mode - `tsconfig.json` (lines 7: `"strict": true`)
+- TypeScript 7 with strict mode - `tsconfig.json` (lines 7: `"strict": true`)
 - React 19 - `package.json`
 
 **UI & Styling**:
